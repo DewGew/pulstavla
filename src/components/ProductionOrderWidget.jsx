@@ -36,6 +36,7 @@ export default function ProductionOrderImport() {
 
   useEffect(() => {
     fetchOrders();
+    if (!socket.connected) socket.connect();
     socket.on("productionOrdersUpdated", fetchOrders);
     return () => socket.disconnect();
   }, []);
