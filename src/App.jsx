@@ -45,6 +45,8 @@ const socket = io(WS_URL, {
   reconnectionAttempts: 10,
   reconnectionDelay: 1000,
   timeout: 5000,
+
+  auth: (cb) => cb({ token: localStorage.getItem("token") }),
 });
 
 export default function App() {
@@ -112,6 +114,7 @@ export default function App() {
   const handleLogin = (loggedInUser) => {
     setUser(loggedInUser);
     localStorage.setItem("user", JSON.stringify(loggedInUser));
+    if (!socket.connected) socket.connect();
   };
 
   // FIX: useCallback so logout has a stable reference across renders,
@@ -199,7 +202,7 @@ export default function App() {
   useEffect(() => {
     if (!user?.username) return;
 
-    const register = () => socket.emit("registerUser", user.username);
+    const register = () => socket.emit("registerUser");
     register();
     socket.on("connect", register);
     return () => socket.off("connect", register);
