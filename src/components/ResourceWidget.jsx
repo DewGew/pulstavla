@@ -85,6 +85,7 @@ export default function ResourceWidget({ currentUser }) {
 
   /* ---------------- WebSocket uppdatering ---------------- */
   useEffect(() => {
+    if (!socket.connected) socket.connect();
     socket.on("presenceUpdated", ({ username, status: s, operator }) => {
       setStatus((prev) => ({
         ...prev,
