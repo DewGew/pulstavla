@@ -41,6 +41,7 @@ export default function PresenceWidget({ currentUser }) {
 
   /* ---------------- WebSocket för realtidsuppdatering ---------------- */
   useEffect(() => {
+		if (!socket.connected) socket.connect();
 		socket.on("presenceUpdated", ({ username, present }) => {
 			setPresence(prev => ({
 				...prev,
