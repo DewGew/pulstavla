@@ -690,14 +690,18 @@ app.post("/users/add", requireAuth, requireAdmin, async (req, res) => {
 app.delete("/users/:id", requireAuth, requireAdmin, (req, res) => {
   const id = req.params.id;
 
-  usersDB.remove({ _id: id }, {}, (err, numRemoved) => {
-    if (err) return res.status(500).json({ error: "Kunde inte radera användare" });
-
-    if (numRemoved === 0) {
-      return res.status(404).json({ error: "Användare hittades inte" });
+  usersDB.findOne({ _id: id }, (findErr, targetUser) => {
+    if (findErr) return res.status(500).json({ error: "DB-fel" });
+    if (!targetUser) return res.status(404).json({ error: "Användare hittades inte" });
+    if (targetUser.role === "suAdmin" && req.user.role !== "suAdmin") {
+      return res.status(403).json({ error: "Endast Super Admin får radera Super Admin-konton." });
     }
 
-    res.json({ success: true, removed: numRemoved });
+    usersDB.remove({ _id: id }, {}, (err, numRemoved) => {
+      if (err) return res.status(500).json({ error: "Kunde inte radera användare" });
+      if (numRemoved === 0) return res.status(404).json({ error: "Användare hittades inte" });
+      res.json({ success: true, removed: numRemoved });
+    });
   });
 });
 
@@ -758,18 +762,27 @@ app.put("/users/:id", requireAuth, requireAdmin, (req, res) => {
     updateFields.password = bcrypt.hashSync(password, 12);
   }
 
-  usersDB.update({ _id: id }, { $set: updateFields }, {}, (err, numUpdated) => {
-    if (err) return res.status(500).json({ success: false, error: "Kunde inte uppdatera användare" });
-    if (numUpdated === 0) return res.status(404).json({ success: false, error: "Användare hittades inte" });
+  usersDB.findOne({ _id: id }, (findErr, targetUser) => {
+    if (findErr) return res.status(500).json({ success: false, error: "DB-fel" });
+    if (!targetUser) return res.status(404).json({ success: false, error: "Användare hittades inte" });
+    if (targetUser.role === "suAdmin" && req.user.role !== "suAdmin") {
+      return res.status(403).json({ error: "Endast Super Admin får ändra Super Admin-konton." });
+    }
 
-    res.json({ success: true, updated: { ...updateFields, password: undefined } });
+    usersDB.update({ _id: id }, { $set: updateFields }, {}, (err, numUpdated) => {
+      if (err) return res.status(500).json({ success: false, error: "Kunde inte uppdatera användare" });
+      if (numUpdated === 0) return res.status(404).json({ success: false, error: "Användare hittades inte" });
+      res.json({ success: true, updated: { ...updateFields, password: undefined } });
+    });
   });
 });
 
 const loginAttempts = new Map();
 function loginRateLimit(req, res, next) {
   const now = Date.now();
-  const key = req.ip || req.socket.remoteAddress || "unknown";
+  const ip = req.ip || req.socket.remoteAddress || "unknown";
+  const username = String(req.body?.username || "").trim().toLowerCase();
+  const key = `${ip}:${username}`;
   const entry = loginAttempts.get(key) || { count: 0, resetAt: now + 15 * 60 * 1000 };
   if (now > entry.resetAt) {
     entry.count = 0;
@@ -793,7 +806,8 @@ app.post("/login", loginRateLimit, (req, res) => {
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) return res.status(401).json({ error: "Fel lösenord" });
 
-    loginAttempts.delete(req.ip || req.socket.remoteAddress || "unknown");
+    const loginKey = `${req.ip || req.socket.remoteAddress || "unknown"}:${String(username).trim().toLowerCase()}`;
+    loginAttempts.delete(loginKey);
 
     // Save last login time
     usersDB.update(
