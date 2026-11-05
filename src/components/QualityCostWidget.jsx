@@ -3,7 +3,9 @@ import { io } from "socket.io-client";
 import { API_URL, WS_URL } from "../config";
 import "./QualityCostWidget.css";
 
-const socket = io(WS_URL, { transports: ["websocket"] });
+const socket = io(WS_URL, { transports: ["websocket"] 
+  auth: (cb) => cb({ token: localStorage.getItem("token") }),
+});
 
 export default function QualityCostWidget({
   widgetId = "quality-costs",
