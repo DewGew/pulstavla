@@ -604,27 +604,53 @@ app.get("/presence", (req, res) => {
 app.post("/presence", requireAuth, requireEditor, (req, res) => {
   const { username, present, status, operator } = req.body;
 
-  if (!username) return res.status(400).json({ error: "Username saknas" });
+  if (typeof username !== "string" || !username.trim()) {
+    return res.status(400).json({ error: "Username saknas" });
+  }
+  if (operator !== undefined && (typeof operator !== "string" || operator.length > 100)) {
+    return res.status(400).json({ error: "Ogiltig operatör" });
+  }
 
-  const updateObj = {};
-  if (present !== undefined) updateObj.present = present; // för användare
-  if (status) updateObj.status = status;                 // för maskiner
-  if (operator !== undefined) updateObj.operator = operator;
+  const updatePresence = (updateObj) => {
+    presenceDB.update(
+      { username },
+      { $set: updateObj },
+      { upsert: true },
+      (err) => {
+        if (err) return res.status(500).json({ error: "Kunde inte uppdatera närvaro" });
+        io.emit("presenceUpdated", { username, ...updateObj });
+        res.json({ success: true, username, ...updateObj });
+      }
+    );
+  };
 
-  // Spara eller uppdatera i DB
-  presenceDB.update(
-    { username },
-    { $set: updateObj },
-    { upsert: true },
-    (err) => {
-      if (err) return res.status(500).json({ error: "Kunde inte uppdatera närvaro" });
-
-      // Sänd WS-event till alla klienter
-      io.emit("presenceUpdated", { username, ...updateObj });
-
-      res.json({ success: true, username, ...updateObj });
+  // Maskinstatus får bara användas för maskiner som finns i inställningarna.
+  if (status !== undefined) {
+    if (!["green", "yellow", "red"].includes(status)) {
+      return res.status(400).json({ error: "Ogiltig maskinstatus" });
     }
-  );
+    return getSettingsObject((err, settings) => {
+      if (err) return res.status(500).json({ error: "Kunde inte läsa maskiner" });
+      const machineExists = (settings.machines?.list || []).some((machine) => machine.name === username);
+      if (!machineExists) return res.status(404).json({ error: "Maskinen hittades inte" });
+      const updateObj = { status };
+      if (operator !== undefined) updateObj.operator = operator;
+      updatePresence(updateObj);
+    });
+  }
+
+  if (typeof present !== "boolean") {
+    return res.status(400).json({ error: "Närvarostatus måste vara true eller false" });
+  }
+
+  usersDB.findOne({ username }, (err, targetUser) => {
+    if (err) return res.status(500).json({ error: "Kunde inte läsa användare" });
+    if (!targetUser) return res.status(404).json({ error: "Användaren hittades inte" });
+    if (req.user.role === "user" && targetUser.role !== "user") {
+      return res.status(403).json({ error: "Du får bara ändra närvaro för produktionsanvändare." });
+    }
+    updatePresence({ present });
+  });
 });
 
 /* ---------------- GREEN CROSS DATABASE ---------------- */
