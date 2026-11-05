@@ -118,6 +118,13 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+function requireEditor(req, res, next) {
+  if (!["user", "admin", "suAdmin"].includes(req.user.role)) {
+    return res.status(403).json({ error: "Du saknar behörighet att ändra information." });
+  }
+  next();
+}
+
 /* ---------------- HTTP SERVER + WEBSOCKET ---------------- */
 const server = https.createServer(
   app
@@ -594,7 +601,7 @@ app.get("/presence", (req, res) => {
   });
 });
 
-app.post("/presence", requireAuth, (req, res) => {
+app.post("/presence", requireAuth, requireEditor, (req, res) => {
   const { username, present, status, operator } = req.body;
 
   if (!username) return res.status(400).json({ error: "Username saknas" });
@@ -999,7 +1006,7 @@ app.get("/greenCross/:crossId/:year/:month", (req, res) => {
   });
 });
 
-app.post("/greenCross", requireAuth, (req, res) => {
+app.post("/greenCross", requireAuth, requireEditor, (req, res) => {
   const { crossId, year, month, cells } = req.body;
 
   db.update(
@@ -1033,7 +1040,7 @@ app.get("/activities", (req, res) => {
 });
 
 // Skapa aktivitet (nu med responsible)
-app.post("/activities", requireAuth, (req, res) => {
+app.post("/activities", requireAuth, requireEditor, (req, res) => {
 	const { title, category, deadline, responsible, description, image, flag, crossId, sticky } = req.body;
 
 	if (!title) return res.status(400).json({ error: "Titel krävs" });
@@ -1061,7 +1068,7 @@ app.post("/activities", requireAuth, (req, res) => {
 });
 
 // Uppdatera aktivitet (inkl responsible)
-app.put("/activities/:id", requireAuth, (req, res) => {
+app.put("/activities/:id", requireAuth, requireEditor, (req, res) => {
   const id = req.params.id;
 
   activitiesDB.findOne({ _id: id }, (err, task) => {
@@ -1091,7 +1098,7 @@ app.put("/activities/:id", requireAuth, (req, res) => {
 });
 
 // Ta bort aktivitet
-app.delete("/activities/:id", requireAuth, (req, res) => {
+app.delete("/activities/:id", requireAuth, requireEditor, (req, res) => {
   const id = req.params.id;
 
   activitiesDB.remove({ _id: id }, {}, (err) => {
@@ -1123,7 +1130,7 @@ app.get("/widgets/:textwidgetid", (req, res) => {
 });
 
 // Skapa widget (om den inte finns)
-app.post("/widgets", requireAuth, (req, res) => {
+app.post("/widgets", requireAuth, requireEditor, (req, res) => {
   const { textwidgetid, title = "", text = "" } = req.body;
   if (!textwidgetid) return res.status(400).json({ error: "textwidgetid krävs" });
 
@@ -1137,7 +1144,7 @@ app.post("/widgets", requireAuth, (req, res) => {
 });
 
 // Uppdatera widget
-app.put("/widgets/:textwidgetid", requireAuth, (req, res) => {
+app.put("/widgets/:textwidgetid", requireAuth, requireEditor, (req, res) => {
   const id = req.params.textwidgetid;
   const { title, text } = req.body;
 
@@ -1182,7 +1189,7 @@ app.get("/structured-widgets/:widgetId", (req, res) => {
   });
 });
 
-app.post("/structured-widgets", requireAuth, (req, res) => {
+app.post("/structured-widgets", requireAuth, requireEditor, (req, res) => {
   const { widgetId, title = "", sections = [] } = req.body;
 
   if (!widgetId)
@@ -1205,7 +1212,7 @@ app.post("/structured-widgets", requireAuth, (req, res) => {
   });
 });
 
-app.put("/structured-widgets/:widgetId", requireAuth, (req, res) => {
+app.put("/structured-widgets/:widgetId", requireAuth, requireEditor, (req, res) => {
   const { widgetId } = req.params;
   const { title, sections } = req.body;
 
@@ -1239,7 +1246,7 @@ app.put("/structured-widgets/:widgetId", requireAuth, (req, res) => {
   );
 });
 
-app.delete("/structured-widgets/:widgetId", requireAuth, (req, res) => {
+app.delete("/structured-widgets/:widgetId", requireAuth, requireEditor, (req, res) => {
   structuredWidgetsDB.remove(
     { widgetId: req.params.widgetId },
     {},
@@ -1280,7 +1287,7 @@ app.get("/matprotokoll/:matprotokollId", (req, res) => {
 });
 
 // Skapa/uppdatera protokoll (upsert på matprotokollId)
-app.put("/matprotokoll/:matprotokollId", requireAuth, (req, res) => {
+app.put("/matprotokoll/:matprotokollId", requireAuth, requireEditor, (req, res) => {
   const { matprotokollId } = req.params;
   const { form, measurements, pdfSaved } = req.body;
 
@@ -1324,7 +1331,7 @@ app.put("/matprotokoll/:matprotokollId", requireAuth, (req, res) => {
 });
 
 // Ta bort protokoll
-app.delete("/matprotokoll/:matprotokollId", requireAuth, (req, res) => {
+app.delete("/matprotokoll/:matprotokollId", requireAuth, requireEditor, (req, res) => {
   matprotokollDB.remove(
     { matprotokollId: req.params.matprotokollId },
     {},
@@ -1346,7 +1353,7 @@ app.get("/drawings/:drawingId", (req, res) => {
   });
 });
 
-app.post("/drawings", requireAuth, (req, res) => {
+app.post("/drawings", requireAuth, requireEditor, (req, res) => {
   const { drawingId, title = "", strokes = [] } = req.body;
 
   if (!drawingId)
@@ -1372,7 +1379,7 @@ app.post("/drawings", requireAuth, (req, res) => {
 // FIX: no requireAuth here on purpose — touch panels drawing notes are often
 // logged in as a shared kiosk user (or not logged in at all via auto-login).
 // updatedBy falls back to "Okänd" instead of relying on req.user.
-app.put("/drawings/:drawingId", requireAuth, (req, res) => {
+app.put("/drawings/:drawingId", requireAuth, requireEditor, (req, res) => {
   const { drawingId } = req.params;
   const { title, strokes } = req.body;
 
@@ -1422,7 +1429,7 @@ app.delete("/drawings/:drawingId", requireAuth, requireAdmin, (req, res) => {
   });
 });
 
-app.post("/activities/upload", requireAuth, upload.single("image"), (req, res) => {
+app.post("/activities/upload", requireAuth, requireEditor, upload.single("image"), (req, res) => {
   console.log("Upload file:", req.file);
   if (!req.file) {
     return res.status(400).json({ error: "Ingen bild vald" });
@@ -1501,7 +1508,7 @@ app.get("/checklist/:machine", (req, res) => {
 });
 
 // Skapa eller uppdatera checklistan för en maskin + vecka
-app.post("/checklist/:machine", requireAuth, (req, res) => {
+app.post("/checklist/:machine", requireAuth, requireEditor, (req, res) => {
   const { machine } = req.params;
   const { week, items = {}, comment = "", machineNumber = "" } = req.body;
 
