@@ -114,6 +114,7 @@ export default function App() {
   const handleLogin = (loggedInUser) => {
     setUser(loggedInUser);
     localStorage.setItem("user", JSON.stringify(loggedInUser));
+    window.dispatchEvent(new Event("authChanged"));
     if (!socket.connected) socket.connect();
   };
 
