@@ -70,6 +70,7 @@ export default function StructuredTextWidget({
 				setUpdatedAt(payload.updatedAt || null);
 			}
 		};
+    if (!socket.connected) socket.connect();
     socket.on("structuredWidgetUpdated", handler);
     return () => socket.off("structuredWidgetUpdated", handler);
   }, [textwidgetid]);
