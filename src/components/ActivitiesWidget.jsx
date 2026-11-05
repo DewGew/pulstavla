@@ -38,7 +38,9 @@ export default function ActivitiesWidget() {
   useEffect(() => {
     loadTasks();
 
-    const socket = io(WS_URL, { transports: ["websocket"] });
+    const socket = io(WS_URL, { transports: ["websocket"] 
+  auth: (cb) => cb({ token: localStorage.getItem("token") }),
+});
     socket.on("activitiesUpdated", loadTasks);
     return () => socket.disconnect();
   }, [loadTasks]);
