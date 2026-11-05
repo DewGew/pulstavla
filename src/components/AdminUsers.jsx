@@ -187,7 +187,12 @@ export default function AdminUsers({ currentUser, hideTitle = false, flat = fals
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`, // FIX: auth header
         },
-        body: JSON.stringify(editUser),
+        body: JSON.stringify({
+          name: editUser.name,
+          username: editUser.username,
+          email: editUser.email,
+          ...(editUser.password ? { password: editUser.password } : {}),
+        }),
       });
 
       if (!res.ok) throw new Error();
