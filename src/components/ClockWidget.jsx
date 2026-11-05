@@ -138,7 +138,7 @@ export default function ClockWidget({
 
   // Live-sync mellan skärmar — samma mönster som EditableTextWidget
   useEffect(() => {
-    const socket = io(WS_URL, { transports: ["websocket"] 
+    const socket = io(WS_URL, { transports: ["websocket"], 
   auth: (cb) => cb({ token: localStorage.getItem("token") }),
 });
 
