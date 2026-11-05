@@ -58,18 +58,6 @@ function cleanText(html) {
     .trim();
 }
 
-// FIX: extract the real client IP, stripping the IPv4-mapped-IPv6 prefix
-// ("::ffff:192.168.1.50" -> "192.168.1.50") so it matches what admins
-// type into the autoLogin settings list. Falls back to X-Forwarded-For
-// in case the app ever runs behind a reverse proxy.
-app.set("trust proxy", process.env.TRUST_PROXY === "true" ? 1 : false);
-
-function getClientIp(req) {
-  let ip = req.ip || req.socket.remoteAddress || "";
-  if (ip.startsWith("::ffff:")) ip = ip.slice(7);
-  return ip;
-}
-
 Date.prototype.getWeek = function () {
   const date = new Date(Date.UTC(this.getFullYear(), this.getMonth(), this.getDate()));
   const dayNum = date.getUTCDay() || 7;
@@ -213,16 +201,7 @@ settingsDB.count({}, (err, count) => {
 					wsUrl: "ws://ws.domain.com",
 					rotationInterval: 10000,
 				},
-			},
-			{
-				// FIX: IP -> användare/lösenord-mappning för automatisk inloggning
-				// av t.ex. kioskdatorer på verkstadsgolvet. Hanteras av admin via
-				// PUT /settings/autoLogin (redan skyddad av requireAuth+requireAdmin).
-				// Exempel på post: { ip: "192.168.1.50", username: "user", password: "test" }
-				key: "autoLogin",
-				value: [],
-			},
-			{
+			},{
 				key: "machines",
 				value: {
 					groups: {
@@ -280,14 +259,10 @@ settingsDB.count({}, (err, count) => {
       console.log("Standardinställningar skapade");
     });
   } else {
-    // FIX: om DB:n redan finns sen tidigare (utan autoLogin-nyckeln),
-    // lägg till den så äldre installationer inte saknar fältet.
-    settingsDB.findOne({ key: "autoLogin" }, (err, doc) => {
-      if (!err && !doc) {
-        settingsDB.insert({ key: "autoLogin", value: [] }, () => {
-          console.log("autoLogin-inställning tillagd");
-        });
-      }
+    // Ta bort äldre autoLogin-poster som kan innehålla lösenord i klartext.
+    settingsDB.remove({ key: "autoLogin" }, { multi: true }, (removeErr, removed) => {
+      if (removeErr) console.error("Kunde inte rensa gamla autoLogin-uppgifter:", removeErr);
+      else if (removed) console.log("Gamla autoLogin-inställningar rensades.");
     });
   }
 });
@@ -316,7 +291,7 @@ app.get("/settings", requireAuth, (req, res) => {
     // returnera som objekt istället för array
     const settings = {};
     docs.forEach(s => {
-      if (s.key !== "autoLogin") settings[s.key] = s.value;
+      settings[s.key] = s.value;
     });
 
     res.json(settings);
@@ -325,6 +300,7 @@ app.get("/settings", requireAuth, (req, res) => {
 
 app.get("/settings/:key", requireAuth, requireAdmin, (req, res) => {
   const { key } = req.params;
+  if (key === "autoLogin") return res.sendStatus(404);
 
   settingsDB.findOne({ key }, (err, doc) => {
     if (err)
@@ -338,6 +314,7 @@ app.get("/settings/:key", requireAuth, requireAdmin, (req, res) => {
 
 app.put("/settings/:key", requireAuth, requireAdmin, (req, res) => {
   const { key } = req.params;
+  if (key === "autoLogin") return res.sendStatus(410);
   const { value } = req.body;
 
   if (value === undefined) {
@@ -352,9 +329,8 @@ app.put("/settings/:key", requireAuth, requireAdmin, (req, res) => {
       if (err)
         return res.status(500).json({ error: "Kunde inte spara inställning" });
 
-      // autoLogin innehåller lösenord och får aldrig skickas till alla WS-klienter.
-      if (key !== "autoLogin") io.emit("settingsUpdated", { key, value });
-      res.json(key === "autoLogin" ? { success: true, key } : { success: true, key, value });
+      io.emit("settingsUpdated", { key, value });
+      res.json({ success: true, key, value });
     }
   );
 });
@@ -892,82 +868,6 @@ app.post("/login", loginRateLimit, (req, res) => {
   });
 });
 
-/* ---------------- AUTO-LOGIN (IP -> användare) ---------------- */
-// Kioskdatorer / fasta stationer kan logga in automatiskt genom att anropa
-// denna endpoint vid uppstart. Servern känner igen klientens IP mot listan
-// i settings.autoLogin (hanteras av admin via PUT /settings/autoLogin) och
-// verifierar lösenordet mot den riktiga användarens bcrypt-hash i users.db
-// — precis samma kontroll som en manuell inloggning, bara automatiserad.
-app.get("/auto-login", (req, res) => {
-  const clientIp = getClientIp(req);
-
-  getSettingsObject((err, settings) => {
-    if (err) return res.status(500).json({ error: "Serverfel" });
-
-    const autoLoginList = settings.autoLogin || [];
-    const entry = autoLoginList.find((e) => e.ip === clientIp);
-
-    if (!entry) {
-      return res.status(404).json({
-        error: "Ingen automatisk inloggning konfigurerad för denna IP",
-        ip: clientIp,
-      });
-    }
-
-    usersDB.findOne({ username: entry.username }, async (err, user) => {
-      if (err) return res.status(500).json({ error: "Serverfel" });
-      if (!user)
-        return res
-          .status(401)
-          .json({ error: "Autologin-användaren hittades inte" });
-
-      const ok = await bcrypt.compare(entry.password, user.password);
-      if (!ok)
-        return res
-          .status(401)
-          .json({ error: "Autologin-lösenordet matchar inte längre" });
-
-      usersDB.update(
-        { _id: user._id },
-        { $set: { lastLogin: Date.now() } },
-        {}
-      );
-
-      const token = jwt.sign(
-        {
-          id: user._id,
-          username: user.username,
-          name: user.name,
-          role: user.role,
-        },
-        JWT_SECRET,
-        { expiresIn: "8h" }
-      );
-
-      presenceDB.update(
-        { username: user.username },
-        { $set: { online: true } },
-        { upsert: true },
-        () => {
-          io.emit("onlineUpdated", { username: user.username, online: true });
-
-          res.json({
-            success: true,
-            token,
-            user: {
-              _id: user._id,
-              username: user.username,
-              role: user.role,
-              name: user.name,
-              email: user.email,
-            },
-          });
-        }
-      );
-    });
-  });
-});
-
 app.post("/logout", requireAuth, (req, res) => {
   const username = req.user.username;
 
@@ -1403,7 +1303,7 @@ app.post("/drawings", requireAuth, requireEditor, (req, res) => {
 });
 
 // FIX: no requireAuth here on purpose — touch panels drawing notes are often
-// logged in as a shared kiosk user (or not logged in at all via auto-login).
+// logged in as a shared kiosk user.
 // updatedBy falls back to "Okänd" instead of relying on req.user.
 app.put("/drawings/:drawingId", requireAuth, requireEditor, (req, res) => {
   const { drawingId } = req.params;
