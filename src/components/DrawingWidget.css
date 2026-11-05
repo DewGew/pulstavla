@@ -1,0 +1,87 @@
+.drawingWidget {
+  align-items: stretch !important;
+  padding: 14px 16px;
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--panel-border, #e5e7eb);
+  border-radius: var(--card-radius, 12px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+
+.drawingWidget h3 {
+  margin: 0 0 10px 0;
+  text-align: center;
+  color: var(--strong-text);
+}
+
+/* ---------------- TOOLBAR ---------------- */
+.drawing-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.drawingWidget button {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.color-swatch {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  padding: 0;
+}
+.color-swatch.active {
+  border-color: var(--strong-text, #111827);
+  transform: scale(1.1);
+}
+
+.brush-slider {
+  width: 90px;
+}
+
+.drawing-toolbar .btn-secondary.active {
+  background: #2563eb;
+  color: #fff;
+}
+
+.drawing-actions {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+	flex-shrink: 0;
+}
+
+/* ---------------- CANVAS ---------------- */
+.drawing-canvas {
+  width: 100%;
+  height: 420px;
+  background: #ffffff;
+  border: 1px solid var(--panel-border, #d1d5db);
+  border-radius: 8px;
+  /* Critical for touch panels: without this, the browser tries to scroll/zoom
+     the page while you're drawing instead of letting the pointer events through. */
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.drawingWidget .widget-meta {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--panel-border, #e5e7eb);
+  font-size: 12px;
+  color: var(--muted-text, #9ca3af);
+}
+
+@media screen and (min-width: 3840px) {
+  .drawingWidget {
+	width: 1360px !important;
+  }
+  .drawing-canvas {
+    height: 1800px;
+  }
+}

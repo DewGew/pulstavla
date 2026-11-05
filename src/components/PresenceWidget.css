@@ -1,0 +1,109 @@
+/* =================== Presence Widget =================== */
+
+
+/* Lista med användare som grid med två kolumner */
+.presence-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* två kolumner på desktop */
+  gap: 8px;
+	margin-top: 8px;
+}
+
+/* Enskild användarrad */
+.presence-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-cell);
+  border: 1px solid var(--panel-border);
+  padding: 10px 12px;
+  border-radius: var(--cell-radius);
+  cursor: pointer;
+  transition: 0.2s;
+  color: var(--text-cell);
+}
+
+.presence-item:hover {
+  background: var(--hover-bg);
+  transform: translateY(-1px);
+}
+
+/* Närvarande */
+.presence-item.here {
+  background: #d6ffe0;
+  color: #0f7a1a;
+  border-left: 4px solid #35c759;
+}
+
+/* Frånvarande */
+.presence-item.away {
+  background: #ffe6e6;
+  color: #b30000;
+  border-left: 4px solid #d93030;
+}
+
+.presence-name {
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.presence-status {
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+/* Dark mode kompensation */
+:root[data-theme="dark"] .presence-item.here {
+  background: #1f3d2a;
+  color: #8eff9b;
+  border-left-color: #35c759;
+}
+
+:root[data-theme="dark"] .presence-item.away {
+  background: #3a1f1f;
+  color: #ffb3b3;
+  border-left-color: #d93030;
+}
+
+/* Responsivt: en kolumn på mobil */
+@media (max-width: 600px) {
+  .presence-list {
+    grid-template-columns:repeat(3, 1fr);
+  }
+}
+/* =================== Presence Widget - iPhone 12 Pro =================== */
+@media (max-width: 414px) {
+
+  .presence-widget {
+    padding: 0.8rem;
+	width: 95%;
+  }
+
+  .presence-widget h3 {
+    font-size: 1rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .presence-list {
+    grid-template-columns: repeat(3, 1fr); /* en kolumn på iPhone */
+    gap: 6px;
+  }
+
+  .presence-item {
+    padding: 8px 10px;
+  }
+
+  .presence-name {
+    font-size: 0.85rem;
+  }
+
+  .presence-status {
+    font-size: 0.75rem;
+  }
+}
+
+@media screen and (min-width: 3840px) {
+	.presence-name, .widget h4{
+		font-size: 2rem;
+	}
+}

@@ -1,0 +1,186 @@
+.qualityCostWidget {
+  align-items: stretch !important;
+  text-align: left !important;
+}
+.qualityCostWidget h3{
+  text-align: center !important;
+}
+/* Edit button */
+.qualityCostWidget button {
+  cursor: pointer;
+  font-family: inherit;
+}
+.qualityCostWidget .edit-btn {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 13px;
+}
+.qualityCostWidget thead {
+	color: var(--header-text);
+}
+
+/* ---------------- SUMMARY BAR ---------------- */
+.qualityCostWidget .summary-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  background: var(--summary-bg, rgba(37, 99, 235, 0.06));
+  border-radius: 10px;
+}
+.qualityCostWidget .summary-total {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.qualityCostWidget .summary-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted-text, #6b7280);
+}
+.qualityCostWidget .summary-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--strong-text);
+}
+.qualityCostWidget .delta-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.qualityCostWidget .delta-arrow {
+  font-size: 10px;
+}
+.qualityCostWidget .delta-up {
+  background: rgba(198, 40, 40, 0.12);
+  color: #c62828;
+}
+.qualityCostWidget .delta-down {
+  background: rgba(46, 125, 50, 0.12);
+  color: #2e7d32;
+}
+.qualityCostWidget .delta-flat {
+  background: rgba(107, 114, 128, 0.12);
+  color: #6b7280;
+}
+
+/* ---------------- TABLE ---------------- */
+.cost-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.cost-table th,
+.cost-table td {
+  padding: 8px;
+  border-bottom: 1px solid #ddd;
+  font-size: 14px;
+}
+.cost-table th {
+	font-size: 14px;
+}
+.cost-table tbody tr:nth-child(even) {
+  background: var(--row-alt-bg, rgba(0, 0, 0, 0.025));
+}
+.cost-table tbody tr:hover {
+  background: var(--row-hover-bg, rgba(37, 99, 235, 0.05));
+}
+.cost {
+  text-align: right;
+  font-weight: 600;
+	font-size: 14px;
+}
+
+/* Inline bar behind each month's value, scaled to the highest month */
+.qualityCostWidget .cost-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 22px;
+}
+.qualityCostWidget .cost-bar {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  background: rgba(235, 37, 37, 0.3);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  z-index: 0;
+}
+.qualityCostWidget .cost-value {
+  position: relative;
+  z-index: 1;
+  padding-right: 4px;
+}
+
+.qualityCostWidget .prev {
+	font-size: 14px;
+}
+.qualityCostWidget .total {
+  color: #c62828;
+  font-size: 15px;
+}
+.cost-table tfoot tr:first-child td {
+  border-top: 2px solid #ddd;
+  padding-top: 10px;
+}
+
+.row-edit {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.qualityCostWidget .title-input {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;    /* ⭐ även centrerad vid redigering */
+}
+.qualityCostWidget .month-input {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 6px 8px;
+  text-align: center;    /* ⭐ även centrerad vid redigering */
+}
+
+.qualityCostWidget .section-edit-box {
+  border: 1px solid var(--panel-border);
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 6px;
+}
+.qualityCostWidget .actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@media screen and (min-width: 3840px) {
+	.cost-table th,
+	.cost-table td,
+	.qualityCostWidget .total,
+	.qualityCostWidget .prev {
+	  font-size: 1.9rem;
+	}
+	.qualityCostWidget .summary-value {
+	  font-size: 30px;
+	}
+	.qualityCostWidget .delta-badge {
+	  font-size: 18px;
+	}
+}

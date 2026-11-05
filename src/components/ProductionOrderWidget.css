@@ -1,0 +1,47 @@
+.production-widget {
+  align-items: stretch !important;
+}
+
+.production-widget-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.plan-summary {
+  padding-top: 10px;
+  text-align: left;
+}
+.plan-summary h4{
+	color: var(--header-text);
+}
+
+.plan-total {
+	display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+	gap: 4px;
+  margin-top: 4px;
+}
+
+.plan-resources {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.plan-resource-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+.production-widget .btn-primary {
+	margin-top: 10px;
+}
+
+@media screen and (min-width: 3840px) {
+	.plan-resource-row,
+	.plan-total	{
+	  font-size: 1.9rem;
+	}		
+}

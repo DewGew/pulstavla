@@ -1,0 +1,25 @@
+.lunch-widget {
+  padding: 0rem;
+}
+
+.lunch-widget h3 {
+  margin: 0 0 0.75rem;
+}
+
+.lunch-image {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+}
+
+.widget-loading,
+.widget-error {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.widget-error a {
+  display: inline-block;
+  margin-top: 0.5rem;
+}

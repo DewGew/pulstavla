@@ -1,0 +1,88 @@
+.settings-box {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--card-radius);
+  padding: 1.5rem;
+  width: 100%;
+  margin: 0 auto;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.settings-box h2 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: var(--header-text);
+}
+
+.settings-section {
+  margin-bottom: 1.5rem;
+  padding: 15px;
+  background: var(--panel);
+  border-radius: var(--card-radius);
+  border: 1px solid var(--panel-border);
+}
+
+.settings-section h3 {
+  margin-bottom: 0.8rem;
+  color: var(--header-text);
+}
+
+.settings-section label {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--strong-text);
+}
+
+.settings-input {
+  width: 100%;
+  padding: 10px;
+  border-radius: var(--cell-radius);
+  border: 1px solid var(--panel-border);
+  background: var(--bg-cell);
+  color: var(--text-cell);
+  margin-bottom: 10px;
+}
+
+.settings-section button {
+  margin-bottom: 10px;
+}
+
+.btn-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.settings-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 1rem;
+}
+
+.settings-tabs button {
+	color: var(--header-text);
+  padding: 8px 14px;
+  border-radius: var(--cell-radius);
+  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  cursor: pointer;
+}
+
+.settings-tabs button.active {
+  background: var(--bg-cell);
+  font-weight: 600;
+  border-bottom: 3px solid var(--accent);
+}
+
+@media screen and (min-width: 3840px) {
+	.settings-box {
+		max-width: 2700px;
+	}
+	.settings-box,
+	.settings-section,
+	.settings-box button,
+	.settings-box input,
+	.settings-box select,
+	.settings-box td,
+	.settings-box th{
+		font-size: 2rem;
+	}
+}

@@ -1,0 +1,97 @@
+.orders-box {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--card-radius);
+  padding: 1.5rem;
+  width: 100%;
+  margin: 0 auto;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.orders-box h2 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: var(--header-text);
+}
+
+.orders-section {
+  margin-bottom: 1.5rem;
+  padding: 15px;
+  background: var(--panel);
+  border-radius: var(--card-radius);
+  border: 1px solid var(--panel-border);
+}
+
+.orders-section h3 {
+  margin-bottom: 0.8rem;
+  color: var(--header-text);
+}
+
+.orders-input {
+  padding: 8px 14px;
+  border-radius: var(--cell-radius);
+  border: 1px solid var(--panel-border);
+  background: var(--bg-cell);
+  color: var(--text-cell);
+  margin-bottom: 10px;
+	margin-right: 10px;
+}
+
+.btn-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.orders-table {
+  width: 100%;
+  background: var(--panel);
+  overflow: hidden;
+  font-size: 0.95rem; /* lite större text */
+}
+
+.orders-table th {
+  background: var(--panel);
+  border-bottom: 1px solid var(--panel-border);
+  padding: 14px; /* större celler */
+  text-align: left;
+  color: var(--header-text);
+  font-weight: 600;
+}
+
+.row-red {
+  color: #cf2d2d;
+}
+
+.row-yellow {
+  color: #e8ca35;
+}
+
+.row-green {
+  color: #33a133;
+}
+
+/* valfritt: mjuk hover */
+.orders-table tbody tr:hover {
+  filter: brightness(0.95);
+  transition: 0.2s ease;
+}
+
+.week-buttons,
+.widget-meta {
+	margin-bottom: 10px;
+}
+
+@media screen and (min-width: 3840px) {
+	.orders-box h2 {
+		font-size: 4rem;
+	}
+	.orders-input{
+		font-size: 2rem;
+	}
+	.orders-section {
+		font-size: 3rem;
+	}
+	.orders-table {
+		font-size: 2.5rem;
+	}
+}

@@ -1,0 +1,898 @@
+/* ================= Reset ================= */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  font-family: "Roboto", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ========== Theme Variables ========== */
+:root {
+  --bg: #f8fafc;
+  --text: #0f172a;
+  --header-text: #9e0606;
+  --panel: #ffffff;
+  --bg-cell: #ffffff;
+  --text-cell: #0f172a;
+  --panel-border: #e2e8f0;
+  --accent: #3b82f6;
+  --hover-bg: #f1f5f9;
+  --card-radius: 10px;
+  --cell-radius: 4px;
+  --secondary: #00b050;
+  --danger: #d9534f;
+  --logo-span: #0f172a;
+  --strong-text: #9e0606;
+}
+
+:root[data-theme="dark"] {
+  --bg:  #121212;
+  --text: #ffffff;
+  --header-text: #ffc000;
+  --panel: #1e1e1e;
+  --bg-cell: #2a2a2a;
+  --text-cell: #ffffff;
+  --panel-border: #444;
+  --accent: #3b82f6;
+  --hover-bg: #1e293b;
+  --secondary: #00b050;
+  --danger: #d9534f;
+  --logo-span: #d0d0d0;
+  --strong-text: #ffc000;
+}
+
+h2 {
+	color: var(--header-text);
+}
+strong {
+	color: var(--strong-text);
+}
+
+code {
+    font-family: Consolas, Monaco, Andale Mono, monospace;
+	color: #ff5722;
+    line-height: 1.5;
+	width: 50px;
+    border: 1px transparent;
+	border-radius: 3px;
+	background-color: #9e9e9e54;
+}
+
+/* ========== Topbar / Dashboard ========== */
+.dashboard {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--panel);
+  border-bottom: 1px solid var(--panel-border);
+  padding: 1rem 2rem;
+  height: 70px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+.logo {
+  font-size: 2rem;
+  font-weight: 600;
+  display: flex;
+  flex-direction: column;   /* 👈 viktigt */
+  align-items: flex-start;
+  color: var(--header-text);
+  z-index: 1;
+}
+.logo span {
+	color: var(--header-text);
+}
+
+.logo-row {
+  display: flex;
+  align-items: center;
+}
+
+.logo-icon {
+  font-size: 2.2rem;
+}
+h1 span{
+  color:var(--logo-span);
+}
+.company-name {
+	margin-left: 15px;
+  font-size: 0.9rem;
+  font-weight: 400;
+  opacity: 0.8;
+	color:var(--logo-span);
+}
+
+.today-date {
+  margin-left: 15px;
+  font-size: 1rem;
+  opacity: 0.8;
+  font-weight: 400;
+	color:var(--logo-span) !important;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.nav button {
+  font-size: 1rem;
+  padding: 0.6rem 1.1rem;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  color: var(--header-text);
+  transition: 0.3s;
+}
+
+.nav button:hover {
+  background: var(--hover-bg);
+  color: var(--accent);
+}
+
+.nav .active {
+  background: var(--panel);
+  color: var(--header-text);
+  border-color: var(--header-text);
+}
+
+.theme-toggle {
+  font-size: 1rem;
+  padding: 0.6rem 1.1rem;
+  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  color: var(--text);
+  transition: 0.3s;
+}
+
+.theme-toggle:hover {
+  background: var(--hover-bg);
+}
+
+/* ========== Buttons ========== */
+.btn-danger {
+  padding: 8px 14px;
+
+  border-radius: var(--cell-radius);
+  border: 1px solid var(--panel-border);
+
+  background: var(--danger);
+  color: white;
+
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.9rem;
+
+  transition: 0.15s;
+  white-space: nowrap;
+}
+.btn-danger:hover {
+	background: color-mix(in srgb, var(--danger) 85%, black);
+}
+
+.btn-danger:active {
+  transform: translateY(1px);
+}
+
+.btn-primary {
+  padding: 8px 14px;
+
+  border-radius: var(--cell-radius);
+  border: 1px solid var(--panel-border);
+
+  background: var(--accent);
+  color: white;
+
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.9rem;
+
+  transition: 0.15s;
+  white-space: nowrap;
+}
+
+.btn-primary:hover {
+	background: color-mix(in srgb, var(--accent) 85%, black);
+}
+
+.btn-primary:active {
+  transform: translateY(1px);
+}
+
+.btn-secondary {
+  padding: 8px 14px;
+
+  border-radius: var(--cell-radius);
+  border: 1px solid var(--panel-border);
+
+  background: var(--secondary);
+  color: white;
+
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.9rem;
+
+  transition: 0.15s;
+  white-space: nowrap;
+}
+.btn-secondary:hover {
+  background: color-mix(in srgb, var(--secondary) 85%, black);
+}
+
+.btn-secondary:active {
+  transform: translateY(1px);
+}
+
+.btn-danger:disabled,
+.btn-primary:disabled,
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ========== Main Content ========== */
+.content {
+  padding: 2rem;
+}
+
+/* ========== Widget Grid ========== */
+.widget-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(4, 1fr);
+  align-items: stretch;
+  grid-auto-rows: auto; /* 👈 VIKTIG: gör alla rader lika höga */
+}
+
+/* ---- Sidbyte-animation ----
+   Spelas upp varje gång .widget-grid monteras på nytt (React key={page}
+   i App.js gör att den byts ut istället för att bara uppdateras), så
+   sidbyte via swipe eller prickarna känns mjukt istället för att hoppa. */
+@keyframes pageTransitionIn {
+  from {
+    opacity: 0;
+    transform: translateX(18px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.widget-grid {
+  animation: pageTransitionIn 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .widget-grid {
+    animation: none;
+  }
+}
+
+.widget-top {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  padding: 1rem;
+  text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  border-radius: var(--card-radius);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  width: 100%;    /* 👈 säkerställer full bredd */
+  display: none;
+}
+
+.widget {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  padding: 1rem;
+  text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  border-radius: var(--card-radius);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+	height: 100%;   /* 👈 NYTT */
+  width: 100%;    /* 👈 säkerställer full bredd */
+}
+
+.widget:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+}
+
+.widget h3 {
+  margin: 0 0 8px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--panel-border, #e5e7eb);
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--header-text);
+  }
+
+.widget-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.widget-meta {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--panel-border, #e5e7eb);
+  font-size: 12px;
+  color: var(--muted-text, #9ca3af);
+  text-align: left;
+}
+
+/* ========== Login Screen ========== */
+.login-wrapper {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: var(--bg);
+}
+
+.login-box {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--card-radius);
+  padding: 2rem;
+  width: 100%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.login-box h2 {
+  text-align: center;
+  margin-bottom: 0.5rem;
+  color: var(--header-text);
+}
+
+.login-box input,
+.login-box select {
+  padding: 0.7rem;
+  border: 1px solid var(--panel-border);
+  background: var(--bg);
+  color: var(--text);
+}
+
+.login-button {
+  padding: 0.7rem;
+  border: none;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.login-button:hover {
+  opacity: 0.85;
+}
+
+.login-error {
+  color: var(--md-danger, #d32f2f);
+  text-align: center;
+}
+
+/* ========== Modals (shared) ========== */
+/* ===================== MODAL ===================== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: var(--panel);
+  padding: 2rem;
+  border-radius: var(--card-radius);
+  width: 600px;        /* desktop: inte fullbredd */
+  max-width: 90%;      /* maxbredd på mindre skärmar */
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-sizing: border-box;
+}
+
+.modal-content h3 {
+  color: var(--header-text);
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+/* mindre modal på mobil (t.ex. iPhone 12 Pro) */
+@media (max-width: 768px) {
+  .modal-content {
+    width: 90%;        /* tar större del av skärmen på mobil */
+    padding: 1.5rem;   /* lite mindre padding */
+  }
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.nav-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.nav-dropdown-button {
+  cursor: pointer;
+}
+
+.nav-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 200px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 6px;
+  z-index: 1000;
+}
+
+.nav-dropdown-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.nav-dropdown-menu button:hover {
+  background: var(--hover-bg);
+}
+
+.app-layout {
+  min-height: 100vh;
+}
+
+/* ---- TOP-läge (standard, ditt nuvarande utseende) ---- */
+.app.top {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app.top .dashboard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-direction: row;
+}
+
+.app.top .nav {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.app.top .content {
+  flex: 1;
+}
+
+/* ---- SIDE-läge ---- */
+.app.side {
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+  align-items: flex-start;
+}
+
+.app.side .dashboard {
+  width: 240px;
+  height: auto;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  border-right: 1px solid var(--border-color, #333);
+  padding: 1rem;
+}
+
+.app.side .nav,
+.app.side .logo-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 0.5rem;
+}
+
+.app.side .nav button {
+  width: 100%;
+  text-align: left;
+}
+
+.app.side .nav-dropdown-menu {
+  position: static;
+  display: flex;
+  flex-direction: column;
+  margin-left: 8px;
+}
+
+.app.side .content {
+  flex: 1;
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.nav button,
+.nav .nav-dropdown,
+.nav .nav-dropdown-button {
+  /* width: 160px; */          /* justera efter smak */
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.nav .nav-dropdown {
+  width: 160px;
+}
+
+.nav .nav-dropdown-button {
+  width: 100%;
+}
+
+.nav-dropdown-menu button {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.app.side .nav button,
+.app.side .nav .nav-dropdown,
+.app.side .nav .nav-dropdown-button {
+  width: 100%;
+}
+
+.logo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start; /* eller "center" om du vill ha allt centrerat */
+}
+
+.logo-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.today-date {
+  font-size: 0.85rem;
+  opacity: 0.7;
+  margin-top: 2px;
+}
+
+.pagination-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+margin-bottom: 1rem;
+  margin-top: -1rem;
+}
+
+.pagination-dots .dot {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: none;
+  background: var(--panel-border);
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.pagination-dots .dot.active {
+  background: var(--header-text);
+  transform: scale(1.3);
+}
+
+.sortdir {
+  padding: 8px 14px;
+
+  border-radius: var(--cell-radius);
+  border: 1px solid var(--panel-border);
+
+  background: var(--bg-cell);
+  color: var(--text);
+
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.9rem;
+
+  transition: 0.15s;
+  white-space: nowrap;
+}
+
+.sortdir:hover {
+  background: var(--hover-bg);
+}
+
+
+/* =================== RESPONSIVE =================== */
+@media (max-width: 1024px) {
+  .widget-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard {
+    flex-direction: column;
+    align-items: flex-start;
+    height: auto;
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .nav {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .widget-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .content {
+    padding: 1rem;
+  }
+
+  .login-box {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .logo {
+    font-size: 1.6rem;
+  }
+
+  .logo-icon {
+    font-size: 1.8rem;
+  }
+
+  .today-date {
+    font-size: 0.9rem;
+  }
+
+  .nav button,
+  .theme-toggle {
+    font-size: 0.9rem;
+    padding: 0.5rem 0.8rem;
+  }
+
+  .widget-value {
+    font-size: 1.5rem;
+  }
+
+  .widget h3 {
+    font-size: 1rem;
+  }
+
+  .modal-content {
+    padding: 1rem;
+  }
+
+  .login-box {
+    padding: 1rem;
+  }
+}
+/* ================= Responsive iPhone 12 Pro - Widgets ================= */
+@media (max-width: 414px) {
+  /* Widget grid: en kolumn på liten skärm */
+  .widget-grid {
+    grid-template-columns: 1fr; /* alla widgets på full bredd */
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  /* Widget: maxbredd 100% */
+  .widget {
+    width: 100%;
+    max-width: 95%;
+    padding: 0.8rem;
+  }
+
+  .widget h3 {
+    font-size: 1rem;
+  }
+
+  .widget-value {
+    font-size: 1.5rem;
+  }
+}
+
+@media screen and (min-width: 2560px) {
+	
+	.login-box{
+		max-width: 15vw !important;
+		height: 10vw !important;
+	}
+	.login-box h2{
+		font-size: 60px;
+	}
+	.login-box input, .login-box select, .login-button {
+		font-size: 17px;
+	}
+	.widget-grid {
+	  grid-template-columns: repeat(5, 1fr);
+	  gap: 1.5rem;
+	}
+	
+}
+
+@media screen and (min-width: 3840px) {
+	.login-box{
+		max-width: 20vw !important;
+		height: 15vw !important;
+	}
+	
+	.widget {
+		min-height: 972px;
+	}
+	
+	.widget h3 {
+		font-size: 2.5rem;
+	}
+	
+	.dashboard {
+		height: 135px;
+	}
+	.logo {
+		font-size: 4rem;
+	}
+	.logo-icon {
+		font-size: 4.4rem;
+	}
+	.today-date {
+		font-size: 2rem;
+	}
+	.nav button {
+		font-size: 2rem;
+	}
+	.btn-primary, .btn-danger, .btn-secondary {
+		font-size: 28px;
+	}
+	.widget-grid {
+	  grid-template-columns: repeat(6, 1fr);
+	}
+	.widget-meta {
+		font-size: 1.9rem;
+	}
+	.app.side h1,
+	.app.side .logo-icon {
+		font-size: 2rem;
+	}
+	.widget-top {
+	  display: block;
+	}
+	.widget-top h2 {
+		font-size: 2.5rem;
+	}
+	.pagination-dots .dot {
+	  width: 35px;
+	  height: 35px;
+	}
+	.edit-btn {
+		font-size: 2rem !important;
+	}
+	.app.side .dashboard {
+		width: 370px;
+	}
+	.sortdir {
+		font-size: 1.7rem
+	}
+}
+
+/* ================= Portrait Mode (stående skärm) ================= */
+@media screen and (orientation: portrait) and (min-width: 1080px) {
+
+  .dashboard {
+    flex-direction: column;
+    align-items: flex-start;
+    height: auto;
+    gap: 0.5rem;
+  }
+
+  .logo {
+    font-size: 1.8rem;
+  }
+
+  .nav {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .content {
+    padding: 1rem;
+  }
+
+  /* Widgets anpassas för hög skärm */
+  .widget-grid {
+    grid-template-columns: repeat(2, 1fr); /* bättre för stående */
+    gap: 1rem;
+  }
+
+  .widget {
+    padding: 0.8rem;
+  }
+
+  .widget h3 {
+    font-size: 1rem;
+  }
+
+  .widget-value {
+    font-size: 1.6rem;
+  }
+
+	.nav {
+    display: none;
+  }
+	
+	/* Visa nav när man hovrar över header */
+	.dashboard:hover .nav {
+		display: flex;
+	}
+
+  html {
+    font-size: 20px;
+  }
+
+}
+
+@media screen and (orientation: portrait) and (min-width: 1440px) {
+
+  /* Widgets anpassas för hög skärm */
+  .widget-grid {
+    grid-template-columns: repeat(3, 1fr); /* bättre för stående */
+    gap: 1rem;
+  }
+}
+
+@media screen and (orientation: portrait) and (min-width: 2160px) {
+
+  /* Widgets anpassas för hög skärm */
+  .widget-grid {
+    grid-template-columns: repeat(4, 1fr); /* bättre för stående */
+    gap: 1rem;
+  }
+}

@@ -1,0 +1,70 @@
+.resource-list {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* två kolumner på desktop */
+  gap: 8px;
+}
+
+.resource-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-cell);
+  border: 1px solid var(--panel-border);
+  padding: 5px 6px;
+  border-radius: var(--cell-radius);
+  cursor: pointer;
+  transition: 0.2s;
+  color: var(--text-cell);
+  font-size: 0.75em;
+}
+
+.resource-item:hover {
+  background: var(--hover-bg);
+  transform: translateY(-1px);
+}
+
+.resource-item.green {
+  background: #d6ffe0;
+  color: #0f7a1a;
+  border-left: 4px solid #35c759;
+	min-height: 60px;
+}
+
+.resource-item.red {
+  background: #ffe6e6;
+  color: #b30000;
+  border-left: 4px solid #d93030;
+	min-height: 60px;
+}
+
+.resource-item.yellow {
+  background: #fff4cc;        /* varm ljusgul */
+  color: #7a5a00;             /* mörk gul/brun text */
+  border-left: 4px solid #f5b700; /* tydlig gul markering */
+	min-height: 60px;
+}
+
+/* Dark mode kompensation */
+:root[data-theme="dark"] .resource-item.green {
+  background: #1f3d2a;
+  color: #8eff9b;
+  border-left-color: #35c759;
+}
+
+:root[data-theme="dark"] .resource-item.yellow {
+  background: #3b2f12;        /* mörk bärnstensgul */
+  color: #ffd966;             /* ljus gul text */
+  border-left-color: #f5b700;
+}
+
+:root[data-theme="dark"] .resource-item.red {
+  background: #3a1f1f;
+  color: #ffb3b3;
+  border-left-color: #d93030;
+}
+
+@media screen and (min-width: 3840px) {
+	.resource-item {
+		font-size: 1.5rem;
+	}
+}

@@ -1,0 +1,125 @@
+/* View mode */
+.EditableTextWidget,
+.structuredTextWidget {
+  align-items: stretch !important;
+  padding: 14px 16px;
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--panel-border, #e5e7eb);
+  border-radius: var(--card-radius, 12px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+/* Titel (visningsläge) */
+
+
+/* Titel input (edit-läge) */
+.EditableTextWidget .title-input,
+.structuredTextWidget .title-input {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;    /* ⭐ även centrerad vid redigering */
+}
+
+/* Text */
+.EditableTextWidget p,
+.structuredTextWidget p {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: 14px;
+  line-height: 1.65;
+  text-align: left;      /* ⭐ VÄNSTERSTÄLLD TEXT */
+  max-width: 70ch;       /* håller radlängden lagom läsbar */
+}
+
+/* Tomt tillstånd — ingen text tillagd än */
+.EditableTextWidget p.empty-state,
+.structuredTextWidget p.empty-state {
+  color: var(--muted-text, #9ca3af);
+  font-style: italic;
+}
+
+/* Edit button */
+.structuredTextWidget button,
+.EditableTextWidget button {
+  cursor: pointer;
+  font-family: inherit;
+}
+.structuredTextWidget .edit-btn,
+.EditableTextWidget .edit-btn {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 13px;
+  padding: 0;
+}
+.structuredTextWidget .edit-btn:hover,
+.EditableTextWidget .edit-btn:hover{
+  text-decoration: underline;
+}
+
+/* Textarea */
+.EditableTextWidget textarea,
+.structuredTextWidget textarea {
+  width: 100%;
+  min-height: 80px;
+  resize: vertical;
+  border-radius: var(--card-radius);
+  border: 1px solid #d1d5db;
+  padding: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  line-height: 1.5;
+}
+.EditableTextWidget textarea:focus,
+.structuredTextWidget textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+}
+
+/* Buttons row */
+.structuredTextWidget .actions,
+.EditableTextWidget .actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Error */
+.structuredTextWidget .error,
+.EditableTextWidget .error {
+  color: #dc2626;
+  font-size: 13px;
+}
+
+.section-edit-box {
+  border: 1px solid var(--panel-border);
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 6px;
+}
+.move-buttons {
+  display: flex;
+  gap: 5px;
+}
+.move-buttons button {
+  padding: 2px 6px;
+  cursor: pointer;
+}
+@media screen and (min-width: 3840px) {
+	.structuredTextWidget strong,
+	.EditableTextWidget strong,
+	.EditableTextWidget p,
+	.structuredTextWidget p {
+		font-size: 1.9rem;
+	}
+	.EditableTextWidget textarea,
+	.structuredTextWidget textarea,
+	.EditableTextWidget input,
+	.structuredTextWidget input {
+		font-size: 2rem
+	}
+}

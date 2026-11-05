@@ -1,0 +1,51 @@
+.activities-widget {
+  align-items: stretch !important;
+}
+
+.activities-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.stat {
+  padding: 12px;
+  border-radius: var(--card-radius);
+	border: 1px solid var(--panel-border);
+  text-align: center;
+  font-weight: 600;
+}
+
+.stat span {
+  font-size: 22px;
+  display: block;
+}
+
+.stat.total {
+	border-left: 6px solid var(--text);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.stat.red {
+  border-left: 6px solid #c92a2a;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  color: #c92a2a;
+}
+
+.stat.yellow {
+	border-left: 6px solid #e67700;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  color: #e67700;
+}
+
+.stat.green {
+	border-left: 6px solid #2b8a3e;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  color: #2b8a3e;
+}
+
+@media screen and (min-width: 3840px) {
+	.stat span {
+		font-size: 36px;
+	}
+}

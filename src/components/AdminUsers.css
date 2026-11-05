@@ -1,0 +1,133 @@
+/* ===================== ADMIN USERS PAGE ===================== */
+
+.admin-users {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--card-radius);
+  padding: 1.5rem;
+  width: 100%;
+  margin: 0 auto;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.admin-users.flat {
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  background: transparent;
+}
+
+/* ===================== HEADER ===================== */
+
+.admin-users h2 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: var(--header-text);
+}
+
+/* ===================== MESSAGE BOX ===================== */
+
+.admin-msg {
+  background: var(--accent);
+  padding: 12px 16px; /* lite större */
+  border-radius: var(--card-radius);
+  color: #fff;
+  margin-bottom: 20px;
+  font-weight: 600;
+}
+
+/* ===================== ADD NEW USER ===================== */
+
+.add-user-box {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  padding: 25px; /* större padding */
+  border-radius: var(--card-radius);
+  margin-bottom: 30px;
+}
+
+.add-user-box h3 {
+  margin-bottom: 15px;
+  color: var(--header-text);
+}
+
+.add-user-box input,
+.add-user-box select,
+.autologin input {
+  width: 100%;
+  padding: 12px; /* större inputfält */
+  margin: 10px 0;
+  border-radius: var(--cell-radius);
+  border: 1px solid var(--panel-border);
+  background: var(--bg-cell);
+  color: var(--text);
+}
+
+.add-user-box input:focus,
+.add-user-box select:focus,
+.autologin input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* ===================== USER TABLE ===================== */
+
+.user-table {
+  width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  font-size: 0.95rem; /* lite större text */
+}
+
+.user-table th {
+  background: var(--panel);
+  border-bottom: 1px solid var(--panel-border);
+  padding: 14px; /* större celler */
+  text-align: left;
+  color: var(--header-text);
+  font-weight: 600;
+}
+
+.user-table td {
+  padding: 12px; /* större celler */
+  border-bottom: 1px solid var(--panel-border);
+  color: var(--text);
+}
+
+.user-table tr:hover {
+  background: var(--hover-bg);
+}
+
+/* Role selector inside table */
+.user-table select {
+  padding: 8px 10px; /* större select */
+  border-radius: var(--cell-radius);
+  border: 1px solid var(--panel-border);
+  background: var(--bg-cell);
+  color: var(--text);
+}
+
+.user-table select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+
+/* ===================== RESPONSIVE ===================== */
+
+@media (max-width: 768px) {
+  .user-table th,
+  .user-table td {
+    padding: 10px; /* mindre padding på mobil */
+  }
+
+  .admin-users {
+    padding: 15px; /* mindre padding på mobil */
+  }
+
+  .add-user-box {
+    padding: 15px; /* mindre padding på mobil */
+  }
+}

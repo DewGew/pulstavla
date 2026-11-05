@@ -1,0 +1,135 @@
+.analog-clock-widget {
+  display: none;
+}
+
+.analog-clock-face {
+  width: 220px;
+  height: 220px;
+}
+
+.clock-rim {
+  fill: var(--panel);
+  stroke: var(--panel-border);
+  stroke-width: 3;
+}
+
+.tick {
+  stroke: var(--text);
+  stroke-width: 1;
+  opacity: 0.6;
+}
+
+.tick-major {
+  stroke-width: 2.5;
+  opacity: 1;
+}
+
+.tick-minor {
+  opacity: 0.3;
+}
+
+.hand {
+  stroke-linecap: round;
+}
+
+.hour-hand {
+  stroke: var(--text);
+  stroke-width: 6;
+}
+
+.minute-hand {
+  stroke: var(--text);
+  stroke-width: 4;
+}
+
+.second-hand {
+  stroke: var(--header-text);
+  stroke-width: 1.5;
+}
+
+.clock-center {
+  fill: var(--header-text);
+}
+
+.analog-clock-date {
+  font-size: 1.05rem;
+  text-transform: capitalize;
+  opacity: 0.8;
+  text-align: center;
+  color: var(--text);
+}
+
+/* ---------------- VÄDER ---------------- */
+.clock-weather {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.weather-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.weather-temp {
+  font-weight: 700;
+}
+
+.weather-range {
+  font-size: 0.85rem;
+  opacity: 0.65;
+}
+
+.weather-loading,
+.weather-error {
+  font-size: 0.85rem;
+  opacity: 0.6;
+}
+.clock-visitor .edit-btn {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 13px;
+  padding: 0;
+}
+
+/* ---------------- 4K ---------------- */
+@media screen and (min-width: 3840px) {
+  .analog-clock-widget {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+  }
+
+  .analog-clock-face {
+    width: 340px;
+    height: 340px;
+  }
+
+  .analog-clock-date {
+    font-size: 2.5rem;
+  }
+
+  .clock-weather {
+    font-size: 2.5rem;
+  }
+  .clock-visitor {
+	  font-size: 2.2rem
+  }
+
+  .weather-icon {
+    font-size: 4.4rem;
+  }
+
+  .weather-range {
+    font-size: 2.5rem;
+  }
+  
+  .today-date {
+	display: none;
+  }
+}

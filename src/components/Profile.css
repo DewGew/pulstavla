@@ -1,0 +1,182 @@
+.profile-box {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--card-radius);
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.profile-box h2 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: var(--header-text);
+}
+
+.profile-info {
+  margin-bottom: 1rem;
+  padding: 15px;
+  background: var(--panel);
+  border-radius: var(--card-radius);
+  border: 1px solid var(--panel-border);
+}
+.profile-info strong,
+.profile-section strong {
+  color: var(--header-text);
+}
+
+.profile-info p {
+  margin: 6px 0;
+  color: var(--text);
+}
+
+.profile-section {
+  margin-top: 20px;
+  padding: 15px;
+   background: var(--panel);
+  border-radius: var(--card-radius);
+  border: 1px solid var(--panel-border);
+}
+
+.role-badge {
+  padding: 3px 8px;
+  border-radius: var(--cell-radius);
+  font-size: 0.85rem;
+  margin-left: 6px;
+}
+
+.role-badge.admin {
+  background: #ffe0e0;
+  color: #a80000;
+  border-left: 3px solid #ff4d4d;
+}
+
+.role-badge.suAdmin {
+  background: #ffe0e0;
+  color: #a80000;
+  border-left: 3px solid #ff4d4d;
+}
+
+.role-badge.user {
+  background: #e7f0ff;
+  color: #004cbf;
+  border-left: 3px solid #4d8fff;
+}
+
+.role-badge.view {
+  background: #eee;
+  color: #555;
+  border-left: 3px solid #888;
+}
+
+.admin-note,
+.viewer-note {
+  background: var(--bg-cell);
+  padding: 10px 12px;
+  border-radius: var(--cell-radius);
+  margin-bottom: 1.3rem;
+  color: var(--text-cell);
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.admin-note {
+  border-left: 4px solid #ff4d4d;
+}
+
+.viewer-note {
+  border-left: 4px solid #888;
+}
+
+.profile-section h3 {
+  margin-bottom: 0.8rem;
+  color: var(--header-text);
+}
+
+.profile-input {
+  width: 100%;
+  padding: 10px;
+  border-radius: var(--cell-radius);
+  border: 1px solid var(--panel-border);
+  background: var(--bg-cell);
+  color: var(--text-cell);
+  margin-bottom: 10px;
+}
+
+.profile-message {
+  padding: 10px;
+  border-radius: var(--cell-radius);
+  margin-top: 15px;
+  text-align: center;
+  font-weight: 500;
+}
+
+.profile-message.success {
+  background: #d9ffe3;
+  color: #117a26;
+  border-left: 4px solid #35c759;
+}
+
+.profile-message.error {
+  background: #ffe0e0;
+  color: #b30000;
+  border-left: 4px solid #d93030;
+}
+
+:root[data-theme="dark"] .profile-message.success {
+  background: #1f3d2a;
+  color: #8eff9b;
+}
+
+:root[data-theme="dark"] .profile-message.error {
+  background: #3a1f1f;
+  color: #ffb3b3;
+}
+
+:root[data-theme="dark"] .role-badge.admin {
+  background: #3a1f1f;
+  color: #ffb3b3;
+  border-left-color: #ff4d4d;
+}
+
+:root[data-theme="dark"] .role-badge.user {
+  background: #1d2b3d;
+  color: #9bc6ff;
+  border-left-color: #4d8fff;
+}
+
+:root[data-theme="dark"] .role-badge.view {
+  background: #2c2c2c;
+  color: #cfcfcf;
+  border-left-color: #888;
+}
+/* ---------------- My Tasks (Mina aktiviteter) ---------------- */
+.task-ul-no-bullets {
+  list-style: none;   /* tar bort punkterna */
+  padding-left: 0;    /* tar bort standard-indrag */
+  margin: 0;
+}
+.task-done-tag {
+  color: #4caf50;
+  font-weight: bold;
+}
+/* ---------------- My Tasks Items ---------------- */
+.my-task-list h3 {
+  color: var(--header-text);
+}
+.my-task-item {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--panel-border); /* border mellan aktiviteterna */
+  color: var(--header-text);
+}
+
+.my-task-meta {
+  color: var(--text);
+}
+
+/* Tar bort sista border-bottom för snyggare avslut */
+.my-task-item:last-child {
+  border-bottom: none;
+}
