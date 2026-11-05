@@ -6,7 +6,12 @@ import { Server } from "socket.io";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { PORT, JWT_SECRET } from "./src/config.js";
+import { PORT } from "./src/config.js";
+
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET || JWT_SECRET.length < 32) {
+  throw new Error("JWT_SECRET måste anges som en hemlig sträng på minst 32 tecken.");
+}
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { load } from "cheerio"; // ESM-kompatibel
@@ -57,14 +62,11 @@ function cleanText(html) {
 // ("::ffff:192.168.1.50" -> "192.168.1.50") so it matches what admins
 // type into the autoLogin settings list. Falls back to X-Forwarded-For
 // in case the app ever runs behind a reverse proxy.
+app.set("trust proxy", process.env.TRUST_PROXY === "true" ? 1 : false);
+
 function getClientIp(req) {
-  let ip =
-    req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
-    req.socket.remoteAddress ||
-    "";
-
+  let ip = req.ip || req.socket.remoteAddress || "";
   if (ip.startsWith("::ffff:")) ip = ip.slice(7);
-
   return ip;
 }
 
@@ -76,8 +78,16 @@ Date.prototype.getWeek = function () {
   return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
 };
 
+const allowedOrigins = (process.env.CORS_ORIGINS || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 app.use(cors({
-  origin: true,
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error("Origin tillåts inte av CORS"));
+  },
   credentials: true,
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
@@ -121,20 +131,30 @@ const io = new Server(server, {
 const usersDB = new Datastore({ filename: "./db/users.db", autoload: true });
 usersDB.persistence.setAutocompactionInterval(5 * 60 * 1000);
 
-// Lägg till standardanvändare om tom
+// Skapa aldrig förutsägbara standardkonton. En tom databas kan bootstrappas
+// med INITIAL_ADMIN_USERNAME och INITIAL_ADMIN_PASSWORD i servermiljön.
 usersDB.count({}, async (err, count) => {
-  if (count === 0) {
-	const defaultUsers = [
-	  { username: "admin", password: await bcrypt.hash("1234", 8), role: "admin", email: "admin@example.com", name: "Administrator" },
-		{ username: "super admin", password: await bcrypt.hash("12345", 8), role: "suAdmin", email: "super.admin@example.com", name: "Super Administrator" },
-	  { username: "user", password: await bcrypt.hash("test", 8), role: "user", email: "test@example.com", name: "Test User" }
-	];
+  if (err) return console.error("Kunde inte kontrollera användardatabasen:", err);
+  if (count !== 0) return;
 
-    usersDB.insert(defaultUsers, (err) => {
-      if (err) console.log("Kunde inte lägga till default users");
-      else console.log("Standardanvändare tillagda i users.db");
-    });
+  const username = process.env.INITIAL_ADMIN_USERNAME;
+  const password = process.env.INITIAL_ADMIN_PASSWORD;
+  if (!username || !password || password.length < 12) {
+    console.warn("Inga användare finns. Ange INITIAL_ADMIN_USERNAME och INITIAL_ADMIN_PASSWORD (minst 12 tecken) för första administratören.");
+    return;
   }
+
+  const hashedPassword = await bcrypt.hash(password, 12);
+  usersDB.insert({
+    username,
+    password: hashedPassword,
+    role: "suAdmin",
+    email: process.env.INITIAL_ADMIN_EMAIL || "",
+    name: process.env.INITIAL_ADMIN_NAME || username,
+  }, (insertErr) => {
+    if (insertErr) console.error("Kunde inte skapa första administratören:", insertErr);
+    else console.log("Första Super Admin-kontot skapades från miljövariabler.");
+  });
 });
 
 /* ---------------- PRESENCE DATABASE ---------------- */
@@ -277,7 +297,7 @@ app.get("/settings", requireAuth, (req, res) => {
     // returnera som objekt istället för array
     const settings = {};
     docs.forEach(s => {
-      settings[s.key] = s.value;
+      if (s.key !== "autoLogin") settings[s.key] = s.value;
     });
 
     res.json(settings);
@@ -313,10 +333,9 @@ app.put("/settings/:key", requireAuth, requireAdmin, (req, res) => {
       if (err)
         return res.status(500).json({ error: "Kunde inte spara inställning" });
 
-      // 🔔 valfritt WS-event
-      io.emit("settingsUpdated", { key, value });
-
-      res.json({ success: true, key, value });
+      // autoLogin innehåller lösenord och får aldrig skickas till alla WS-klienter.
+      if (key !== "autoLogin") io.emit("settingsUpdated", { key, value });
+      res.json(key === "autoLogin" ? { success: true, key } : { success: true, key, value });
     }
   );
 });
@@ -352,7 +371,7 @@ app.get("/documents", (req, res) => {
 });
 
 /* Ladda upp dokument till docs med originalnamnet */
-app.post("/documents", (req, res, next) => {
+app.post("/documents", requireAuth, requireAdmin, (req, res, next) => {
   const docsDir = path.resolve("docs");
 
   fs.mkdirSync(docsDir, { recursive: true });
@@ -399,7 +418,7 @@ app.post("/documents", (req, res, next) => {
 });
 
 /* Ta bort dokument från docs */
-app.delete("/documents/:name", (req, res) => {
+app.delete("/documents/:name", requireAuth, requireAdmin, (req, res) => {
   const fileName = path.basename(req.params.name);
   const filePath = path.resolve("docs", fileName);
   const docsDir = path.resolve("docs");
@@ -551,7 +570,7 @@ app.get("/presence", (req, res) => {
   });
 });
 
-app.post("/presence", (req, res) => {
+app.post("/presence", requireAuth, (req, res) => {
   const { username, present, status, operator } = req.body;
 
   if (!username) return res.status(400).json({ error: "Username saknas" });
@@ -617,32 +636,34 @@ const matprotokollDB = new Datastore({
 matprotokollDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 260000);
 
 /* ---------------- USERS ENDPOINTS ---------------- */
-app.get("/users", (req, res) => {
+app.get("/users", requireAuth, requireAdmin, (req, res) => {
   usersDB.find({}, (err, docs) => {
     if (err) return res.status(500).json({ error: "Kunde inte läsa användare" });
-    res.json(docs); // doc innehåller nu även email
+    res.json(docs.map(({ password, ...user }) => user));
   });
 });
 
-app.post("/users/add", async (req, res) => {
+app.post("/users/add", requireAuth, requireAdmin, async (req, res) => {
   const { username, password, role, email, name } = req.body;
 
   if (!username || !password || !email || !name) {
     return res.status(400).json({ error: "username, password, email och name krävs" });
   }
 	
-	const hashedPassword = await bcrypt.hash(password, 8);
+	if (role && !["user", "admin"].includes(role)) return res.status(400).json({ error: "Ogiltig roll. Endast user eller admin kan skapas här." });
+	const hashedPassword = await bcrypt.hash(password, 12);
 
   const user = { username, password: hashedPassword, role: role || "user", email, name };
 
   usersDB.insert(user, (err, newUser) => {
     if (err) return res.status(500).json({ error: "Kunde inte spara användare" });
 
-    res.json({ success: true, user: newUser });
+    const { password: _password, ...safeUser } = newUser;
+    res.json({ success: true, user: safeUser });
   });
 });
 
-app.delete("/users/:id", (req, res) => {
+app.delete("/users/:id", requireAuth, requireAdmin, (req, res) => {
   const id = req.params.id;
 
   usersDB.remove({ _id: id }, {}, (err, numRemoved) => {
@@ -661,9 +682,7 @@ app.put("/users/:id/role", requireAuth, requireAdmin, (req, res) => {
   const id = req.params.id;
   const { role } = req.body;
 
-  if (!role) {
-    return res.status(400).json({ error: "Role saknas" });
-  }
+  if (!["user", "admin", "suAdmin"].includes(role)) return res.status(400).json({ error: "Ogiltig roll" });
 
   usersDB.findOne({ _id: id }, (err, targetUser) => {
     if (err)
@@ -672,11 +691,8 @@ app.put("/users/:id/role", requireAuth, requireAdmin, (req, res) => {
     if (!targetUser)
       return res.status(404).json({ error: "Användaren hittades inte" });
 
-    // 🔒 Endast suAdmin får ändra suAdmin
-    if (
-      targetUser.role === "suAdmin" &&
-      req.user.role !== "suAdmin"
-    ) {
+    // Endast suAdmin får hantera suAdmin-konton eller tilldela suAdmin-roll.
+    if ((targetUser.role === "suAdmin" || role === "suAdmin") && req.user.role !== "suAdmin") {
       return res.status(403).json({
         error: "Endast Super Admin får ändra Super Admin.",
       });
@@ -703,7 +719,7 @@ app.put("/users/:id/role", requireAuth, requireAdmin, (req, res) => {
   });
 });
 // ---------------- UPDATE USER ----------------
-app.put("/users/:id", (req, res) => {
+app.put("/users/:id", requireAuth, requireAdmin, (req, res) => {
   const id = req.params.id;
   const { name, username, email, password, role } = req.body;
 
@@ -712,16 +728,17 @@ app.put("/users/:id", (req, res) => {
   if (name !== undefined) updateFields.name = name;
   if (username !== undefined) updateFields.username = username;
   if (email !== undefined) updateFields.email = email;
-  if (role !== undefined) updateFields.role = role;
+  if (role !== undefined) return res.status(400).json({ error: "Ändra roll via /users/:id/role." });
   if (password !== undefined && password !== "") {
-    updateFields.password = bcrypt.hashSync(password, 8);
+    if (password.length < 12) return res.status(400).json({ error: "Lösenord måste vara minst 12 tecken." });
+    updateFields.password = bcrypt.hashSync(password, 12);
   }
 
   usersDB.update({ _id: id }, { $set: updateFields }, {}, (err, numUpdated) => {
     if (err) return res.status(500).json({ success: false, error: "Kunde inte uppdatera användare" });
     if (numUpdated === 0) return res.status(404).json({ success: false, error: "Användare hittades inte" });
 
-    res.json({ success: true, updated: updateFields });
+    res.json({ success: true, updated: { ...updateFields, password: undefined } });
   });
 });
 
@@ -916,7 +933,7 @@ app.get("/greenCross/:crossId/:year/:month", (req, res) => {
   });
 });
 
-app.post("/greenCross", (req, res) => {
+app.post("/greenCross", requireAuth, (req, res) => {
   const { crossId, year, month, cells } = req.body;
 
   db.update(
@@ -978,7 +995,7 @@ app.post("/activities", requireAuth, (req, res) => {
 });
 
 // Uppdatera aktivitet (inkl responsible)
-app.put("/activities/:id", (req, res) => {
+app.put("/activities/:id", requireAuth, (req, res) => {
   const id = req.params.id;
 
   activitiesDB.findOne({ _id: id }, (err, task) => {
@@ -1008,7 +1025,7 @@ app.put("/activities/:id", (req, res) => {
 });
 
 // Ta bort aktivitet
-app.delete("/activities/:id", (req, res) => {
+app.delete("/activities/:id", requireAuth, (req, res) => {
   const id = req.params.id;
 
   activitiesDB.remove({ _id: id }, {}, (err) => {
@@ -1040,7 +1057,7 @@ app.get("/widgets/:textwidgetid", (req, res) => {
 });
 
 // Skapa widget (om den inte finns)
-app.post("/widgets", (req, res) => {
+app.post("/widgets", requireAuth, (req, res) => {
   const { textwidgetid, title = "", text = "" } = req.body;
   if (!textwidgetid) return res.status(400).json({ error: "textwidgetid krävs" });
 
@@ -1099,7 +1116,7 @@ app.get("/structured-widgets/:widgetId", (req, res) => {
   });
 });
 
-app.post("/structured-widgets", (req, res) => {
+app.post("/structured-widgets", requireAuth, (req, res) => {
   const { widgetId, title = "", sections = [] } = req.body;
 
   if (!widgetId)
@@ -1156,7 +1173,7 @@ app.put("/structured-widgets/:widgetId", requireAuth, (req, res) => {
   );
 });
 
-app.delete("/structured-widgets/:widgetId", (req, res) => {
+app.delete("/structured-widgets/:widgetId", requireAuth, (req, res) => {
   structuredWidgetsDB.remove(
     { widgetId: req.params.widgetId },
     {},
