@@ -32,6 +32,7 @@ export default function OrderWidget() {
       .then(setOrders)
       .catch(console.error);
 
+    if (!socket.connected) socket.connect();
     socket.on("ordersUpdated", (data) => {
       setOrders(data);
     });
