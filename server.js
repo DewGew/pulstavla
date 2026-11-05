@@ -709,8 +709,8 @@ app.post("/users/add", requireAuth, requireAdmin, async (req, res) => {
   if (typeof password !== "string" || password.length < 3) {
     return res.status(400).json({ error: "Lösenord måste vara minst 3 tecken." });
   }
-  if (role && !["user", "admin"].includes(role)) {
-    return res.status(400).json({ error: "Ogiltig roll. Endast user eller admin kan skapas här." });
+  if (role && !["view", "user", "admin"].includes(role)) {
+    return res.status(400).json({ error: "Ogiltig roll. Endast view, user eller admin kan skapas här." });
   }
   const hashedPassword = await bcrypt.hash(password, 12);
 
@@ -747,7 +747,7 @@ app.put("/users/:id/role", requireAuth, requireAdmin, (req, res) => {
   const id = req.params.id;
   const { role } = req.body;
 
-  if (!["user", "admin", "suAdmin"].includes(role)) return res.status(400).json({ error: "Ogiltig roll" });
+  if (!["view", "user", "admin", "suAdmin"].includes(role)) return res.status(400).json({ error: "Ogiltig roll" });
 
   usersDB.findOne({ _id: id }, (err, targetUser) => {
     if (err)
