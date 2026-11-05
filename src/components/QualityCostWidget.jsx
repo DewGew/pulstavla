@@ -74,6 +74,7 @@ export default function QualityCostWidget({
       }
     };
 
+    if (!socket.connected) socket.connect();
     socket.on("structuredWidgetUpdated", handler);
     return () => socket.off("structuredWidgetUpdated", handler);
   }, [widgetId]);
