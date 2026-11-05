@@ -38,19 +38,6 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
 });
 
-function getSettingsObject(callback) {
-  settingsDB.find({}, (err, docs) => {
-    if (err) return callback(err);
-
-    const settings = {};
-    docs.forEach(s => {
-      settings[s.key] = s.value;
-    });
-
-    callback(null, settings);
-  });
-}
-
 function cleanText(html) {
   return html
     .replace(/<br\s*\/?>/gi, "\n")
@@ -261,8 +248,13 @@ settingsDB.count({}, (err, count) => {
   } else {
     // Ta bort äldre autoLogin-poster som kan innehålla lösenord i klartext.
     settingsDB.remove({ key: "autoLogin" }, { multi: true }, (removeErr, removed) => {
-      if (removeErr) console.error("Kunde inte rensa gamla autoLogin-uppgifter:", removeErr);
-      else if (removed) console.log("Gamla autoLogin-inställningar rensades.");
+      if (removeErr) {
+        console.error("Kunde inte rensa gamla autoLogin-uppgifter:", removeErr);
+      } else {
+        if (removed) console.log("Gamla autoLogin-inställningar rensades.");
+        // Skriv om NeDB-filen så att borttagna klartextlösenord inte ligger kvar i gamla data-block.
+        settingsDB.persistence.compactDatafile();
+      }
     });
   }
 });
@@ -871,8 +863,7 @@ app.post("/login", loginRateLimit, (req, res) => {
 app.post("/logout", requireAuth, (req, res) => {
   const username = req.user.username;
 
-  // FIX: same ordering fix — emit WS event inside the callback,
-  // only after the DB write has completed.
+  // Emit the WS event only after the DB write has completed.
   presenceDB.update(
     { username },
     { $set: { online: false } },
