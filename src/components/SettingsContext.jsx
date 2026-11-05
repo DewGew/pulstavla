@@ -22,22 +22,36 @@ export function SettingsProvider({ children }) {
   const apiFetch = createApi(logout);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-
-    apiFetch("/settings")
-      .then(res => res.json())
-      .then(data => {
-        setSettings(data);
+    const loadSettings = () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
         setLoading(false);
-      })
-      .catch(() => setLoading(false));
+        return;
+      }
+
+      setLoading(true);
+      apiFetch("/settings")
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
+        .then(data => {
+          setSettings(data);
+          setLoading(false);
+        })
+        .catch(() => setLoading(false));
+    };
+
+    loadSettings();
+    window.addEventListener("authChanged", loadSettings);
+    return () => window.removeEventListener("authChanged", loadSettings);
   }, []);
 
   useEffect(() => {
+    function connectSocket() {
+      if (localStorage.getItem("token") && !socket.connected) socket.connect();
+    }
+
     function onSettingsUpdated({ key, value }) {
       setSettings(prev => ({
         ...prev,
@@ -45,9 +59,12 @@ export function SettingsProvider({ children }) {
       }));
     }
 
+    connectSocket();
+    window.addEventListener("authChanged", connectSocket);
     socket.on("settingsUpdated", onSettingsUpdated);
 
     return () => {
+      window.removeEventListener("authChanged", connectSocket);
       socket.off("settingsUpdated", onSettingsUpdated);
     };
   }, []);
