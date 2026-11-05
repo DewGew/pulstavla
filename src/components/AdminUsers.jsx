@@ -682,23 +682,7 @@ export default function AdminUsers({ currentUser, hideTitle = false, flat = fals
               value={editUser.password}
               onChange={(e) => setEditUser({ ...editUser, password: e.target.value })}
             />
-            <select
-              value={editUser.role}
-              disabled={
-                editUser.role === "suAdmin" && currentUser.role !== "suAdmin"
-              }
-              onChange={(e) => setEditUser({ ...editUser, role: e.target.value })}
-            >
-              <option value="view">Viewer</option>
-              <option value="user">User</option>
-              <option value="admin">Admin</option>
-              <option
-                value="suAdmin"
-                disabled={currentUser.role !== "suAdmin"}
-              >
-                Super Admin
-              </option>
-            </select>
+            <p style={{ fontSize: "0.85rem", color: "gray" }}>Ändra användarens roll i rollmenyn i användarlistan.</p>
 
             <div className="modal-buttons" style={{ marginTop: "10px" }}>
               <button className="btn-primary" onClick={saveEditUser}>
