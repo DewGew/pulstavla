@@ -58,7 +58,7 @@ export default function DrawingWidget({
 
   /* ---------------- WS ---------------- */
   useEffect(() => {
-    const socket = io(WS_URL, { transports: ["websocket"] 
+    const socket = io(WS_URL, { transports: ["websocket"], 
   auth: (cb) => cb({ token: localStorage.getItem("token") }),
 });
 
