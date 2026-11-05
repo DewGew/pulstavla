@@ -87,7 +87,7 @@ export default function EditableTextWidget({
   // FIX: socket created inside useEffect, disconnected on unmount —
   // no more module-level persistent socket connection.
   useEffect(() => {
-    const socket = io(WS_URL, { transports: ["websocket"] 
+    const socket = io(WS_URL, { transports: ["websocket"], 
   auth: (cb) => cb({ token: localStorage.getItem("token") }),
 });
 
