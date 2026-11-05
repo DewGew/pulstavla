@@ -706,8 +706,8 @@ app.post("/users/add", requireAuth, requireAdmin, async (req, res) => {
   if (!username || !password || !email || !name) {
     return res.status(400).json({ error: "username, password, email och name krävs" });
   }
-  if (typeof password !== "string" || password.length < 12) {
-    return res.status(400).json({ error: "Lösenord måste vara minst 12 tecken." });
+  if (typeof password !== "string" || password.length < 3) {
+    return res.status(400).json({ error: "Lösenord måste vara minst 3 tecken." });
   }
   if (role && !["user", "admin"].includes(role)) {
     return res.status(400).json({ error: "Ogiltig roll. Endast user eller admin kan skapas här." });
@@ -795,7 +795,7 @@ app.put("/users/:id", requireAuth, requireAdmin, (req, res) => {
   if (email !== undefined) updateFields.email = email;
   if (role !== undefined) return res.status(400).json({ error: "Ändra roll via /users/:id/role." });
   if (password !== undefined && password !== "") {
-    if (password.length < 12) return res.status(400).json({ error: "Lösenord måste vara minst 12 tecken." });
+    if (password.length < 3) return res.status(400).json({ error: "Lösenord måste vara minst 3 tecken." });
     updateFields.password = bcrypt.hashSync(password, 12);
   }
 
