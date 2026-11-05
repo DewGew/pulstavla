@@ -4,7 +4,9 @@ import { API_URL, WS_URL } from "../config";
 
 import "./ResourceWidget.css";
 
-const socket = io(WS_URL, { transports: ["websocket"] });
+const socket = io(WS_URL, { transports: ["websocket"] 
+  auth: (cb) => cb({ token: localStorage.getItem("token") }),
+});
 
 export default function ResourceWidget({ currentUser }) {
   const [status, setStatus] = useState({}); // { machineName: {status, operator} }
