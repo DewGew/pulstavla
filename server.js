@@ -127,6 +127,18 @@ const io = new Server(server, {
   cors: { origin: "*" },
 });
 
+// Alla WebSocket-anslutningar måste autentiseras med samma JWT som API:t.
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token;
+  if (!token) return next(new Error("Autentisering krävs"));
+  try {
+    socket.user = jwt.verify(token, JWT_SECRET);
+    next();
+  } catch {
+    next(new Error("Ogiltig token"));
+  }
+});
+
 /* ---------------- USERS DATABASE ---------------- */
 const usersDB = new Datastore({ filename: "./db/users.db", autoload: true });
 usersDB.persistence.setAutocompactionInterval(5 * 60 * 1000);
@@ -545,6 +557,18 @@ app.get("/lunch", async (req, res) => {
 });
 
 /* ---------------- PRESENCE ENDPOINT ---------------- */
+app.get("/presence/users", requireAuth, (req, res) => {
+  usersDB.find({}, (err, docs) => {
+    if (err) return res.status(500).json({ error: "Kunde inte läsa användare" });
+    res.json(docs.map(({ password, ...user }) => ({
+      _id: user._id,
+      username: user.username,
+      name: user.name,
+      role: user.role,
+    })));
+  });
+});
+
 app.get("/presence", (req, res) => {
   presenceDB.find({}, (err, docs) => {
     if (err) return res.status(500).json({ error: "Kunde inte läsa närvaro" });
@@ -742,7 +766,24 @@ app.put("/users/:id", requireAuth, requireAdmin, (req, res) => {
   });
 });
 
-app.post("/login", (req, res) => {
+const loginAttempts = new Map();
+function loginRateLimit(req, res, next) {
+  const now = Date.now();
+  const key = req.ip || req.socket.remoteAddress || "unknown";
+  const entry = loginAttempts.get(key) || { count: 0, resetAt: now + 15 * 60 * 1000 };
+  if (now > entry.resetAt) {
+    entry.count = 0;
+    entry.resetAt = now + 15 * 60 * 1000;
+  }
+  if (entry.count >= 10) {
+    return res.status(429).json({ error: "För många inloggningsförsök. Försök igen om 15 minuter." });
+  }
+  entry.count += 1;
+  loginAttempts.set(key, entry);
+  next();
+}
+
+app.post("/login", loginRateLimit, (req, res) => {
   const { username, password } = req.body;
 
   usersDB.findOne({ username }, async (err, user) => {
@@ -751,6 +792,8 @@ app.post("/login", (req, res) => {
 
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) return res.status(401).json({ error: "Fel lösenord" });
+
+    loginAttempts.delete(req.ip || req.socket.remoteAddress || "unknown");
 
     // Save last login time
     usersDB.update(
@@ -890,7 +933,9 @@ app.post("/logout", requireAuth, (req, res) => {
 io.on("connection", (socket) => {
   console.log("WS client connected:", socket.id);
 
-  socket.on("registerUser", (username) => {
+  socket.on("registerUser", () => {
+    const username = socket.user.username;
+    if (!username) return;
     socket.username = username;
 
     presenceDB.update(
@@ -1280,7 +1325,7 @@ app.get("/drawings/:drawingId", (req, res) => {
   });
 });
 
-app.post("/drawings", (req, res) => {
+app.post("/drawings", requireAuth, (req, res) => {
   const { drawingId, title = "", strokes = [] } = req.body;
 
   if (!drawingId)
@@ -1306,7 +1351,7 @@ app.post("/drawings", (req, res) => {
 // FIX: no requireAuth here on purpose — touch panels drawing notes are often
 // logged in as a shared kiosk user (or not logged in at all via auto-login).
 // updatedBy falls back to "Okänd" instead of relying on req.user.
-app.put("/drawings/:drawingId", (req, res) => {
+app.put("/drawings/:drawingId", requireAuth, (req, res) => {
   const { drawingId } = req.params;
   const { title, strokes } = req.body;
 
@@ -1349,14 +1394,14 @@ app.put("/drawings/:drawingId", (req, res) => {
   );
 });
 
-app.delete("/drawings/:drawingId", (req, res) => {
+app.delete("/drawings/:drawingId", requireAuth, requireAdmin, (req, res) => {
   drawingsDB.remove({ drawingId: req.params.drawingId }, {}, (err, numRemoved) => {
     if (err) return res.status(500).json({ error: "Kunde inte ta bort" });
     res.json({ success: true, removed: numRemoved });
   });
 });
 
-app.post("/activities/upload", upload.single("image"), (req, res) => {
+app.post("/activities/upload", requireAuth, upload.single("image"), (req, res) => {
   console.log("Upload file:", req.file);
   if (!req.file) {
     return res.status(400).json({ error: "Ingen bild vald" });
@@ -1481,7 +1526,7 @@ app.post("/checklist/:machine", requireAuth, (req, res) => {
 
 
 // Radera checklistan för en maskin + vecka
-app.delete("/checklist/:machine", (req, res) => {
+app.delete("/checklist/:machine", requireAuth, requireAdmin, (req, res) => {
   const { machine } = req.params;
   const { week } = req.query;
 
