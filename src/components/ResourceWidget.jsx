@@ -19,8 +19,13 @@ export default function ResourceWidget({ currentUser }) {
 	const token = localStorage.getItem("token");
 
   useEffect(() => {
-    fetch(`${API_URL}/users`)
-      .then(res => res.json())
+    fetch(`${API_URL}/presence/users`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then(data => setUsers(data))
       .catch(() => console.error("Kunde inte hämta användare"));
   }, []);
@@ -127,7 +132,10 @@ export default function ResourceWidget({ currentUser }) {
 		try {
 		await fetch(`${API_URL}/presence`, {
 			method: "POST",
-			headers: { "Content-Type": "application/json" },
+			headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
 			body: JSON.stringify({
 				username: machine,
 				status: payload.status,
