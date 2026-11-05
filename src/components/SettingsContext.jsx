@@ -6,7 +6,9 @@ import { createApi } from "../api";
 
 const SettingsContext = createContext(null);
 
-const socket = io(WS_URL, { transports: ["websocket"] });
+const socket = io(WS_URL, { transports: ["websocket"] 
+  auth: (cb) => cb({ token: localStorage.getItem("token") }),
+});
 
 export function SettingsProvider({ children }) {
   const [settings, setSettings] = useState(null);
