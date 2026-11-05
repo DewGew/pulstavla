@@ -100,6 +100,7 @@ export default function EditableTextWidget({
       }
     };
 
+    if (!socket.connected) socket.connect();
     socket.on("widgetUpdated", handler);
 
     return () => {
