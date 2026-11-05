@@ -673,9 +673,13 @@ app.post("/users/add", requireAuth, requireAdmin, async (req, res) => {
   if (!username || !password || !email || !name) {
     return res.status(400).json({ error: "username, password, email och name krävs" });
   }
-	
-	if (role && !["user", "admin"].includes(role)) return res.status(400).json({ error: "Ogiltig roll. Endast user eller admin kan skapas här." });
-	const hashedPassword = await bcrypt.hash(password, 12);
+  if (typeof password !== "string" || password.length < 12) {
+    return res.status(400).json({ error: "Lösenord måste vara minst 12 tecken." });
+  }
+  if (role && !["user", "admin"].includes(role)) {
+    return res.status(400).json({ error: "Ogiltig roll. Endast user eller admin kan skapas här." });
+  }
+  const hashedPassword = await bcrypt.hash(password, 12);
 
   const user = { username, password: hashedPassword, role: role || "user", email, name };
 
@@ -798,8 +802,11 @@ function loginRateLimit(req, res, next) {
 
 app.post("/login", loginRateLimit, (req, res) => {
   const { username, password } = req.body;
+  if (typeof username !== "string" || typeof password !== "string" || !username.trim() || !password) {
+    return res.status(400).json({ error: "Användarnamn och lösenord krävs." });
+  }
 
-  usersDB.findOne({ username }, async (err, user) => {
+  usersDB.findOne({ username: username.trim() }, async (err, user) => {
     if (err) return res.status(500).json({ error: "Serverfel" });
     if (!user) return res.status(401).json({ error: "Fel användarnamn" });
 
