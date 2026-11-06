@@ -149,6 +149,18 @@ function requireEditor(req, res, next) {
   next();
 }
 
+// Lägg autentiserade sockets i ett användarrum så att alla kan kopplas ned
+// utan att hämta och iterera över samtliga sockets.
+function disconnectUserSockets(userId) {
+  try {
+    io.in(`user:${userId}`).disconnectSockets(true);
+    return true;
+  } catch (err) {
+    console.error("Kunde inte koppla ned användarens WebSocket-sessioner:", err);
+    return false;
+  }
+}
+
 /* ---------------- HTTP SERVER + WEBSOCKET ---------------- */
 const server = https.createServer(
   app
@@ -846,7 +858,12 @@ app.put("/users/:id/role", requireAuth, requireAdmin, (req, res) => {
             error: "Användaren hittades inte",
           });
 
-        res.json({ success: true });
+        const socketsDisconnected = disconnectUserSockets(id);
+        res.json({
+          success: true,
+          socketsDisconnected,
+          ...(socketsDisconnected ? {} : { warning: "Inloggningen återkallades, men WebSocket-sessionerna kunde inte kopplas ned." })
+        });
       }
     );
   });
@@ -862,13 +879,10 @@ app.post("/users/:id/revoke-sessions", requireAuth, requireAdmin, (req, res) => 
       return res.status(403).json({ error: "Endast Super Admin får återkalla Super Admin-konton." });
     }
 
-    usersDB.update({ _id: id }, { $inc: { tokenVersion: 1 } }, {}, async (err) => {
+    usersDB.update({ _id: id }, { $inc: { tokenVersion: 1 } }, {}, (err) => {
       if (err) return res.status(500).json({ error: "Kunde inte återkalla inloggningarna." });
 
-      const sockets = await io.fetchSockets();
-      sockets
-        .filter((socket) => socket.user?.id === id)
-        .forEach((socket) => socket.disconnect(true));
+      const socketsDisconnected = disconnectUserSockets(id);
 
       presenceDB.update(
         { username: targetUser.username },
@@ -876,7 +890,12 @@ app.post("/users/:id/revoke-sessions", requireAuth, requireAdmin, (req, res) => 
         {},
         () => {
           io.emit("onlineUpdated", { username: targetUser.username, online: false });
-          res.json({ success: true, message: "Alla användarens inloggningar har återkallats." });
+          res.json({
+            success: true,
+            socketsDisconnected,
+            message: "Alla användarens inloggningar har återkallats.",
+            ...(socketsDisconnected ? {} : { warning: "Token återkallades, men WebSocket-sessionerna kunde inte kopplas ned." })
+          });
         }
       );
     });
@@ -913,7 +932,14 @@ app.put("/users/:id", requireAuth, requireAdmin, (req, res) => {
     usersDB.update({ _id: id }, { $set: updateFields }, {}, (err, numUpdated) => {
       if (err) return res.status(500).json({ success: false, error: "Kunde inte uppdatera användare" });
       if (numUpdated === 0) return res.status(404).json({ success: false, error: "Användare hittades inte" });
-      res.json({ success: true, updated: { ...updateFields, password: undefined } });
+      const socketsDisconnected = updateFields.password
+        ? disconnectUserSockets(id)
+        : undefined;
+      res.json({
+        success: true,
+        updated: { ...updateFields, password: undefined },
+        ...(socketsDisconnected === undefined ? {} : { socketsDisconnected })
+      });
     });
   });
 });
@@ -1028,14 +1054,11 @@ app.post("/logout", requireAuth, (req, res) => {
     { _id: req.user.id },
     { $inc: { tokenVersion: 1 } },
     {},
-    async (authErr) => {
+    (authErr) => {
       if (authErr) return res.status(500).json({ error: "Kunde inte återkalla inloggningen." });
 
-      // Koppla även ned redan öppna WebSocket-sessioner för användaren.
-      const sockets = await io.fetchSockets();
-      sockets
-        .filter((socket) => socket.user?.id === req.user.id)
-        .forEach((socket) => socket.disconnect(true));
+      // Ogiltigförklara JWT och koppla ned användarens öppna sockets.
+      const socketsDisconnected = disconnectUserSockets(req.user.id);
 
       presenceDB.update(
         { username },
@@ -1043,7 +1066,11 @@ app.post("/logout", requireAuth, (req, res) => {
         {},
         () => {
           io.emit("onlineUpdated", { username, online: false });
-          res.json({ success: true });
+          res.json({
+            success: true,
+            socketsDisconnected,
+            ...(socketsDisconnected ? {} : { warning: "Token återkallades, men WebSocket-sessionerna kunde inte kopplas ned." })
+          });
         }
       );
     }
@@ -1051,6 +1078,7 @@ app.post("/logout", requireAuth, (req, res) => {
 });
 
 io.on("connection", (socket) => {
+  socket.join(`user:${socket.user.id}`);
   console.log("WS client connected:", socket.id);
 
   socket.on("registerUser", () => {
