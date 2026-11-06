@@ -115,16 +115,21 @@ app.get("/brand-logo", (req, res) => {
 });
 
 function requireAuth(req, res, next) {
-	const authHeader = req.headers.authorization;
-  if (!authHeader)
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({ error: "Token saknas" });
-
-  const token = authHeader.split(" ")[1];
+  }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded; // { id, username, role }
-    next();
+    const decoded = jwt.verify(authHeader.slice(7), JWT_SECRET);
+    usersDB.findOne({ _id: decoded.id }, (err, user) => {
+      if (err) return res.status(500).json({ error: "Kunde inte verifiera inloggningen." });
+      if (!user || (decoded.tokenVersion || 0) !== (user.tokenVersion || 0)) {
+        return res.status(401).json({ error: "Inloggningen har återkallats. Logga in igen." });
+      }
+      req.user = { ...decoded, username: user.username, name: user.name, role: user.role };
+      next();
+    });
   } catch {
     res.status(401).json({ error: "Ogiltig token" });
   }
@@ -153,13 +158,31 @@ const io = new Server(server, {
   cors: { origin: "*" },
 });
 
+// Lägg autentiserade sockets i ett användarrum så att alla kan kopplas ned
+// utan att hämta och iterera över samtliga sockets.
+function disconnectUserSockets(userId) {
+  try {
+    io.in(`user:${userId}`).disconnectSockets(true);
+    return true;
+  } catch (err) {
+    console.error("Kunde inte koppla ned användarens WebSocket-sessioner:", err);
+    return false;
+  }
+}
+
 // Alla WebSocket-anslutningar måste autentiseras med samma JWT som API:t.
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token;
   if (!token) return next(new Error("Autentisering krävs"));
   try {
-    socket.user = jwt.verify(token, JWT_SECRET);
-    next();
+    const decoded = jwt.verify(token, JWT_SECRET);
+    usersDB.findOne({ _id: decoded.id }, (err, user) => {
+      if (err || !user || (decoded.tokenVersion || 0) !== (user.tokenVersion || 0)) {
+        return next(new Error("Inloggningen har återkallats"));
+      }
+      socket.user = { ...decoded, username: user.username, role: user.role };
+      next();
+    });
   } catch {
     next(new Error("Ogiltig token"));
   }
@@ -822,7 +845,7 @@ app.put("/users/:id/role", requireAuth, requireAdmin, (req, res) => {
 
     usersDB.update(
       { _id: id },
-      { $set: { role } },
+      { $set: { role }, $inc: { tokenVersion: 1 } },
       {},
       (err, numUpdated) => {
         if (err)
@@ -835,14 +858,59 @@ app.put("/users/:id/role", requireAuth, requireAdmin, (req, res) => {
             error: "Användaren hittades inte",
           });
 
-        res.json({ success: true });
+        const socketsDisconnected = disconnectUserSockets(id);
+        res.json({
+          success: true,
+          socketsDisconnected,
+          ...(socketsDisconnected ? {} : { warning: "Inloggningen återkallades, men WebSocket-sessionerna kunde inte kopplas ned." })
+        });
       }
     );
   });
 });
-// ---------------- UPDATE USER ----------------
-app.put("/users/:id", requireAuth, requireAdmin, (req, res) => {
+// Återkalla alla aktiva inloggningar för en användare (admin).
+app.post("/users/:id/revoke-sessions", requireAuth, requireAdmin, (req, res) => {
   const id = req.params.id;
+
+  usersDB.findOne({ _id: id }, (findErr, targetUser) => {
+    if (findErr) return res.status(500).json({ error: "DB-fel" });
+    if (!targetUser) return res.status(404).json({ error: "Användare hittades inte" });
+    if (targetUser.role === "suAdmin" && req.user.role !== "suAdmin") {
+      return res.status(403).json({ error: "Endast Super Admin får återkalla Super Admin-konton." });
+    }
+
+    usersDB.update({ _id: id }, { $inc: { tokenVersion: 1 } }, {}, (err) => {
+      if (err) return res.status(500).json({ error: "Kunde inte återkalla inloggningarna." });
+
+      const socketsDisconnected = disconnectUserSockets(id);
+
+      presenceDB.update(
+        { username: targetUser.username },
+        { $set: { online: false } },
+        {},
+        () => {
+          io.emit("onlineUpdated", { username: targetUser.username, online: false });
+          res.json({
+            success: true,
+            socketsDisconnected,
+            message: "Alla användarens inloggningar har återkallats.",
+            ...(socketsDisconnected ? {} : { warning: "Token återkallades, men WebSocket-sessionerna kunde inte kopplas ned." })
+          });
+        }
+      );
+    });
+  });
+});
+
+// ---------------- UPDATE USER ----------------
+app.put("/users/:id", requireAuth, (req, res) => {
+  const id = req.params.id;
+  const isSelf = req.user.id === id;
+  const isAdmin = ["admin", "suAdmin"].includes(req.user.role);
+  if (!isSelf && !isAdmin) {
+    return res.status(403).json({ error: "Du får bara uppdatera din egen profil." });
+  }
+
   const { name, username, email, password, role } = req.body;
 
   // Skapa ett update-objekt med endast de fält som skickats
@@ -863,10 +931,24 @@ app.put("/users/:id", requireAuth, requireAdmin, (req, res) => {
       return res.status(403).json({ error: "Endast Super Admin får ändra Super Admin-konton." });
     }
 
+    if (updateFields.password) {
+      updateFields.tokenVersion = (targetUser.tokenVersion || 0) + 1;
+    }
+
     usersDB.update({ _id: id }, { $set: updateFields }, {}, (err, numUpdated) => {
       if (err) return res.status(500).json({ success: false, error: "Kunde inte uppdatera användare" });
       if (numUpdated === 0) return res.status(404).json({ success: false, error: "Användare hittades inte" });
-      res.json({ success: true, updated: { ...updateFields, password: undefined } });
+      const socketsDisconnected = updateFields.password
+        ? disconnectUserSockets(id)
+        : undefined;
+      res.json({
+        success: true,
+        updated: { ...updateFields, password: undefined },
+        ...(socketsDisconnected === undefined ? {} : {
+          socketsDisconnected,
+          ...(socketsDisconnected ? {} : { warning: "Lösenordet ändrades och gamla token återkallades, men WebSocket-sessionerna kunde inte kopplas ned." })
+        })
+      });
     });
   });
 });
@@ -875,18 +957,36 @@ const loginAttempts = new Map();
 function loginRateLimit(req, res, next) {
   const now = Date.now();
   const ip = req.ip || req.socket.remoteAddress || "unknown";
-  const username = String(req.body?.username || "").trim().toLowerCase();
-  const key = `${ip}:${username}`;
-  const entry = loginAttempts.get(key) || { count: 0, resetAt: now + 15 * 60 * 1000 };
-  if (now > entry.resetAt) {
-    entry.count = 0;
-    entry.resetAt = now + 15 * 60 * 1000;
+  const username = String(req.body?.username || "").trim().toLowerCase().slice(0, 100);
+  const keys = [
+    // IP-gränsen är högre eftersom flera användare kan dela samma nätverk/proxy.
+    { key: `ip:${ip}`, limit: 100 },
+    { key: `pair:${ip}:${username}`, limit: 10 },
+  ];
+
+  // Ta bort utgångna poster så att minnet inte växer obegränsat.
+  for (const [key, entry] of loginAttempts) {
+    if (now >= entry.resetAt) loginAttempts.delete(key);
   }
-  if (entry.count >= 10) {
-    return res.status(429).json({ error: "För många inloggningsförsök. Försök igen om 15 minuter." });
+
+  for (const bucket of keys) {
+    const entry = loginAttempts.get(bucket.key);
+    if (entry && entry.count >= bucket.limit) {
+      return res.status(429).json({
+        error: "För många inloggningsförsök. Försök igen om 15 minuter.",
+      });
+    }
   }
-  entry.count += 1;
-  loginAttempts.set(key, entry);
+
+  // Registrera bara misslyckade försök, inte normala/successfulla inloggningar.
+  req.recordFailedLogin = () => {
+    for (const bucket of keys) {
+      const entry = loginAttempts.get(bucket.key) || { count: 0, resetAt: now + 15 * 60 * 1000 };
+      entry.count += 1;
+      loginAttempts.set(bucket.key, entry);
+    }
+  };
+  req.loginAttemptKey = keys[1].key;
   next();
 }
 
@@ -898,13 +998,18 @@ app.post("/login", loginRateLimit, (req, res) => {
 
   usersDB.findOne({ username: username.trim() }, async (err, user) => {
     if (err) return res.status(500).json({ error: "Serverfel" });
-    if (!user) return res.status(401).json({ error: "Fel användarnamn" });
+    if (!user) {
+      req.recordFailedLogin?.();
+      return res.status(401).json({ error: "Fel användarnamn eller lösenord" });
+    }
 
     const ok = await bcrypt.compare(password, user.password);
-    if (!ok) return res.status(401).json({ error: "Fel lösenord" });
+    if (!ok) {
+      req.recordFailedLogin?.();
+      return res.status(401).json({ error: "Fel användarnamn eller lösenord" });
+    }
 
-    const loginKey = `${req.ip || req.socket.remoteAddress || "unknown"}:${String(username).trim().toLowerCase()}`;
-    loginAttempts.delete(loginKey);
+    if (req.loginAttemptKey) loginAttempts.delete(req.loginAttemptKey);
 
     // Save last login time
     usersDB.update(
@@ -919,6 +1024,7 @@ app.post("/login", loginRateLimit, (req, res) => {
         username: user.username,
         name: user.name,
         role: user.role,
+        tokenVersion: user.tokenVersion || 0,
       },
       JWT_SECRET,
       { expiresIn: "8h" }
@@ -952,19 +1058,36 @@ app.post("/login", loginRateLimit, (req, res) => {
 app.post("/logout", requireAuth, (req, res) => {
   const username = req.user.username;
 
-  // Emit the WS event only after the DB write has completed.
-  presenceDB.update(
-    { username },
-    { $set: { online: false } },
+  // Öka tokenVersion: alla JWT för användaren blir ogiltiga omedelbart.
+  usersDB.update(
+    { _id: req.user.id },
+    { $inc: { tokenVersion: 1 } },
     {},
-    () => {
-      io.emit("onlineUpdated", { username, online: false });
-      res.json({ success: true });
+    (authErr) => {
+      if (authErr) return res.status(500).json({ error: "Kunde inte återkalla inloggningen." });
+
+      // Ogiltigförklara JWT och koppla ned användarens öppna sockets.
+      const socketsDisconnected = disconnectUserSockets(req.user.id);
+
+      presenceDB.update(
+        { username },
+        { $set: { online: false } },
+        {},
+        () => {
+          io.emit("onlineUpdated", { username, online: false });
+          res.json({
+            success: true,
+            socketsDisconnected,
+            ...(socketsDisconnected ? {} : { warning: "Token återkallades, men WebSocket-sessionerna kunde inte kopplas ned." })
+          });
+        }
+      );
     }
   );
 });
 
 io.on("connection", (socket) => {
+  socket.join(`user:${socket.user.id}`);
   console.log("WS client connected:", socket.id);
 
   socket.on("registerUser", () => {
