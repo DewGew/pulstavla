@@ -202,11 +202,16 @@ export default function App() {
 
   // FIX: removed the duplicate useEffect that also fetched /widgets.
   useEffect(() => {
+    if (!user) return;
+
     apiFetch("/widgets")
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then((data) => { if (data.length > 0) setWidget(data[0]); })
       .catch((err) => console.warn("Fetch avbruten:", err.message));
-  }, [apiFetch]);
+  }, [apiFetch, user]);
 
 	/* ------------------- ORIENTATION / PAGINATION ------------------- */
 	const [isPortrait, setIsPortrait] = useState(
