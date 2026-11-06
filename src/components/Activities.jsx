@@ -17,6 +17,7 @@ export default function Activities() {
   const [hideDone, setHideDone] = useState(true);
   const [imageFile, setImageFile] = useState(null);
   const [imageModal, setImageModal] = useState(null);
+  const [imageUrls, setImageUrls] = useState({});
 
   // FIX: read token/user once with useState so they're stable references,
   // and wrap user parsing in try/catch to handle corrupted localStorage.
@@ -75,7 +76,24 @@ export default function Activities() {
         return;
       }
 
-      setTasks(await res.json());
+      const rows = await res.json();
+      const safeRows = Array.isArray(rows) ? rows : [];
+      const nextUrls = {};
+      await Promise.all(safeRows.filter((task) => task.image).map(async (task) => {
+        try {
+          const imageRes = await fetch(`${API_URL}${task.image}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (imageRes.ok) nextUrls[task._id] = URL.createObjectURL(await imageRes.blob());
+        } catch (error) {
+          console.warn("Kunde inte läsa aktivitetsbild:", error);
+        }
+      }));
+      setImageUrls((previous) => {
+        Object.values(previous).forEach((url) => URL.revokeObjectURL(url));
+        return nextUrls;
+      });
+      setTasks(safeRows);
     } catch {
       setError("Kunde inte hämta aktiviteter");
     } finally {
@@ -586,7 +604,7 @@ export default function Activities() {
             style={{ maxWidth: "90%", maxHeight: "90%", padding: 0 }}
           >
             <img
-              src={`${API_URL}${imageModal}`}
+              src={imageModal}
               alt="Förstorad bild"
               style={{ width: "100%", height: "auto", display: "block" }}
             />
@@ -689,11 +707,11 @@ export default function Activities() {
 
                 {task.image && (
                   <img
-                    src={`${API_URL}${task.image}`}
+                    src={imageUrls[task._id] || ""}
                     alt="Bilaga"
                     className="task-image"
                     style={{ cursor: "pointer" }}
-                    onClick={() => setImageModal(task.image)}
+                    onClick={() => setImageModal(imageUrls[task._id] || null)}
                   />
                 )}
 
