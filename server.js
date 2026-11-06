@@ -115,16 +115,21 @@ app.get("/brand-logo", (req, res) => {
 });
 
 function requireAuth(req, res, next) {
-	const authHeader = req.headers.authorization;
-  if (!authHeader)
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({ error: "Token saknas" });
-
-  const token = authHeader.split(" ")[1];
+  }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded; // { id, username, role }
-    next();
+    const decoded = jwt.verify(authHeader.slice(7), JWT_SECRET);
+    usersDB.findOne({ _id: decoded.id }, (err, user) => {
+      if (err) return res.status(500).json({ error: "Kunde inte verifiera inloggningen." });
+      if (!user || (decoded.tokenVersion || 0) !== (user.tokenVersion || 0)) {
+        return res.status(401).json({ error: "Inloggningen har återkallats. Logga in igen." });
+      }
+      req.user = { ...decoded, username: user.username, name: user.name, role: user.role };
+      next();
+    });
   } catch {
     res.status(401).json({ error: "Ogiltig token" });
   }
@@ -158,8 +163,14 @@ io.use((socket, next) => {
   const token = socket.handshake.auth?.token;
   if (!token) return next(new Error("Autentisering krävs"));
   try {
-    socket.user = jwt.verify(token, JWT_SECRET);
-    next();
+    const decoded = jwt.verify(token, JWT_SECRET);
+    usersDB.findOne({ _id: decoded.id }, (err, user) => {
+      if (err || !user || (decoded.tokenVersion || 0) !== (user.tokenVersion || 0)) {
+        return next(new Error("Inloggningen har återkallats"));
+      }
+      socket.user = { ...decoded, username: user.username, role: user.role };
+      next();
+    });
   } catch {
     next(new Error("Ogiltig token"));
   }
@@ -822,7 +833,7 @@ app.put("/users/:id/role", requireAuth, requireAdmin, (req, res) => {
 
     usersDB.update(
       { _id: id },
-      { $set: { role } },
+      { $set: { role }, $inc: { tokenVersion: 1 } },
       {},
       (err, numUpdated) => {
         if (err)
@@ -863,6 +874,10 @@ app.put("/users/:id", requireAuth, requireAdmin, (req, res) => {
       return res.status(403).json({ error: "Endast Super Admin får ändra Super Admin-konton." });
     }
 
+    if (updateFields.password) {
+      updateFields.tokenVersion = (targetUser.tokenVersion || 0) + 1;
+    }
+
     usersDB.update({ _id: id }, { $set: updateFields }, {}, (err, numUpdated) => {
       if (err) return res.status(500).json({ success: false, error: "Kunde inte uppdatera användare" });
       if (numUpdated === 0) return res.status(404).json({ success: false, error: "Användare hittades inte" });
@@ -875,18 +890,32 @@ const loginAttempts = new Map();
 function loginRateLimit(req, res, next) {
   const now = Date.now();
   const ip = req.ip || req.socket.remoteAddress || "unknown";
-  const username = String(req.body?.username || "").trim().toLowerCase();
-  const key = `${ip}:${username}`;
-  const entry = loginAttempts.get(key) || { count: 0, resetAt: now + 15 * 60 * 1000 };
-  if (now > entry.resetAt) {
-    entry.count = 0;
-    entry.resetAt = now + 15 * 60 * 1000;
+  const username = String(req.body?.username || "").trim().toLowerCase().slice(0, 100);
+  const keys = [
+    { key: `ip:${ip}`, limit: 30 },
+    { key: `pair:${ip}:${username}`, limit: 10 },
+  ];
+
+  // Ta bort utgångna poster så att minnet inte växer obegränsat.
+  for (const [key, entry] of loginAttempts) {
+    if (now >= entry.resetAt) loginAttempts.delete(key);
   }
-  if (entry.count >= 10) {
-    return res.status(429).json({ error: "För många inloggningsförsök. Försök igen om 15 minuter." });
+
+  for (const bucket of keys) {
+    const entry = loginAttempts.get(bucket.key);
+    if (entry && entry.count >= bucket.limit) {
+      return res.status(429).json({
+        error: "För många inloggningsförsök. Försök igen om 15 minuter.",
+      });
+    }
   }
-  entry.count += 1;
-  loginAttempts.set(key, entry);
+
+  for (const bucket of keys) {
+    const entry = loginAttempts.get(bucket.key) || { count: 0, resetAt: now + 15 * 60 * 1000 };
+    entry.count += 1;
+    loginAttempts.set(bucket.key, entry);
+  }
+  req.loginAttemptKey = keys[1].key;
   next();
 }
 
@@ -903,8 +932,7 @@ app.post("/login", loginRateLimit, (req, res) => {
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) return res.status(401).json({ error: "Fel lösenord" });
 
-    const loginKey = `${req.ip || req.socket.remoteAddress || "unknown"}:${String(username).trim().toLowerCase()}`;
-    loginAttempts.delete(loginKey);
+    if (req.loginAttemptKey) loginAttempts.delete(req.loginAttemptKey);
 
     // Save last login time
     usersDB.update(
@@ -919,6 +947,7 @@ app.post("/login", loginRateLimit, (req, res) => {
         username: user.username,
         name: user.name,
         role: user.role,
+        tokenVersion: user.tokenVersion || 0,
       },
       JWT_SECRET,
       { expiresIn: "8h" }
@@ -952,14 +981,29 @@ app.post("/login", loginRateLimit, (req, res) => {
 app.post("/logout", requireAuth, (req, res) => {
   const username = req.user.username;
 
-  // Emit the WS event only after the DB write has completed.
-  presenceDB.update(
-    { username },
-    { $set: { online: false } },
+  // Öka tokenVersion: alla JWT för användaren blir ogiltiga omedelbart.
+  usersDB.update(
+    { _id: req.user.id },
+    { $inc: { tokenVersion: 1 } },
     {},
-    () => {
-      io.emit("onlineUpdated", { username, online: false });
-      res.json({ success: true });
+    async (authErr) => {
+      if (authErr) return res.status(500).json({ error: "Kunde inte återkalla inloggningen." });
+
+      // Koppla även ned redan öppna WebSocket-sessioner för användaren.
+      const sockets = await io.fetchSockets();
+      sockets
+        .filter((socket) => socket.user?.id === req.user.id)
+        .forEach((socket) => socket.disconnect(true));
+
+      presenceDB.update(
+        { username },
+        { $set: { online: false } },
+        {},
+        () => {
+          io.emit("onlineUpdated", { username, online: false });
+          res.json({ success: true });
+        }
+      );
     }
   );
 });
