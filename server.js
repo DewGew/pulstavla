@@ -6,7 +6,12 @@ import { Server } from "socket.io";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { PORT, JWT_SECRET } from "./src/config.js";
+import { PORT } from "./src/config.js";
+
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET || JWT_SECRET.length < 32) {
+  throw new Error("JWT_SECRET måste anges som en hemlig sträng på minst 32 tecken.");
+}
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { load } from "cheerio"; // ESM-kompatibel
@@ -33,39 +38,50 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
 });
 
-function getSettingsObject(callback) {
-  settingsDB.find({}, (err, docs) => {
-    if (err) return callback(err);
-
-    const settings = {};
-    docs.forEach(s => {
-      settings[s.key] = s.value;
-    });
-
-    callback(null, settings);
-  });
+// Kontrollera filsignatur efter uppladdning, inte bara filändelsen.
+function validateUploadedFile(allowedExtensions) {
+  return (req, res, next) => {
+    if (!req.file) return res.status(400).json({ error: "Ingen fil skickades." });
+    const ext = path.extname(req.file.originalname || req.file.filename).slice(1).toLowerCase();
+    const allowed = allowedExtensions[ext];
+    const header = Buffer.alloc(16);
+    let fd;
+    try {
+      fd = fs.openSync(req.file.path, "r");
+      fs.readSync(fd, header, 0, header.length, 0);
+    } catch {
+      return res.status(400).json({ error: "Kunde inte läsa uppladdad fil." });
+    } finally {
+      if (fd !== undefined) fs.closeSync(fd);
+    }
+    const signatures = {
+      png: header.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10])),
+      jpg: header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff,
+      jpeg: header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff,
+      webp: header.toString("ascii",0,4) === "RIFF" && header.toString("ascii",8,12) === "WEBP",
+      gif: header.toString("ascii",0,3) === "GIF",
+      pdf: header.toString("ascii",0,5) === "%PDF-",
+      docx: header[0] === 0x50 && header[1] === 0x4b,
+      xlsx: header[0] === 0x50 && header[1] === 0x4b,
+      doc: header.subarray(0,8).equals(Buffer.from([0xd0,0xcf,0x11,0xe0,0xa1,0xb1,0x1a,0xe1])),
+      xls: header.subarray(0,8).equals(Buffer.from([0xd0,0xcf,0x11,0xe0,0xa1,0xb1,0x1a,0xe1]))
+    };
+    if (!allowed || !signatures[ext]) {
+      fs.unlink(req.file.path, () => {});
+      return res.status(415).json({ error: "Filinnehållet stämmer inte med en tillåten filtyp." });
+    }
+    next();
+  };
 }
+const imageFileTypes = { png:true, jpg:true, jpeg:true, webp:true, gif:true };
+const documentFileTypes = { pdf:true, doc:true, docx:true, xls:true, xlsx:true, png:true, jpg:true, jpeg:true };
+const spreadsheetFileTypes = { xls:true, xlsx:true };
 
 function cleanText(html) {
   return html
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/?[^>]+(>|$)/g, "")
     .trim();
-}
-
-// FIX: extract the real client IP, stripping the IPv4-mapped-IPv6 prefix
-// ("::ffff:192.168.1.50" -> "192.168.1.50") so it matches what admins
-// type into the autoLogin settings list. Falls back to X-Forwarded-For
-// in case the app ever runs behind a reverse proxy.
-function getClientIp(req) {
-  let ip =
-    req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
-    req.socket.remoteAddress ||
-    "";
-
-  if (ip.startsWith("::ffff:")) ip = ip.slice(7);
-
-  return ip;
 }
 
 Date.prototype.getWeek = function () {
@@ -76,14 +92,27 @@ Date.prototype.getWeek = function () {
   return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
 };
 
+const allowedOrigins = (process.env.CORS_ORIGINS || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 app.use(cors({
-  origin: true,
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error("Origin tillåts inte av CORS"));
+  },
   credentials: true,
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
 app.use(express.json());
-app.use("/uploads", express.static("uploads"));
-app.use("/docs", express.static("docs"));
+
+// Den publika logotypen exponeras separat; dokumenten i docs är privata.
+app.get("/brand-logo", (req, res) => {
+  res.sendFile(path.resolve("docs/logo.png"), (err) => {
+    if (err && !res.headersSent) res.sendStatus(404);
+  });
+});
 
 function requireAuth(req, res, next) {
 	const authHeader = req.headers.authorization;
@@ -108,6 +137,13 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+function requireEditor(req, res, next) {
+  if (!["user", "admin", "suAdmin"].includes(req.user.role)) {
+    return res.status(403).json({ error: "Du saknar behörighet att ändra information." });
+  }
+  next();
+}
+
 /* ---------------- HTTP SERVER + WEBSOCKET ---------------- */
 const server = https.createServer(
   app
@@ -117,24 +153,46 @@ const io = new Server(server, {
   cors: { origin: "*" },
 });
 
+// Alla WebSocket-anslutningar måste autentiseras med samma JWT som API:t.
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token;
+  if (!token) return next(new Error("Autentisering krävs"));
+  try {
+    socket.user = jwt.verify(token, JWT_SECRET);
+    next();
+  } catch {
+    next(new Error("Ogiltig token"));
+  }
+});
+
 /* ---------------- USERS DATABASE ---------------- */
 const usersDB = new Datastore({ filename: "./db/users.db", autoload: true });
 usersDB.persistence.setAutocompactionInterval(5 * 60 * 1000);
 
-// Lägg till standardanvändare om tom
+// Skapa aldrig förutsägbara standardkonton. En tom databas kan bootstrappas
+// med INITIAL_ADMIN_USERNAME och INITIAL_ADMIN_PASSWORD i servermiljön.
 usersDB.count({}, async (err, count) => {
-  if (count === 0) {
-	const defaultUsers = [
-	  { username: "admin", password: await bcrypt.hash("1234", 8), role: "admin", email: "admin@example.com", name: "Administrator" },
-		{ username: "super admin", password: await bcrypt.hash("12345", 8), role: "suAdmin", email: "super.admin@example.com", name: "Super Administrator" },
-	  { username: "user", password: await bcrypt.hash("test", 8), role: "user", email: "test@example.com", name: "Test User" }
-	];
+  if (err) return console.error("Kunde inte kontrollera användardatabasen:", err);
+  if (count !== 0) return;
 
-    usersDB.insert(defaultUsers, (err) => {
-      if (err) console.log("Kunde inte lägga till default users");
-      else console.log("Standardanvändare tillagda i users.db");
-    });
+  const username = process.env.INITIAL_ADMIN_USERNAME;
+  const password = process.env.INITIAL_ADMIN_PASSWORD;
+  if (!username || !password || password.length < 12) {
+    console.warn("Inga användare finns. Ange INITIAL_ADMIN_USERNAME och INITIAL_ADMIN_PASSWORD (minst 12 tecken) för första administratören.");
+    return;
   }
+
+  const hashedPassword = await bcrypt.hash(password, 12);
+  usersDB.insert({
+    username,
+    password: hashedPassword,
+    role: "suAdmin",
+    email: process.env.INITIAL_ADMIN_EMAIL || "",
+    name: process.env.INITIAL_ADMIN_NAME || username,
+  }, (insertErr) => {
+    if (insertErr) console.error("Kunde inte skapa första administratören:", insertErr);
+    else console.log("Första Super Admin-kontot skapades från miljövariabler.");
+  });
 });
 
 /* ---------------- PRESENCE DATABASE ---------------- */
@@ -160,6 +218,24 @@ const settingsDB = new Datastore({
 });
 settingsDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 60000);
 
+
+// Läs inställningar som objekt för interna funktioner.
+// autoLogin filtreras alltid bort eftersom den gamla funktionen är avvecklad.
+function getSettingsObject(callback) {
+  settingsDB.find({}, (err, docs) => {
+    if (err) return callback(err);
+
+    const settings = {};
+    docs.forEach((setting) => {
+      if (setting.key !== "autoLogin") {
+        settings[setting.key] = setting.value;
+      }
+    });
+
+    callback(null, settings);
+  });
+}
+
 settingsDB.count({}, (err, count) => {
   if (count === 0) {
 		const defaults = [
@@ -174,16 +250,7 @@ settingsDB.count({}, (err, count) => {
 					wsUrl: "ws://ws.domain.com",
 					rotationInterval: 10000,
 				},
-			},
-			{
-				// FIX: IP -> användare/lösenord-mappning för automatisk inloggning
-				// av t.ex. kioskdatorer på verkstadsgolvet. Hanteras av admin via
-				// PUT /settings/autoLogin (redan skyddad av requireAuth+requireAdmin).
-				// Exempel på post: { ip: "192.168.1.50", username: "user", password: "test" }
-				key: "autoLogin",
-				value: [],
-			},
-			{
+			},{
 				key: "machines",
 				value: {
 					groups: {
@@ -241,13 +308,14 @@ settingsDB.count({}, (err, count) => {
       console.log("Standardinställningar skapade");
     });
   } else {
-    // FIX: om DB:n redan finns sen tidigare (utan autoLogin-nyckeln),
-    // lägg till den så äldre installationer inte saknar fältet.
-    settingsDB.findOne({ key: "autoLogin" }, (err, doc) => {
-      if (!err && !doc) {
-        settingsDB.insert({ key: "autoLogin", value: [] }, () => {
-          console.log("autoLogin-inställning tillagd");
-        });
+    // Ta bort äldre autoLogin-poster som kan innehålla lösenord i klartext.
+    settingsDB.remove({ key: "autoLogin" }, { multi: true }, (removeErr, removed) => {
+      if (removeErr) {
+        console.error("Kunde inte rensa gamla autoLogin-uppgifter:", removeErr);
+      } else {
+        if (removed) console.log("Gamla autoLogin-inställningar rensades.");
+        // Skriv om NeDB-filen så att borttagna klartextlösenord inte ligger kvar i gamla data-block.
+        settingsDB.persistence.compactDatafile();
       }
     });
   }
@@ -277,7 +345,7 @@ app.get("/settings", requireAuth, (req, res) => {
     // returnera som objekt istället för array
     const settings = {};
     docs.forEach(s => {
-      settings[s.key] = s.value;
+      if (s.key !== "autoLogin") settings[s.key] = s.value;
     });
 
     res.json(settings);
@@ -286,6 +354,7 @@ app.get("/settings", requireAuth, (req, res) => {
 
 app.get("/settings/:key", requireAuth, requireAdmin, (req, res) => {
   const { key } = req.params;
+  if (key === "autoLogin") return res.sendStatus(404);
 
   settingsDB.findOne({ key }, (err, doc) => {
     if (err)
@@ -299,6 +368,7 @@ app.get("/settings/:key", requireAuth, requireAdmin, (req, res) => {
 
 app.put("/settings/:key", requireAuth, requireAdmin, (req, res) => {
   const { key } = req.params;
+  if (key === "autoLogin") return res.sendStatus(410);
   const { value } = req.body;
 
   if (value === undefined) {
@@ -313,16 +383,14 @@ app.put("/settings/:key", requireAuth, requireAdmin, (req, res) => {
       if (err)
         return res.status(500).json({ error: "Kunde inte spara inställning" });
 
-      // 🔔 valfritt WS-event
       io.emit("settingsUpdated", { key, value });
-
       res.json({ success: true, key, value });
     }
   );
 });
 
 // Endpoint för att lista dokumenten
-app.get("/documents", (req, res) => {
+app.get("/documents", requireAuth, (req, res) => {
   const dir = path.resolve("docs");
 
   fs.readdir(dir, { withFileTypes: true }, (err, entries) => {
@@ -343,7 +411,7 @@ app.get("/documents", (req, res) => {
       .map((file, index) => ({
         id: index + 1,
         name: file.name,
-        url: `/docs/${encodeURIComponent(file.name)}`
+        url: `/documents/${encodeURIComponent(file.name)}`
       }))
       .sort((a, b) => a.name.localeCompare(b.name, "sv"));
 
@@ -351,8 +419,24 @@ app.get("/documents", (req, res) => {
   });
 });
 
+app.get("/uploads/:name", requireAuth, (req, res) => {
+  const fileName = path.basename(req.params.name);
+  if (!fileName || fileName !== req.params.name) return res.sendStatus(400);
+  res.sendFile(fileName, { root: path.resolve("uploads"), dotfiles: "deny" }, (err) => {
+    if (err && !res.headersSent) res.sendStatus(err.statusCode === 404 ? 404 : 500);
+  });
+});
+
+app.get("/documents/:name", requireAuth, (req, res) => {
+  const fileName = path.basename(req.params.name);
+  if (!fileName || fileName !== req.params.name) return res.sendStatus(400);
+  res.sendFile(fileName, { root: path.resolve("docs"), dotfiles: "deny" }, (err) => {
+    if (err && !res.headersSent) res.sendStatus(err.statusCode === 404 ? 404 : 500);
+  });
+});
+
 /* Ladda upp dokument till docs med originalnamnet */
-app.post("/documents", (req, res, next) => {
+app.post("/documents", requireAuth, requireAdmin, (req, res, next) => {
   const docsDir = path.resolve("docs");
 
   fs.mkdirSync(docsDir, { recursive: true });
@@ -390,16 +474,19 @@ app.post("/documents", (req, res, next) => {
       });
     }
 
-    res.status(201).json({
-      message: "Dokumentet laddades upp.",
-      name: req.file.filename,
-      url: `/docs/${encodeURIComponent(req.file.filename)}`
+    validateUploadedFile(documentFileTypes)(req, res, (validationErr) => {
+      if (validationErr) return next(validationErr);
+      res.status(201).json({
+        message: "Dokumentet laddades upp.",
+        name: req.file.filename,
+        url: `/documents/${encodeURIComponent(req.file.filename)}`
+      });
     });
   });
 });
 
 /* Ta bort dokument från docs */
-app.delete("/documents/:name", (req, res) => {
+app.delete("/documents/:name", requireAuth, requireAdmin, (req, res) => {
   const fileName = path.basename(req.params.name);
   const filePath = path.resolve("docs", fileName);
   const docsDir = path.resolve("docs");
@@ -500,6 +587,14 @@ async function readLunchMeta() {
   }
 }
 
+app.get("/lunch-image/:name", (req, res) => {
+  const name = req.params.name;
+  if (!/^lunch-current\.(webp|jpg|jpeg|png)$/i.test(name)) return res.sendStatus(404);
+  res.sendFile(name, { root: uploadDir }, (err) => {
+    if (err && !res.headersSent) res.sendStatus(404);
+  });
+});
+
 app.get("/lunch", async (req, res) => {
   const now = new Date();
   const currentWeek = now.getWeek();
@@ -510,23 +605,35 @@ app.get("/lunch", async (req, res) => {
     const isCurrent = meta && meta.week === currentWeek && meta.year === currentYear;
 
     if (isCurrent) {
-      return res.json({ imageUrl: `/uploads/${meta.imageFile}`, ...meta });
+      return res.json({ imageUrl: `/lunch-image/${meta.imageFile}`, ...meta });
     }
 
     const freshMeta = await refreshLunchCache();
-    res.json({ imageUrl: `/uploads/${freshMeta.imageFile}`, ...freshMeta });
+    res.json({ imageUrl: `/lunch-image/${freshMeta.imageFile}`, ...freshMeta });
   } catch (err) {
     console.warn("Kunde inte uppdatera lunch-cache:", err.message);
     const meta = await readLunchMeta();
     if (meta) {
-      return res.json({ imageUrl: `/uploads/${meta.imageFile}`, ...meta, stale: true });
+      return res.json({ imageUrl: `/lunch-image/${meta.imageFile}`, ...meta, stale: true });
     }
     res.status(502).json({ error: "Kunde inte hämta veckans lunch" });
   }
 });
 
 /* ---------------- PRESENCE ENDPOINT ---------------- */
-app.get("/presence", (req, res) => {
+app.get("/presence/users", requireAuth, (req, res) => {
+  usersDB.find({}, (err, docs) => {
+    if (err) return res.status(500).json({ error: "Kunde inte läsa användare" });
+    res.json(docs.map(({ password, ...user }) => ({
+      _id: user._id,
+      username: user.username,
+      name: user.name,
+      role: user.role,
+    })));
+  });
+});
+
+app.get("/presence", requireAuth, (req, res) => {
   presenceDB.find({}, (err, docs) => {
     if (err) return res.status(500).json({ error: "Kunde inte läsa närvaro" });
 
@@ -551,30 +658,56 @@ app.get("/presence", (req, res) => {
   });
 });
 
-app.post("/presence", (req, res) => {
+app.post("/presence", requireAuth, requireEditor, (req, res) => {
   const { username, present, status, operator } = req.body;
 
-  if (!username) return res.status(400).json({ error: "Username saknas" });
+  if (typeof username !== "string" || !username.trim()) {
+    return res.status(400).json({ error: "Username saknas" });
+  }
+  if (operator !== undefined && (typeof operator !== "string" || operator.length > 100)) {
+    return res.status(400).json({ error: "Ogiltig operatör" });
+  }
 
-  const updateObj = {};
-  if (present !== undefined) updateObj.present = present; // för användare
-  if (status) updateObj.status = status;                 // för maskiner
-  if (operator !== undefined) updateObj.operator = operator;
+  const updatePresence = (updateObj) => {
+    presenceDB.update(
+      { username },
+      { $set: updateObj },
+      { upsert: true },
+      (err) => {
+        if (err) return res.status(500).json({ error: "Kunde inte uppdatera närvaro" });
+        io.emit("presenceUpdated", { username, ...updateObj });
+        res.json({ success: true, username, ...updateObj });
+      }
+    );
+  };
 
-  // Spara eller uppdatera i DB
-  presenceDB.update(
-    { username },
-    { $set: updateObj },
-    { upsert: true },
-    (err) => {
-      if (err) return res.status(500).json({ error: "Kunde inte uppdatera närvaro" });
-
-      // Sänd WS-event till alla klienter
-      io.emit("presenceUpdated", { username, ...updateObj });
-
-      res.json({ success: true, username, ...updateObj });
+  // Maskinstatus får bara användas för maskiner som finns i inställningarna.
+  if (status !== undefined) {
+    if (!["green", "yellow", "red"].includes(status)) {
+      return res.status(400).json({ error: "Ogiltig maskinstatus" });
     }
-  );
+    return getSettingsObject((err, settings) => {
+      if (err) return res.status(500).json({ error: "Kunde inte läsa maskiner" });
+      const machineExists = (settings.machines?.list || []).some((machine) => machine.name === username);
+      if (!machineExists) return res.status(404).json({ error: "Maskinen hittades inte" });
+      const updateObj = { status };
+      if (operator !== undefined) updateObj.operator = operator;
+      updatePresence(updateObj);
+    });
+  }
+
+  if (typeof present !== "boolean") {
+    return res.status(400).json({ error: "Närvarostatus måste vara true eller false" });
+  }
+
+  usersDB.findOne({ username }, (err, targetUser) => {
+    if (err) return res.status(500).json({ error: "Kunde inte läsa användare" });
+    if (!targetUser) return res.status(404).json({ error: "Användaren hittades inte" });
+    if (req.user.role === "user" && targetUser.role !== "user") {
+      return res.status(403).json({ error: "Du får bara ändra närvaro för produktionsanvändare." });
+    }
+    updatePresence({ present });
+  });
 });
 
 /* ---------------- GREEN CROSS DATABASE ---------------- */
@@ -617,42 +750,52 @@ const matprotokollDB = new Datastore({
 matprotokollDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 260000);
 
 /* ---------------- USERS ENDPOINTS ---------------- */
-app.get("/users", (req, res) => {
+app.get("/users", requireAuth, requireAdmin, (req, res) => {
   usersDB.find({}, (err, docs) => {
     if (err) return res.status(500).json({ error: "Kunde inte läsa användare" });
-    res.json(docs); // doc innehåller nu även email
+    res.json(docs.map(({ password, ...user }) => user));
   });
 });
 
-app.post("/users/add", async (req, res) => {
+app.post("/users/add", requireAuth, requireAdmin, async (req, res) => {
   const { username, password, role, email, name } = req.body;
 
   if (!username || !password || !email || !name) {
     return res.status(400).json({ error: "username, password, email och name krävs" });
   }
-	
-	const hashedPassword = await bcrypt.hash(password, 8);
+  if (typeof password !== "string" || password.length < 3) {
+    return res.status(400).json({ error: "Lösenord måste vara minst 3 tecken." });
+  }
+  if (role && !["view", "user", "admin"].includes(role)) {
+    return res.status(400).json({ error: "Ogiltig roll. Endast view, user eller admin kan skapas här." });
+  }
+  const hashedPassword = await bcrypt.hash(password, 12);
 
   const user = { username, password: hashedPassword, role: role || "user", email, name };
 
   usersDB.insert(user, (err, newUser) => {
     if (err) return res.status(500).json({ error: "Kunde inte spara användare" });
 
-    res.json({ success: true, user: newUser });
+    const { password: _password, ...safeUser } = newUser;
+    res.json({ success: true, user: safeUser });
   });
 });
 
-app.delete("/users/:id", (req, res) => {
+app.delete("/users/:id", requireAuth, requireAdmin, (req, res) => {
   const id = req.params.id;
 
-  usersDB.remove({ _id: id }, {}, (err, numRemoved) => {
-    if (err) return res.status(500).json({ error: "Kunde inte radera användare" });
-
-    if (numRemoved === 0) {
-      return res.status(404).json({ error: "Användare hittades inte" });
+  usersDB.findOne({ _id: id }, (findErr, targetUser) => {
+    if (findErr) return res.status(500).json({ error: "DB-fel" });
+    if (!targetUser) return res.status(404).json({ error: "Användare hittades inte" });
+    if (targetUser.role === "suAdmin" && req.user.role !== "suAdmin") {
+      return res.status(403).json({ error: "Endast Super Admin får radera Super Admin-konton." });
     }
 
-    res.json({ success: true, removed: numRemoved });
+    usersDB.remove({ _id: id }, {}, (err, numRemoved) => {
+      if (err) return res.status(500).json({ error: "Kunde inte radera användare" });
+      if (numRemoved === 0) return res.status(404).json({ error: "Användare hittades inte" });
+      res.json({ success: true, removed: numRemoved });
+    });
   });
 });
 
@@ -661,9 +804,7 @@ app.put("/users/:id/role", requireAuth, requireAdmin, (req, res) => {
   const id = req.params.id;
   const { role } = req.body;
 
-  if (!role) {
-    return res.status(400).json({ error: "Role saknas" });
-  }
+  if (!["view", "user", "admin", "suAdmin"].includes(role)) return res.status(400).json({ error: "Ogiltig roll" });
 
   usersDB.findOne({ _id: id }, (err, targetUser) => {
     if (err)
@@ -672,11 +813,8 @@ app.put("/users/:id/role", requireAuth, requireAdmin, (req, res) => {
     if (!targetUser)
       return res.status(404).json({ error: "Användaren hittades inte" });
 
-    // 🔒 Endast suAdmin får ändra suAdmin
-    if (
-      targetUser.role === "suAdmin" &&
-      req.user.role !== "suAdmin"
-    ) {
+    // Endast suAdmin får hantera suAdmin-konton eller tilldela suAdmin-roll.
+    if ((targetUser.role === "suAdmin" || role === "suAdmin") && req.user.role !== "suAdmin") {
       return res.status(403).json({
         error: "Endast Super Admin får ändra Super Admin.",
       });
@@ -703,7 +841,7 @@ app.put("/users/:id/role", requireAuth, requireAdmin, (req, res) => {
   });
 });
 // ---------------- UPDATE USER ----------------
-app.put("/users/:id", (req, res) => {
+app.put("/users/:id", requireAuth, requireAdmin, (req, res) => {
   const id = req.params.id;
   const { name, username, email, password, role } = req.body;
 
@@ -712,28 +850,61 @@ app.put("/users/:id", (req, res) => {
   if (name !== undefined) updateFields.name = name;
   if (username !== undefined) updateFields.username = username;
   if (email !== undefined) updateFields.email = email;
-  if (role !== undefined) updateFields.role = role;
+  if (role !== undefined) return res.status(400).json({ error: "Ändra roll via /users/:id/role." });
   if (password !== undefined && password !== "") {
-    updateFields.password = bcrypt.hashSync(password, 8);
+    if (password.length < 3) return res.status(400).json({ error: "Lösenord måste vara minst 3 tecken." });
+    updateFields.password = bcrypt.hashSync(password, 12);
   }
 
-  usersDB.update({ _id: id }, { $set: updateFields }, {}, (err, numUpdated) => {
-    if (err) return res.status(500).json({ success: false, error: "Kunde inte uppdatera användare" });
-    if (numUpdated === 0) return res.status(404).json({ success: false, error: "Användare hittades inte" });
+  usersDB.findOne({ _id: id }, (findErr, targetUser) => {
+    if (findErr) return res.status(500).json({ success: false, error: "DB-fel" });
+    if (!targetUser) return res.status(404).json({ success: false, error: "Användare hittades inte" });
+    if (targetUser.role === "suAdmin" && req.user.role !== "suAdmin") {
+      return res.status(403).json({ error: "Endast Super Admin får ändra Super Admin-konton." });
+    }
 
-    res.json({ success: true, updated: updateFields });
+    usersDB.update({ _id: id }, { $set: updateFields }, {}, (err, numUpdated) => {
+      if (err) return res.status(500).json({ success: false, error: "Kunde inte uppdatera användare" });
+      if (numUpdated === 0) return res.status(404).json({ success: false, error: "Användare hittades inte" });
+      res.json({ success: true, updated: { ...updateFields, password: undefined } });
+    });
   });
 });
 
-app.post("/login", (req, res) => {
-  const { username, password } = req.body;
+const loginAttempts = new Map();
+function loginRateLimit(req, res, next) {
+  const now = Date.now();
+  const ip = req.ip || req.socket.remoteAddress || "unknown";
+  const username = String(req.body?.username || "").trim().toLowerCase();
+  const key = `${ip}:${username}`;
+  const entry = loginAttempts.get(key) || { count: 0, resetAt: now + 15 * 60 * 1000 };
+  if (now > entry.resetAt) {
+    entry.count = 0;
+    entry.resetAt = now + 15 * 60 * 1000;
+  }
+  if (entry.count >= 10) {
+    return res.status(429).json({ error: "För många inloggningsförsök. Försök igen om 15 minuter." });
+  }
+  entry.count += 1;
+  loginAttempts.set(key, entry);
+  next();
+}
 
-  usersDB.findOne({ username }, async (err, user) => {
+app.post("/login", loginRateLimit, (req, res) => {
+  const { username, password } = req.body;
+  if (typeof username !== "string" || typeof password !== "string" || !username.trim() || !password) {
+    return res.status(400).json({ error: "Användarnamn och lösenord krävs." });
+  }
+
+  usersDB.findOne({ username: username.trim() }, async (err, user) => {
     if (err) return res.status(500).json({ error: "Serverfel" });
     if (!user) return res.status(401).json({ error: "Fel användarnamn" });
 
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) return res.status(401).json({ error: "Fel lösenord" });
+
+    const loginKey = `${req.ip || req.socket.remoteAddress || "unknown"}:${String(username).trim().toLowerCase()}`;
+    loginAttempts.delete(loginKey);
 
     // Save last login time
     usersDB.update(
@@ -778,87 +949,10 @@ app.post("/login", (req, res) => {
   });
 });
 
-/* ---------------- AUTO-LOGIN (IP -> användare) ---------------- */
-// Kioskdatorer / fasta stationer kan logga in automatiskt genom att anropa
-// denna endpoint vid uppstart. Servern känner igen klientens IP mot listan
-// i settings.autoLogin (hanteras av admin via PUT /settings/autoLogin) och
-// verifierar lösenordet mot den riktiga användarens bcrypt-hash i users.db
-// — precis samma kontroll som en manuell inloggning, bara automatiserad.
-app.get("/auto-login", (req, res) => {
-  const clientIp = getClientIp(req);
-
-  getSettingsObject((err, settings) => {
-    if (err) return res.status(500).json({ error: "Serverfel" });
-
-    const autoLoginList = settings.autoLogin || [];
-    const entry = autoLoginList.find((e) => e.ip === clientIp);
-
-    if (!entry) {
-      return res.status(404).json({
-        error: "Ingen automatisk inloggning konfigurerad för denna IP",
-        ip: clientIp,
-      });
-    }
-
-    usersDB.findOne({ username: entry.username }, async (err, user) => {
-      if (err) return res.status(500).json({ error: "Serverfel" });
-      if (!user)
-        return res
-          .status(401)
-          .json({ error: "Autologin-användaren hittades inte" });
-
-      const ok = await bcrypt.compare(entry.password, user.password);
-      if (!ok)
-        return res
-          .status(401)
-          .json({ error: "Autologin-lösenordet matchar inte längre" });
-
-      usersDB.update(
-        { _id: user._id },
-        { $set: { lastLogin: Date.now() } },
-        {}
-      );
-
-      const token = jwt.sign(
-        {
-          id: user._id,
-          username: user.username,
-          name: user.name,
-          role: user.role,
-        },
-        JWT_SECRET,
-        { expiresIn: "8h" }
-      );
-
-      presenceDB.update(
-        { username: user.username },
-        { $set: { online: true } },
-        { upsert: true },
-        () => {
-          io.emit("onlineUpdated", { username: user.username, online: true });
-
-          res.json({
-            success: true,
-            token,
-            user: {
-              _id: user._id,
-              username: user.username,
-              role: user.role,
-              name: user.name,
-              email: user.email,
-            },
-          });
-        }
-      );
-    });
-  });
-});
-
 app.post("/logout", requireAuth, (req, res) => {
   const username = req.user.username;
 
-  // FIX: same ordering fix — emit WS event inside the callback,
-  // only after the DB write has completed.
+  // Emit the WS event only after the DB write has completed.
   presenceDB.update(
     { username },
     { $set: { online: false } },
@@ -873,7 +967,9 @@ app.post("/logout", requireAuth, (req, res) => {
 io.on("connection", (socket) => {
   console.log("WS client connected:", socket.id);
 
-  socket.on("registerUser", (username) => {
+  socket.on("registerUser", () => {
+    const username = socket.user.username;
+    if (!username) return;
     socket.username = username;
 
     presenceDB.update(
@@ -905,7 +1001,7 @@ io.on("connection", (socket) => {
 });
 
 /* ---------------- GREEN CROSS ENDPOINTS ---------------- */
-app.get("/greenCross/:crossId/:year/:month", (req, res) => {
+app.get("/greenCross/:crossId/:year/:month", requireAuth, (req, res) => {
   const crossId = req.params.crossId;
   const year = Number(req.params.year);
   const month = Number(req.params.month);
@@ -916,7 +1012,7 @@ app.get("/greenCross/:crossId/:year/:month", (req, res) => {
   });
 });
 
-app.post("/greenCross", (req, res) => {
+app.post("/greenCross", requireAuth, requireEditor, (req, res) => {
   const { crossId, year, month, cells } = req.body;
 
   db.update(
@@ -940,7 +1036,7 @@ app.post("/greenCross", (req, res) => {
 /* ---------------- ACTIVITIES ENDPOINTS ---------------- */
 
 // Hämta alla aktiviteter
-app.get("/activities", (req, res) => {
+app.get("/activities", requireAuth, (req, res) => {
   activitiesDB.find({})
     .sort({ sticky: -1, createdAt: -1 })
     .exec((err, docs) => {
@@ -950,7 +1046,7 @@ app.get("/activities", (req, res) => {
 });
 
 // Skapa aktivitet (nu med responsible)
-app.post("/activities", requireAuth, (req, res) => {
+app.post("/activities", requireAuth, requireEditor, (req, res) => {
 	const { title, category, deadline, responsible, description, image, flag, crossId, sticky } = req.body;
 
 	if (!title) return res.status(400).json({ error: "Titel krävs" });
@@ -978,7 +1074,7 @@ app.post("/activities", requireAuth, (req, res) => {
 });
 
 // Uppdatera aktivitet (inkl responsible)
-app.put("/activities/:id", (req, res) => {
+app.put("/activities/:id", requireAuth, requireEditor, (req, res) => {
   const id = req.params.id;
 
   activitiesDB.findOne({ _id: id }, (err, task) => {
@@ -1008,7 +1104,7 @@ app.put("/activities/:id", (req, res) => {
 });
 
 // Ta bort aktivitet
-app.delete("/activities/:id", (req, res) => {
+app.delete("/activities/:id", requireAuth, requireEditor, (req, res) => {
   const id = req.params.id;
 
   activitiesDB.remove({ _id: id }, {}, (err) => {
@@ -1022,7 +1118,7 @@ app.delete("/activities/:id", (req, res) => {
 
 /* ---------------- WIDGETS ENDPOINTS ---------------- */
 // Hämta alla widgets
-app.get("/widgets",  (req, res) => {
+app.get("/widgets", requireAuth, (req, res) => {
   widgetsDB.find({}, (err, docs) => {
     if (err) return res.status(500).json({ error: "Fel vid hämtning av widgets" });
     res.json(docs);
@@ -1030,7 +1126,7 @@ app.get("/widgets",  (req, res) => {
 });
 
 // Hämta widget med textwidgetid
-app.get("/widgets/:textwidgetid", (req, res) => {
+app.get("/widgets/:textwidgetid", requireAuth, (req, res) => {
   const id = req.params.textwidgetid;
   widgetsDB.findOne({ textwidgetid: id }, (err, doc) => {
     if (err) return res.status(500).json({ error: "Fel vid hämtning" });
@@ -1040,7 +1136,7 @@ app.get("/widgets/:textwidgetid", (req, res) => {
 });
 
 // Skapa widget (om den inte finns)
-app.post("/widgets", (req, res) => {
+app.post("/widgets", requireAuth, requireEditor, (req, res) => {
   const { textwidgetid, title = "", text = "" } = req.body;
   if (!textwidgetid) return res.status(400).json({ error: "textwidgetid krävs" });
 
@@ -1054,7 +1150,7 @@ app.post("/widgets", (req, res) => {
 });
 
 // Uppdatera widget
-app.put("/widgets/:textwidgetid", requireAuth, (req, res) => {
+app.put("/widgets/:textwidgetid", requireAuth, requireEditor, (req, res) => {
   const id = req.params.textwidgetid;
   const { title, text } = req.body;
 
@@ -1089,7 +1185,7 @@ app.put("/widgets/:textwidgetid", requireAuth, (req, res) => {
 });
 
 
-app.get("/structured-widgets/:widgetId", (req, res) => {
+app.get("/structured-widgets/:widgetId", requireAuth, (req, res) => {
   const { widgetId } = req.params;
 
   structuredWidgetsDB.findOne({ widgetId }, (err, doc) => {
@@ -1099,7 +1195,7 @@ app.get("/structured-widgets/:widgetId", (req, res) => {
   });
 });
 
-app.post("/structured-widgets", (req, res) => {
+app.post("/structured-widgets", requireAuth, requireEditor, (req, res) => {
   const { widgetId, title = "", sections = [] } = req.body;
 
   if (!widgetId)
@@ -1122,7 +1218,7 @@ app.post("/structured-widgets", (req, res) => {
   });
 });
 
-app.put("/structured-widgets/:widgetId", requireAuth, (req, res) => {
+app.put("/structured-widgets/:widgetId", requireAuth, requireEditor, (req, res) => {
   const { widgetId } = req.params;
   const { title, sections } = req.body;
 
@@ -1156,7 +1252,7 @@ app.put("/structured-widgets/:widgetId", requireAuth, (req, res) => {
   );
 });
 
-app.delete("/structured-widgets/:widgetId", (req, res) => {
+app.delete("/structured-widgets/:widgetId", requireAuth, requireEditor, (req, res) => {
   structuredWidgetsDB.remove(
     { widgetId: req.params.widgetId },
     {},
@@ -1171,7 +1267,7 @@ app.delete("/structured-widgets/:widgetId", (req, res) => {
 /* ---------------- MÄTPROTOKOLL ENDPOINTS ---------------- */
 // Lista sparade protokoll (bara det som behövs för en väljarlista —
 // inte hela mätpunkts-arrayen, så listan förblir snabb att hämta)
-app.get("/matprotokoll", (req, res) => {
+app.get("/matprotokoll", requireAuth, (req, res) => {
   // FIX: exkludera bara measurements (kan vara stor) istället för att lita
   // på nästlad dot-notation-projektion ("form.ordernr": 1), som inte är
   // garanterat pålitlig i alla NeDB-versioner.
@@ -1181,23 +1277,34 @@ app.get("/matprotokoll", (req, res) => {
     .exec((err, docs) => {
       if (err)
         return res.status(500).json({ error: "Kunde inte lista mätprotokoll" });
-      res.json(docs);
+      const visibleDocs = ["admin", "suAdmin"].includes(req.user.role)
+        ? docs
+        : docs.filter((doc) =>
+            doc.form?.upprattadAv === req.user.name && doc.pdfSaved === false
+          );
+      res.json(visibleDocs);
     });
 });
 
 // Hämta ett specifikt protokoll (hela form + measurements)
-app.get("/matprotokoll/:matprotokollId", (req, res) => {
+app.get("/matprotokoll/:matprotokollId", requireAuth, (req, res) => {
   const { matprotokollId } = req.params;
 
   matprotokollDB.findOne({ matprotokollId }, (err, doc) => {
     if (err) return res.status(500).json({ error: "DB-fel" });
     if (!doc) return res.status(404).json({ error: "Mätprotokoll saknas" });
+    const isAdmin = ["admin", "suAdmin"].includes(req.user.role);
+    const isOwnDraft =
+      doc.form?.upprattadAv === req.user.name && doc.pdfSaved === false;
+    if (!isAdmin && !isOwnDraft) {
+      return res.status(404).json({ error: "Mätprotokoll saknas" });
+    }
     res.json(doc);
   });
 });
 
 // Skapa/uppdatera protokoll (upsert på matprotokollId)
-app.put("/matprotokoll/:matprotokollId", requireAuth, (req, res) => {
+app.put("/matprotokoll/:matprotokollId", requireAuth, requireEditor, (req, res) => {
   const { matprotokollId } = req.params;
   const { form, measurements, pdfSaved } = req.body;
 
@@ -1241,7 +1348,7 @@ app.put("/matprotokoll/:matprotokollId", requireAuth, (req, res) => {
 });
 
 // Ta bort protokoll
-app.delete("/matprotokoll/:matprotokollId", requireAuth, (req, res) => {
+app.delete("/matprotokoll/:matprotokollId", requireAuth, requireEditor, (req, res) => {
   matprotokollDB.remove(
     { matprotokollId: req.params.matprotokollId },
     {},
@@ -1253,7 +1360,7 @@ app.delete("/matprotokoll/:matprotokollId", requireAuth, (req, res) => {
 });
 
 /* ---------------- DRAWING WIDGET ENDPOINTS ---------------- */
-app.get("/drawings/:drawingId", (req, res) => {
+app.get("/drawings/:drawingId", requireAuth, (req, res) => {
   const { drawingId } = req.params;
 
   drawingsDB.findOne({ drawingId }, (err, doc) => {
@@ -1263,7 +1370,7 @@ app.get("/drawings/:drawingId", (req, res) => {
   });
 });
 
-app.post("/drawings", (req, res) => {
+app.post("/drawings", requireAuth, requireEditor, (req, res) => {
   const { drawingId, title = "", strokes = [] } = req.body;
 
   if (!drawingId)
@@ -1287,9 +1394,9 @@ app.post("/drawings", (req, res) => {
 });
 
 // FIX: no requireAuth here on purpose — touch panels drawing notes are often
-// logged in as a shared kiosk user (or not logged in at all via auto-login).
+// logged in as a shared kiosk user.
 // updatedBy falls back to "Okänd" instead of relying on req.user.
-app.put("/drawings/:drawingId", (req, res) => {
+app.put("/drawings/:drawingId", requireAuth, requireEditor, (req, res) => {
   const { drawingId } = req.params;
   const { title, strokes } = req.body;
 
@@ -1332,14 +1439,14 @@ app.put("/drawings/:drawingId", (req, res) => {
   );
 });
 
-app.delete("/drawings/:drawingId", (req, res) => {
+app.delete("/drawings/:drawingId", requireAuth, requireAdmin, (req, res) => {
   drawingsDB.remove({ drawingId: req.params.drawingId }, {}, (err, numRemoved) => {
     if (err) return res.status(500).json({ error: "Kunde inte ta bort" });
     res.json({ success: true, removed: numRemoved });
   });
 });
 
-app.post("/activities/upload", upload.single("image"), (req, res) => {
+app.post("/activities/upload", requireAuth, requireEditor, upload.single("image"), validateUploadedFile(imageFileTypes), (req, res) => {
   console.log("Upload file:", req.file);
   if (!req.file) {
     return res.status(400).json({ error: "Ingen bild vald" });
@@ -1357,7 +1464,7 @@ checklistDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 270000);
 
 /* ---------------- CHECKLIST ENDPOINTS ---------------- */
 // Hämta topp-lista med maskiner som checkat för en viss vecka
-app.get("/checklist/top", (req, res) => {
+app.get("/checklist/top", requireAuth, (req, res) => {
   const { week } = req.query;
   if (!week) return res.status(400).json({ error: "Vecka saknas" });
 
@@ -1405,7 +1512,7 @@ app.get("/checklist/top", (req, res) => {
 });
 
 // Hämta checklista för en maskin + vecka
-app.get("/checklist/:machine", (req, res) => {
+app.get("/checklist/:machine", requireAuth, (req, res) => {
   const { machine } = req.params;
   const { week } = req.query;
 
@@ -1418,7 +1525,7 @@ app.get("/checklist/:machine", (req, res) => {
 });
 
 // Skapa eller uppdatera checklistan för en maskin + vecka
-app.post("/checklist/:machine", requireAuth, (req, res) => {
+app.post("/checklist/:machine", requireAuth, requireEditor, (req, res) => {
   const { machine } = req.params;
   const { week, items = {}, comment = "", machineNumber = "" } = req.body;
 
@@ -1464,7 +1571,7 @@ app.post("/checklist/:machine", requireAuth, (req, res) => {
 
 
 // Radera checklistan för en maskin + vecka
-app.delete("/checklist/:machine", (req, res) => {
+app.delete("/checklist/:machine", requireAuth, requireAdmin, (req, res) => {
   const { machine } = req.params;
   const { week } = req.query;
 
@@ -1476,7 +1583,7 @@ app.delete("/checklist/:machine", (req, res) => {
   });
 });
 
-app.post("/orders/import", requireAuth, requireAdmin, upload.single("file"), (req, res) => {
+app.post("/orders/import", requireAuth, requireAdmin, upload.single("file"), validateUploadedFile(spreadsheetFileTypes), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "Ingen fil uppladdad" });
   }
@@ -1604,7 +1711,7 @@ app.post("/orders/import", requireAuth, requireAdmin, upload.single("file"), (re
   }
 });
 
-app.get("/orders", (req, res) => {
+app.get("/orders", requireAuth, (req, res) => {
   ordersDB.find({ Leveransdatum: { $ne: null } })
     .sort({ Leveransdatum: 1 }) // 1 = stigande (äldst först)
     .exec((err, docs) => {
@@ -1620,6 +1727,7 @@ app.post(
   requireAuth,
   requireAdmin,
   upload.single("file"),
+  validateUploadedFile(spreadsheetFileTypes),
   (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: "Ingen fil uppladdad" });
@@ -1731,7 +1839,7 @@ app.post(
   }
 );
 
-app.get("/production-orders", (req, res) => {
+app.get("/production-orders", requireAuth, (req, res) => {
   productionOrdersDB.find({ Leveransdatum: { $ne: null } })
     .sort({ Leveransdatum: 1 })
     .exec((err, docs) => {

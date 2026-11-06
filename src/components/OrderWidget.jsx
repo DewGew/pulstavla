@@ -3,7 +3,9 @@ import { io } from "socket.io-client";
 import { API_URL, WS_URL } from "../config";
 import "./OrderWidget.css";
 
-const socket = io(WS_URL, { transports: ["websocket"] });
+const socket = io(WS_URL, { transports: ["websocket"], 
+  auth: (cb) => cb({ token: localStorage.getItem("token") }),
+});
 
 export default function OrderWidget() {
   const [orders, setOrders] = useState([]);
@@ -25,16 +27,32 @@ export default function OrderWidget() {
   };
 
   useEffect(() => {
-    fetch(`${API_URL}/orders`)
-      .then(res => res.json())
-      .then(setOrders)
-      .catch(console.error);
+    const fetchOrders = () => {
+      const token = localStorage.getItem("token");
+      fetch(`${API_URL}/orders`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
+        .then(data => setOrders(Array.isArray(data) ? data : []))
+        .catch(err => {
+          console.error("Kunde inte hämta ordrar:", err);
+          setOrders([]);
+        });
+    };
 
-    socket.on("ordersUpdated", (data) => {
-      setOrders(data);
-    });
+    fetchOrders();
+    if (!socket.connected) socket.connect();
+    // Servern skickar ordersUpdated utan payload. Hämta aktuell lista
+    // från API:t i stället för att spara undefined i orders-state.
+    socket.on("ordersUpdated", fetchOrders);
 
-    return () => socket.disconnect();
+    return () => {
+      socket.off("ordersUpdated", fetchOrders);
+      socket.disconnect();
+    };
   }, []);
 
   const stats = useMemo(() => {

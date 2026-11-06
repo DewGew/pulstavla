@@ -3,7 +3,9 @@ import { io } from "socket.io-client";
 import { API_URL, WS_URL } from "../config";
 import "./PresenceWidget.css";
 
-const socket = io(WS_URL, { transports: ["websocket"] });
+const socket = io(WS_URL, { transports: ["websocket"], 
+  auth: (cb) => cb({ token: localStorage.getItem("token") }),
+});
 
 export default function PresenceWidget({ currentUser }) {
   const [users, setUsers] = useState([]);
@@ -16,14 +18,17 @@ export default function PresenceWidget({ currentUser }) {
   useEffect(() => {
     const loadUsers = async () => {
       try {
-        const resUsers = await fetch(`${API_URL}/users`);
+        const token = localStorage.getItem("token");
+        const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+        const resUsers = await fetch(`${API_URL}/presence/users`, { headers: authHeaders });
+        if (!resUsers.ok) throw new Error(`HTTP ${resUsers.status}`);
         const allUsers = await resUsers.json();
         const filteredUsers = allUsers.filter(
           (u) => u.role === "user" || u.role === "admin" || u.role === "suAdmin"
         );
         setUsers(filteredUsers);
 
-        const resPresence = await fetch(`${API_URL}/presence`);
+        const resPresence = await fetch(`${API_URL}/presence`, { headers: authHeaders });
         const presenceData = await resPresence.json();
         setPresence(presenceData);
       } catch {
@@ -36,6 +41,7 @@ export default function PresenceWidget({ currentUser }) {
 
   /* ---------------- WebSocket för realtidsuppdatering ---------------- */
   useEffect(() => {
+		if (!socket.connected) socket.connect();
 		socket.on("presenceUpdated", ({ username, present }) => {
 			setPresence(prev => ({
 				...prev,
@@ -68,7 +74,10 @@ export default function PresenceWidget({ currentUser }) {
 		try {
 			await fetch(`${API_URL}/presence`, {
 				method: "POST",
-				headers: { "Content-Type": "application/json" },
+				headers: {
+          "Content-Type": "application/json",
+          ...(localStorage.getItem("token") ? { Authorization: `Bearer ${localStorage.getItem("token")}` } : {}),
+        },
 				body: JSON.stringify({ username, present: newState })
 			});
 		} catch {

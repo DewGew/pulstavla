@@ -6,7 +6,9 @@ import { createApi } from "../api";
 
 const SettingsContext = createContext(null);
 
-const socket = io(WS_URL, { transports: ["websocket"] });
+const socket = io(WS_URL, { transports: ["websocket"], 
+  auth: (cb) => cb({ token: localStorage.getItem("token") }),
+});
 
 export function SettingsProvider({ children }) {
   const [settings, setSettings] = useState(null);
@@ -20,22 +22,36 @@ export function SettingsProvider({ children }) {
   const apiFetch = createApi(logout);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-
-    apiFetch("/settings")
-      .then(res => res.json())
-      .then(data => {
-        setSettings(data);
+    const loadSettings = () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
         setLoading(false);
-      })
-      .catch(() => setLoading(false));
+        return;
+      }
+
+      setLoading(true);
+      apiFetch("/settings")
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
+        .then(data => {
+          setSettings(data);
+          setLoading(false);
+        })
+        .catch(() => setLoading(false));
+    };
+
+    loadSettings();
+    window.addEventListener("authChanged", loadSettings);
+    return () => window.removeEventListener("authChanged", loadSettings);
   }, []);
 
   useEffect(() => {
+    function connectSocket() {
+      if (localStorage.getItem("token") && !socket.connected) socket.connect();
+    }
+
     function onSettingsUpdated({ key, value }) {
       setSettings(prev => ({
         ...prev,
@@ -43,9 +59,12 @@ export function SettingsProvider({ children }) {
       }));
     }
 
+    connectSocket();
+    window.addEventListener("authChanged", connectSocket);
     socket.on("settingsUpdated", onSettingsUpdated);
 
     return () => {
+      window.removeEventListener("authChanged", connectSocket);
       socket.off("settingsUpdated", onSettingsUpdated);
     };
   }, []);
@@ -70,7 +89,7 @@ let logoDataUrl = null;
 let logoAspect = 1; // höjd / bredd, uppdateras när bilden laddats
 
 const logoImg = new Image();
-logoImg.src = "/docs/logo.png";
+logoImg.src = "/brand-logo";
 logoImg.onload = () => {
   try {
     const canvas = document.createElement("canvas");

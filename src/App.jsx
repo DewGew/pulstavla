@@ -45,6 +45,8 @@ const socket = io(WS_URL, {
   reconnectionAttempts: 10,
   reconnectionDelay: 1000,
   timeout: 5000,
+
+  auth: (cb) => cb({ token: localStorage.getItem("token") }),
 });
 
 export default function App() {
@@ -112,6 +114,8 @@ export default function App() {
   const handleLogin = (loggedInUser) => {
     setUser(loggedInUser);
     localStorage.setItem("user", JSON.stringify(loggedInUser));
+    window.dispatchEvent(new Event("authChanged"));
+    if (!socket.connected) socket.connect();
   };
 
   // FIX: useCallback so logout has a stable reference across renders,
@@ -136,50 +140,7 @@ export default function App() {
     localStorage.removeItem("token");
   }, []); // no deps — only uses setters and fetch
 
-  /* ------------------- AUTO-LOGIN (IP-baserad) ------------------- */
-  // Körs en gång vid uppstart, innan Login-skärmen visas. Om enheten redan
-  // har en sparad user/token (localStorage) hoppar vi över anropet helt.
-  // Annars frågar vi backend om just den här IP-adressen har en
-  // auto-login-mappning (se GET /auto-login i servern) — kioskdatorer
-  // på verkstadsgolvet loggas då in automatiskt utan att någon behöver
-  // skriva in användarnamn/lösenord.
-  const [autoLoginChecked, setAutoLoginChecked] = useState(false);
-
-  useEffect(() => {
-    if (user) {
-      setAutoLoginChecked(true);
-      return;
-    }
-
-    let cancelled = false;
-
-    fetch(`${API_URL}/auto-login`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Ingen auto-login för denna enhet");
-        return res.json();
-      })
-      .then((data) => {
-        if (cancelled) return;
-        if (data.success && data.token && data.user) {
-          localStorage.setItem("token", data.token);
-          handleLogin(data.user);
-        }
-      })
-      .catch(() => {
-        // Ingen auto-login konfigurerad för denna IP — visa vanlig inloggning.
-      })
-      .finally(() => {
-        if (!cancelled) setAutoLoginChecked(true);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-    // FIX: körs bara vid mount — vi vill inte köra om auto-login varje
-    // gång "user" ändras (t.ex. vid manuell utloggning).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
+  /* ------------------- API ------------------- */
   // FIX: memoize apiFetch so it isn't recreated on every render.
   const apiFetch = useMemo(() => createApi(logout), [logout]);
 
@@ -199,7 +160,7 @@ export default function App() {
   useEffect(() => {
     if (!user?.username) return;
 
-    const register = () => socket.emit("registerUser", user.username);
+    const register = () => socket.emit("registerUser");
     register();
     socket.on("connect", register);
     return () => socket.off("connect", register);
@@ -241,11 +202,16 @@ export default function App() {
 
   // FIX: removed the duplicate useEffect that also fetched /widgets.
   useEffect(() => {
+    if (!user) return;
+
     apiFetch("/widgets")
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then((data) => { if (data.length > 0) setWidget(data[0]); })
       .catch((err) => console.warn("Fetch avbruten:", err.message));
-  }, [apiFetch]);
+  }, [apiFetch, user]);
 
 	/* ------------------- ORIENTATION / PAGINATION ------------------- */
 	const [isPortrait, setIsPortrait] = useState(
@@ -522,9 +488,7 @@ export default function App() {
   );
 
   /* ------------------- LOADING / LOGIN SCREENS ------------------- */
-  // FIX: väntar även på autoLoginChecked, så vi inte hinner blinka fram
-  // inloggningsrutan på en kioskdator som faktiskt ska loggas in automatiskt.
-  if (loading || !autoLoginChecked) return <div>Laddar inställningar…</div>;
+  if (loading) return <div>Laddar inställningar…</div>;
   if (!user) return <Login onLogin={handleLogin} />;
 
   /* ------------------- DASHBOARD ------------------- */
@@ -536,7 +500,7 @@ return (
 		  <div className="logo-row">
 			{imageExists && (
 				<img 
-					src="./docs/logo.png" 
+					src="/brand-logo" 
 					alt="Logotyp" 
 					onError={() => setImageExists(false)}
 					width={is4K ? 350 : 180}

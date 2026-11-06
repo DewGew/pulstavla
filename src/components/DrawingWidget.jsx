@@ -28,7 +28,11 @@ export default function DrawingWidget({
 
   /* ---------------- FETCH ---------------- */
   useEffect(() => {
-    fetch(`${API_URL}/drawings/${drawingId}`)
+    fetch(`${API_URL}/drawings/${drawingId}`, {
+      headers: localStorage.getItem("token")
+        ? { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        : {},
+    })
       .then((res) => {
         if (!res.ok) throw new Error("saknas");
         return res.json();
@@ -42,7 +46,10 @@ export default function DrawingWidget({
       .catch(() => {
         fetch(`${API_URL}/drawings`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(localStorage.getItem("token") ? { Authorization: `Bearer ${localStorage.getItem("token")}` } : {}),
+          },
           body: JSON.stringify({ drawingId, title: initialTitle, strokes: [] }),
         })
           .then((res) => res.json())
@@ -55,7 +62,9 @@ export default function DrawingWidget({
 
   /* ---------------- WS ---------------- */
   useEffect(() => {
-    const socket = io(WS_URL, { transports: ["websocket"] });
+    const socket = io(WS_URL, { transports: ["websocket"], 
+  auth: (cb) => cb({ token: localStorage.getItem("token") }),
+});
 
     const handler = (payload) => {
       if (payload.drawingId === drawingId) {

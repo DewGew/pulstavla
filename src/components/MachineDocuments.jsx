@@ -30,14 +30,39 @@ export default function MachineDocuments() {
   }, []);
 
   const loadDocuments = () => {
-    fetch(`${API_URL}/documents`)
+    fetch(`${API_URL}/documents`, {
+      headers: localStorage.getItem("token")
+        ? { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        : {},
+    })
       .then(res => res.json())
       .then(data => setDocuments(data))
       .catch(err => console.error(err));
   };
 
-  const openModal = (doc) => setModalDoc(doc);
-  const closeModal = () => setModalDoc(null);
+  const openDocument = async (doc, download = false) => {
+    try {
+      const response = await fetch(`${API_URL}/documents/${encodeURIComponent(doc.name)}`, {
+        headers: { Authorization: `Bearer ${token || localStorage.getItem("token") || ""}` },
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const previewUrl = URL.createObjectURL(await response.blob());
+      if (download) {
+        const link = document.createElement("a");
+        link.href = previewUrl;
+        link.download = doc.name;
+        link.click();
+        URL.revokeObjectURL(previewUrl);
+      } else {
+        setModalDoc({ ...doc, previewUrl });
+      }
+    } catch (error) {
+      console.error("Kunde inte öppna dokument:", error);
+      alert("Kunde inte hämta dokumentet. Kontrollera att du är inloggad.");
+    }
+  };
+  const openModal = (doc) => openDocument(doc);
+  const closeModal = () => { if (modalDoc?.previewUrl) URL.revokeObjectURL(modalDoc.previewUrl); setModalDoc(null); };
 
   const openUploadModal = () => {
     setSelectedFile(null);
@@ -269,7 +294,7 @@ export default function MachineDocuments() {
 
 			<div className="document-actions">
 			  <a
-				href={doc.url}
+				href="#" onClick={(e) => { e.preventDefault(); openDocument(doc, true); }}
 				download
 				className="btn-primary"
 			  >
@@ -318,14 +343,14 @@ export default function MachineDocuments() {
 
             {modalDoc.name.match(/\.pdf$/i) ? (
               <iframe
-                src={modalDoc.url}
+                src={modalDoc.previewUrl}
                 title={modalDoc.name}
                 width="100%"
                 height="1200px"
               />
             ) : modalDoc.name.match(/\.(png|jpg|jpeg)$/i) ? (
               <img
-                src={modalDoc.url}
+                src={modalDoc.previewUrl}
                 alt={modalDoc.name}
               />
             ) : (

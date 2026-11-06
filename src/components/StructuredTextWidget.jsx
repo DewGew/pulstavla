@@ -3,7 +3,9 @@ import { io } from "socket.io-client";
 import { API_URL, WS_URL } from "../config";
 import "./EditableTextWidget.css";
 
-const socket = io(WS_URL, { transports: ["websocket"] });
+const socket = io(WS_URL, { transports: ["websocket"], 
+  auth: (cb) => cb({ token: localStorage.getItem("token") }),
+});
 
 export default function StructuredTextWidget({
   textwidgetid,
@@ -23,32 +25,54 @@ export default function StructuredTextWidget({
 
   /* ---------------- FETCH / CREATE ---------------- */
   const loadWidget = () => {
-    fetch(`${API_URL}/structured-widgets/${textwidgetid}`)
+    fetch(`${API_URL}/structured-widgets/${textwidgetid}`, {
+      headers: localStorage.getItem("token")
+        ? { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        : {},
+    })
       .then((res) => {
-        if (!res.ok) throw new Error("saknas");
+        if (res.status === 404) throw new Error("saknas");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
       })
 			.then((data) => {
 				setTitle(data.title || initialTitle);
-				setSections(data.sections || []);
+				setSections(Array.isArray(data.sections) ? data.sections : []);
 				setUpdatedBy(data.updatedBy || "");
 				setUpdatedAt(data.updatedAt || null);
 			})
-      .catch(() => {
-        fetch(`${API_URL}/structured-widgets`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            widgetId: textwidgetid,
-            title: initialTitle,
-            sections: initialSections,
-          }),
-        })
-          .then((res) => res.json())
-          .then((doc) => {
-            setTitle(doc.title);
-            setSections(doc.sections || []);
+      .catch(async (err) => {
+        // Skapa bara widgeten om den saknas. Ett 401/403 eller nätverksfel
+        // ska inte följas av ett oskyddat POST-anrop.
+        if (err.message !== "saknas") {
+          console.error("Kunde inte läsa textwidget:", err);
+          return;
+        }
+
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        try {
+          const res = await fetch(`${API_URL}/structured-widgets`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              widgetId: textwidgetid,
+              title: initialTitle,
+              sections: initialSections,
+            }),
           });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+          const doc = await res.json();
+          setTitle(doc.title || initialTitle);
+          setSections(Array.isArray(doc.sections) ? doc.sections : []);
+        } catch (createErr) {
+          console.error("Kunde inte skapa textwidget:", createErr);
+        }
       });
   };
 
@@ -68,6 +92,7 @@ export default function StructuredTextWidget({
 				setUpdatedAt(payload.updatedAt || null);
 			}
 		};
+    if (!socket.connected) socket.connect();
     socket.on("structuredWidgetUpdated", handler);
     return () => socket.off("structuredWidgetUpdated", handler);
   }, [textwidgetid]);

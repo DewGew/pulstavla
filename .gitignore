@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local environment and machine-specific data
+*.env
+*.env.*
+/db/
+/src/config.js

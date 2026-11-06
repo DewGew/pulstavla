@@ -4,7 +4,9 @@ import { API_URL, WS_URL } from "../config";
 
 import "./ResourceWidget.css";
 
-const socket = io(WS_URL, { transports: ["websocket"] });
+const socket = io(WS_URL, { transports: ["websocket"], 
+  auth: (cb) => cb({ token: localStorage.getItem("token") }),
+});
 
 export default function ResourceWidget({ currentUser }) {
   const [status, setStatus] = useState({}); // { machineName: {status, operator} }
@@ -17,8 +19,13 @@ export default function ResourceWidget({ currentUser }) {
 	const token = localStorage.getItem("token");
 
   useEffect(() => {
-    fetch(`${API_URL}/users`)
-      .then(res => res.json())
+    fetch(`${API_URL}/presence/users`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then(data => setUsers(data))
       .catch(() => console.error("Kunde inte hämta användare"));
   }, []);
@@ -55,7 +62,9 @@ export default function ResourceWidget({ currentUser }) {
 
 		const loadStatus = async () => {
 			try {
-				const res = await fetch(`${API_URL}/presence`);
+				const res = await fetch(`${API_URL}/presence`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
 				const data = await res.json();
 
 				const normalized = {};
@@ -78,6 +87,7 @@ export default function ResourceWidget({ currentUser }) {
 
   /* ---------------- WebSocket uppdatering ---------------- */
   useEffect(() => {
+    if (!socket.connected) socket.connect();
     socket.on("presenceUpdated", ({ username, status: s, operator }) => {
       setStatus((prev) => ({
         ...prev,
@@ -125,7 +135,10 @@ export default function ResourceWidget({ currentUser }) {
 		try {
 		await fetch(`${API_URL}/presence`, {
 			method: "POST",
-			headers: { "Content-Type": "application/json" },
+			headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
 			body: JSON.stringify({
 				username: machine,
 				status: payload.status,

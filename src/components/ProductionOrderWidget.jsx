@@ -3,7 +3,9 @@ import { io } from "socket.io-client";
 import { API_URL, WS_URL } from "../config";
 import "./ProductionOrderWidget.css";
 
-const socket = io(WS_URL, { transports: ["websocket"] });
+const socket = io(WS_URL, { transports: ["websocket"], 
+  auth: (cb) => cb({ token: localStorage.getItem("token") }),
+});
 
 export default function ProductionOrderImport() {
   const [orders, setOrders] = useState([]);
@@ -26,14 +28,22 @@ export default function ProductionOrderImport() {
   };
 
   const fetchOrders = () => {
-    fetch(`${API_URL}/production-orders`)
-      .then(res => res.json())
-      .then(setOrders)
+    fetch(`${API_URL}/production-orders`, {
+      headers: localStorage.getItem("token")
+        ? { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        : {},
+    })
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then(data => setOrders(Array.isArray(data) ? data : []))
       .catch(console.error);
   };
 
   useEffect(() => {
     fetchOrders();
+    if (!socket.connected) socket.connect();
     socket.on("productionOrdersUpdated", fetchOrders);
     return () => socket.disconnect();
   }, []);

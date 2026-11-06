@@ -97,7 +97,9 @@ export default function GreenCross({ crossId, green = "Green", yellow = "Yellow"
   // FIX: socket created inside useEffect — disconnected on unmount.
   // No more module-level persistent socket connection.
   useEffect(() => {
-    const socket = io(WS_URL, { transports: ["websocket"] });
+    const socket = io(WS_URL, { transports: ["websocket"], 
+  auth: (cb) => cb({ token: localStorage.getItem("token") }),
+});
 
     const handler = payload => {
       if (

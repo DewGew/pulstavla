@@ -173,7 +173,10 @@ export default function Profile({ user, setUser, setActiveTab }) {
 
       const res = await fetch(`${API_URL}/users/${user._id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+        },
         body: JSON.stringify(body),
       });
 
