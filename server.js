@@ -149,6 +149,15 @@ function requireEditor(req, res, next) {
   next();
 }
 
+/* ---------------- HTTP SERVER + WEBSOCKET ---------------- */
+const server = https.createServer(
+  app
+);
+
+const io = new Server(server, {
+  cors: { origin: "*" },
+});
+
 // Lägg autentiserade sockets i ett användarrum så att alla kan kopplas ned
 // utan att hämta och iterera över samtliga sockets.
 function disconnectUserSockets(userId) {
@@ -160,15 +169,6 @@ function disconnectUserSockets(userId) {
     return false;
   }
 }
-
-/* ---------------- HTTP SERVER + WEBSOCKET ---------------- */
-const server = https.createServer(
-  app
-);
-
-const io = new Server(server, {
-  cors: { origin: "*" },
-});
 
 // Alla WebSocket-anslutningar måste autentiseras med samma JWT som API:t.
 io.use((socket, next) => {
@@ -938,7 +938,10 @@ app.put("/users/:id", requireAuth, requireAdmin, (req, res) => {
       res.json({
         success: true,
         updated: { ...updateFields, password: undefined },
-        ...(socketsDisconnected === undefined ? {} : { socketsDisconnected })
+        ...(socketsDisconnected === undefined ? {} : {
+          socketsDisconnected,
+          ...(socketsDisconnected ? {} : { warning: "Lösenordet ändrades och gamla token återkallades, men WebSocket-sessionerna kunde inte kopplas ned." })
+        })
       });
     });
   });
