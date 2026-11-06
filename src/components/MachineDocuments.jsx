@@ -30,7 +30,11 @@ export default function MachineDocuments() {
   }, []);
 
   const loadDocuments = () => {
-    fetch(`${API_URL}/documents`)
+    fetch(`${API_URL}/documents`, {
+      headers: localStorage.getItem("token")
+        ? { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        : {},
+    })
       .then(res => res.json())
       .then(data => setDocuments(data))
       .catch(err => console.error(err));
