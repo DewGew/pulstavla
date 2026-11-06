@@ -500,7 +500,7 @@ return (
 		  <div className="logo-row">
 			{imageExists && (
 				<img 
-					src="./docs/logo.png" 
+					src="/brand-logo" 
 					alt="Logotyp" 
 					onError={() => setImageExists(false)}
 					width={is4K ? 350 : 180}
