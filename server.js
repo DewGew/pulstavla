@@ -851,6 +851,38 @@ app.put("/users/:id/role", requireAuth, requireAdmin, (req, res) => {
     );
   });
 });
+// Återkalla alla aktiva inloggningar för en användare (admin).
+app.post("/users/:id/revoke-sessions", requireAuth, requireAdmin, (req, res) => {
+  const id = req.params.id;
+
+  usersDB.findOne({ _id: id }, (findErr, targetUser) => {
+    if (findErr) return res.status(500).json({ error: "DB-fel" });
+    if (!targetUser) return res.status(404).json({ error: "Användare hittades inte" });
+    if (targetUser.role === "suAdmin" && req.user.role !== "suAdmin") {
+      return res.status(403).json({ error: "Endast Super Admin får återkalla Super Admin-konton." });
+    }
+
+    usersDB.update({ _id: id }, { $inc: { tokenVersion: 1 } }, {}, async (err) => {
+      if (err) return res.status(500).json({ error: "Kunde inte återkalla inloggningarna." });
+
+      const sockets = await io.fetchSockets();
+      sockets
+        .filter((socket) => socket.user?.id === id)
+        .forEach((socket) => socket.disconnect(true));
+
+      presenceDB.update(
+        { username: targetUser.username },
+        { $set: { online: false } },
+        {},
+        () => {
+          io.emit("onlineUpdated", { username: targetUser.username, online: false });
+          res.json({ success: true, message: "Alla användarens inloggningar har återkallats." });
+        }
+      );
+    });
+  });
+});
+
 // ---------------- UPDATE USER ----------------
 app.put("/users/:id", requireAuth, requireAdmin, (req, res) => {
   const id = req.params.id;
