@@ -28,7 +28,11 @@ export default function DrawingWidget({
 
   /* ---------------- FETCH ---------------- */
   useEffect(() => {
-    fetch(`${API_URL}/drawings/${drawingId}`)
+    fetch(`${API_URL}/drawings/${drawingId}`, {
+      headers: localStorage.getItem("token")
+        ? { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        : {},
+    })
       .then((res) => {
         if (!res.ok) throw new Error("saknas");
         return res.json();
