@@ -89,7 +89,7 @@ let logoDataUrl = null;
 let logoAspect = 1; // höjd / bredd, uppdateras när bilden laddats
 
 const logoImg = new Image();
-logoImg.src = "/docs/logo.png";
+logoImg.src = "/brand-logo";
 logoImg.onload = () => {
   try {
     const canvas = document.createElement("canvas");
