@@ -294,7 +294,7 @@ export default function MachineDocuments() {
 
 			<div className="document-actions">
 			  <a
-				href={doc.url}
+				href="#" onClick={(e) => { e.preventDefault(); openDocument(doc, true); }}
 				download
 				className="btn-primary"
 			  >
