@@ -419,6 +419,14 @@ app.get("/documents", requireAuth, (req, res) => {
   });
 });
 
+app.get("/uploads/:name", requireAuth, (req, res) => {
+  const fileName = path.basename(req.params.name);
+  if (!fileName || fileName !== req.params.name) return res.sendStatus(400);
+  res.sendFile(fileName, { root: path.resolve("uploads"), dotfiles: "deny" }, (err) => {
+    if (err && !res.headersSent) res.sendStatus(err.statusCode === 404 ? 404 : 500);
+  });
+});
+
 app.get("/documents/:name", requireAuth, (req, res) => {
   const fileName = path.basename(req.params.name);
   if (!fileName || fileName !== req.params.name) return res.sendStatus(400);
@@ -579,6 +587,14 @@ async function readLunchMeta() {
   }
 }
 
+app.get("/lunch-image/:name", (req, res) => {
+  const name = req.params.name;
+  if (!/^lunch-current\\.(webp|jpg|jpeg|png)$/i.test(name)) return res.sendStatus(404);
+  res.sendFile(name, { root: uploadDir }, (err) => {
+    if (err && !res.headersSent) res.sendStatus(404);
+  });
+});
+
 app.get("/lunch", async (req, res) => {
   const now = new Date();
   const currentWeek = now.getWeek();
@@ -589,16 +605,16 @@ app.get("/lunch", async (req, res) => {
     const isCurrent = meta && meta.week === currentWeek && meta.year === currentYear;
 
     if (isCurrent) {
-      return res.json({ imageUrl: `/uploads/${meta.imageFile}`, ...meta });
+      return res.json({ imageUrl: `/lunch-image/${meta.imageFile}`, ...meta });
     }
 
     const freshMeta = await refreshLunchCache();
-    res.json({ imageUrl: `/uploads/${freshMeta.imageFile}`, ...freshMeta });
+    res.json({ imageUrl: `/lunch-image/${freshMeta.imageFile}`, ...freshMeta });
   } catch (err) {
     console.warn("Kunde inte uppdatera lunch-cache:", err.message);
     const meta = await readLunchMeta();
     if (meta) {
-      return res.json({ imageUrl: `/uploads/${meta.imageFile}`, ...meta, stale: true });
+      return res.json({ imageUrl: `/lunch-image/${meta.imageFile}`, ...meta, stale: true });
     }
     res.status(502).json({ error: "Kunde inte hämta veckans lunch" });
   }
