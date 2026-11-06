@@ -62,7 +62,9 @@ export default function ResourceWidget({ currentUser }) {
 
 		const loadStatus = async () => {
 			try {
-				const res = await fetch(`${API_URL}/presence`);
+				const res = await fetch(`${API_URL}/presence`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
 				const data = await res.json();
 
 				const normalized = {};
