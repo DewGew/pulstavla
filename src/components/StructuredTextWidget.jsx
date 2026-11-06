@@ -31,7 +31,8 @@ export default function StructuredTextWidget({
         : {},
     })
       .then((res) => {
-        if (!res.ok) throw new Error("saknas");
+        if (res.status === 404) throw new Error("saknas");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
       })
 			.then((data) => {
