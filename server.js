@@ -589,7 +589,7 @@ async function readLunchMeta() {
 
 app.get("/lunch-image/:name", (req, res) => {
   const name = req.params.name;
-  if (!/^lunch-current\\.(webp|jpg|jpeg|png)$/i.test(name)) return res.sendStatus(404);
+  if (!/^lunch-current\.(webp|jpg|jpeg|png)$/i.test(name)) return res.sendStatus(404);
   res.sendFile(name, { root: uploadDir }, (err) => {
     if (err && !res.headersSent) res.sendStatus(404);
   });
