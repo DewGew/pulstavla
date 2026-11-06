@@ -252,7 +252,11 @@ export default function Matprotokoll() {
   const [users, setUsers] = useState([]);
 
   useEffect(() => {
-    fetch(`${API_URL}/users`)
+    fetch(`${API_URL}/presence/users`, {
+      headers: localStorage.getItem("token")
+        ? { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        : {},
+    })
       .then((res) => res.json())
       .then((data) => setUsers(Array.isArray(data) ? data : []))
       .catch(() => {
@@ -348,7 +352,11 @@ export default function Matprotokoll() {
   const loadSavedList = async () => {
     setOpenListLoading(true);
     try {
-      const res = await fetch(`${API_URL}/matprotokoll`);
+      const res = await fetch(`${API_URL}/matprotokoll`, {
+        headers: localStorage.getItem("token")
+          ? { Authorization: `Bearer ${localStorage.getItem("token")}` }
+          : {},
+      });
       if (!res.ok) throw new Error();
       const data = await res.json();
 
@@ -380,7 +388,11 @@ export default function Matprotokoll() {
 
   const openSaved = async (matprotokollId) => {
     try {
-      const res = await fetch(`${API_URL}/matprotokoll/${encodeURIComponent(matprotokollId)}`);
+      const res = await fetch(`${API_URL}/matprotokoll/${encodeURIComponent(matprotokollId)}`, {
+        headers: localStorage.getItem("token")
+          ? { Authorization: `Bearer ${localStorage.getItem("token")}` }
+          : {},
+      });
       if (!res.ok) throw new Error();
       const doc = await res.json();
 
@@ -620,7 +632,11 @@ export default function Matprotokoll() {
   const [productionOrders, setProductionOrders] = useState([]);
 
   useEffect(() => {
-    fetch(`${API_URL}/production-orders`)
+    fetch(`${API_URL}/production-orders`, {
+      headers: localStorage.getItem("token")
+        ? { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        : {},
+    })
       .then((res) => res.json())
       .then((data) => setProductionOrders(Array.isArray(data) ? data : []))
       .catch(() => {});
