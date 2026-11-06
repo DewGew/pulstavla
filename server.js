@@ -411,7 +411,7 @@ app.get("/documents", requireAuth, (req, res) => {
       .map((file, index) => ({
         id: index + 1,
         name: file.name,
-        url: `/docs/${encodeURIComponent(file.name)}`
+        url: `/documents/${encodeURIComponent(file.name)}`
       }))
       .sort((a, b) => a.name.localeCompare(b.name, "sv"));
 
