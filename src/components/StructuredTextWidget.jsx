@@ -36,25 +36,42 @@ export default function StructuredTextWidget({
       })
 			.then((data) => {
 				setTitle(data.title || initialTitle);
-				setSections(data.sections || []);
+				setSections(Array.isArray(data.sections) ? data.sections : []);
 				setUpdatedBy(data.updatedBy || "");
 				setUpdatedAt(data.updatedAt || null);
 			})
-      .catch(() => {
-        fetch(`${API_URL}/structured-widgets`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            widgetId: textwidgetid,
-            title: initialTitle,
-            sections: initialSections,
-          }),
-        })
-          .then((res) => res.json())
-          .then((doc) => {
-            setTitle(doc.title);
-            setSections(doc.sections || []);
+      .catch(async (err) => {
+        // Skapa bara widgeten om den saknas. Ett 401/403 eller nätverksfel
+        // ska inte följas av ett oskyddat POST-anrop.
+        if (err.message !== "saknas") {
+          console.error("Kunde inte läsa textwidget:", err);
+          return;
+        }
+
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        try {
+          const res = await fetch(`${API_URL}/structured-widgets`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              widgetId: textwidgetid,
+              title: initialTitle,
+              sections: initialSections,
+            }),
           });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+          const doc = await res.json();
+          setTitle(doc.title || initialTitle);
+          setSections(Array.isArray(doc.sections) ? doc.sections : []);
+        } catch (createErr) {
+          console.error("Kunde inte skapa textwidget:", createErr);
+        }
       });
   };
 
