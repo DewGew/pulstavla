@@ -924,7 +924,8 @@ function loginRateLimit(req, res, next) {
   const ip = req.ip || req.socket.remoteAddress || "unknown";
   const username = String(req.body?.username || "").trim().toLowerCase().slice(0, 100);
   const keys = [
-    { key: `ip:${ip}`, limit: 30 },
+    // IP-gränsen är högre eftersom flera användare kan dela samma nätverk/proxy.
+    { key: `ip:${ip}`, limit: 100 },
     { key: `pair:${ip}:${username}`, limit: 10 },
   ];
 
@@ -942,11 +943,14 @@ function loginRateLimit(req, res, next) {
     }
   }
 
-  for (const bucket of keys) {
-    const entry = loginAttempts.get(bucket.key) || { count: 0, resetAt: now + 15 * 60 * 1000 };
-    entry.count += 1;
-    loginAttempts.set(bucket.key, entry);
-  }
+  // Registrera bara misslyckade försök, inte normala/successfulla inloggningar.
+  req.recordFailedLogin = () => {
+    for (const bucket of keys) {
+      const entry = loginAttempts.get(bucket.key) || { count: 0, resetAt: now + 15 * 60 * 1000 };
+      entry.count += 1;
+      loginAttempts.set(bucket.key, entry);
+    }
+  };
   req.loginAttemptKey = keys[1].key;
   next();
 }
@@ -959,10 +963,16 @@ app.post("/login", loginRateLimit, (req, res) => {
 
   usersDB.findOne({ username: username.trim() }, async (err, user) => {
     if (err) return res.status(500).json({ error: "Serverfel" });
-    if (!user) return res.status(401).json({ error: "Fel användarnamn" });
+    if (!user) {
+      req.recordFailedLogin?.();
+      return res.status(401).json({ error: "Fel användarnamn eller lösenord" });
+    }
 
     const ok = await bcrypt.compare(password, user.password);
-    if (!ok) return res.status(401).json({ error: "Fel lösenord" });
+    if (!ok) {
+      req.recordFailedLogin?.();
+      return res.status(401).json({ error: "Fel användarnamn eller lösenord" });
+    }
 
     if (req.loginAttemptKey) loginAttempts.delete(req.loginAttemptKey);
 
