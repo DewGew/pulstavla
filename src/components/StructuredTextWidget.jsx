@@ -25,7 +25,11 @@ export default function StructuredTextWidget({
 
   /* ---------------- FETCH / CREATE ---------------- */
   const loadWidget = () => {
-    fetch(`${API_URL}/structured-widgets/${textwidgetid}`)
+    fetch(`${API_URL}/structured-widgets/${textwidgetid}`, {
+      headers: localStorage.getItem("token")
+        ? { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        : {},
+    })
       .then((res) => {
         if (!res.ok) throw new Error("saknas");
         return res.json();
