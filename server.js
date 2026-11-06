@@ -1027,7 +1027,7 @@ app.post("/login", loginRateLimit, (req, res) => {
         tokenVersion: user.tokenVersion || 0,
       },
       JWT_SECRET,
-      { expiresIn: "8h" }
+      { expiresIn: "30d" }
     );
 
     // FIX: update presence BEFORE sending response,
