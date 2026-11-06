@@ -903,8 +903,14 @@ app.post("/users/:id/revoke-sessions", requireAuth, requireAdmin, (req, res) => 
 });
 
 // ---------------- UPDATE USER ----------------
-app.put("/users/:id", requireAuth, requireAdmin, (req, res) => {
+app.put("/users/:id", requireAuth, (req, res) => {
   const id = req.params.id;
+  const isSelf = req.user.id === id;
+  const isAdmin = ["admin", "suAdmin"].includes(req.user.role);
+  if (!isSelf && !isAdmin) {
+    return res.status(403).json({ error: "Du får bara uppdatera din egen profil." });
+  }
+
   const { name, username, email, password, role } = req.body;
 
   // Skapa ett update-objekt med endast de fält som skickats
