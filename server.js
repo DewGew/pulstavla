@@ -346,7 +346,7 @@ app.put("/settings/:key", requireAuth, requireAdmin, (req, res) => {
 });
 
 // Endpoint för att lista dokumenten
-app.get("/documents", (req, res) => {
+app.get("/documents", requireAuth, (req, res) => {
   const dir = path.resolve("docs");
 
   fs.readdir(dir, { withFileTypes: true }, (err, entries) => {
@@ -930,7 +930,7 @@ io.on("connection", (socket) => {
 });
 
 /* ---------------- GREEN CROSS ENDPOINTS ---------------- */
-app.get("/greenCross/:crossId/:year/:month", (req, res) => {
+app.get("/greenCross/:crossId/:year/:month", requireAuth, (req, res) => {
   const crossId = req.params.crossId;
   const year = Number(req.params.year);
   const month = Number(req.params.month);
@@ -1047,7 +1047,7 @@ app.delete("/activities/:id", requireAuth, requireEditor, (req, res) => {
 
 /* ---------------- WIDGETS ENDPOINTS ---------------- */
 // Hämta alla widgets
-app.get("/widgets",  (req, res) => {
+app.get("/widgets", requireAuth, (req, res) => {
   widgetsDB.find({}, (err, docs) => {
     if (err) return res.status(500).json({ error: "Fel vid hämtning av widgets" });
     res.json(docs);
@@ -1055,7 +1055,7 @@ app.get("/widgets",  (req, res) => {
 });
 
 // Hämta widget med textwidgetid
-app.get("/widgets/:textwidgetid", (req, res) => {
+app.get("/widgets/:textwidgetid", requireAuth, (req, res) => {
   const id = req.params.textwidgetid;
   widgetsDB.findOne({ textwidgetid: id }, (err, doc) => {
     if (err) return res.status(500).json({ error: "Fel vid hämtning" });
@@ -1114,7 +1114,7 @@ app.put("/widgets/:textwidgetid", requireAuth, requireEditor, (req, res) => {
 });
 
 
-app.get("/structured-widgets/:widgetId", (req, res) => {
+app.get("/structured-widgets/:widgetId", requireAuth, (req, res) => {
   const { widgetId } = req.params;
 
   structuredWidgetsDB.findOne({ widgetId }, (err, doc) => {
@@ -1289,7 +1289,7 @@ app.delete("/matprotokoll/:matprotokollId", requireAuth, requireEditor, (req, re
 });
 
 /* ---------------- DRAWING WIDGET ENDPOINTS ---------------- */
-app.get("/drawings/:drawingId", (req, res) => {
+app.get("/drawings/:drawingId", requireAuth, (req, res) => {
   const { drawingId } = req.params;
 
   drawingsDB.findOne({ drawingId }, (err, doc) => {
