@@ -174,6 +174,24 @@ const settingsDB = new Datastore({
 });
 settingsDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 60000);
 
+
+// Läs inställningar som objekt för interna funktioner.
+// autoLogin filtreras alltid bort eftersom den gamla funktionen är avvecklad.
+function getSettingsObject(callback) {
+  settingsDB.find({}, (err, docs) => {
+    if (err) return callback(err);
+
+    const settings = {};
+    docs.forEach((setting) => {
+      if (setting.key !== "autoLogin") {
+        settings[setting.key] = setting.value;
+      }
+    });
+
+    callback(null, settings);
+  });
+}
+
 settingsDB.count({}, (err, count) => {
   if (count === 0) {
 		const defaults = [
