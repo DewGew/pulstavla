@@ -38,6 +38,45 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
 });
 
+// Kontrollera filsignatur efter uppladdning, inte bara filändelsen.
+function validateUploadedFile(allowedExtensions) {
+  return (req, res, next) => {
+    if (!req.file) return res.status(400).json({ error: "Ingen fil skickades." });
+    const ext = path.extname(req.file.originalname || req.file.filename).slice(1).toLowerCase();
+    const allowed = allowedExtensions[ext];
+    const header = Buffer.alloc(16);
+    let fd;
+    try {
+      fd = fs.openSync(req.file.path, "r");
+      fs.readSync(fd, header, 0, header.length, 0);
+    } catch {
+      return res.status(400).json({ error: "Kunde inte läsa uppladdad fil." });
+    } finally {
+      if (fd !== undefined) fs.closeSync(fd);
+    }
+    const signatures = {
+      png: header.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10])),
+      jpg: header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff,
+      jpeg: header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff,
+      webp: header.toString("ascii",0,4) === "RIFF" && header.toString("ascii",8,12) === "WEBP",
+      gif: header.toString("ascii",0,3) === "GIF",
+      pdf: header.toString("ascii",0,5) === "%PDF-",
+      docx: header[0] === 0x50 && header[1] === 0x4b,
+      xlsx: header[0] === 0x50 && header[1] === 0x4b,
+      doc: header.subarray(0,8).equals(Buffer.from([0xd0,0xcf,0x11,0xe0,0xa1,0xb1,0x1a,0xe1])),
+      xls: header.subarray(0,8).equals(Buffer.from([0xd0,0xcf,0x11,0xe0,0xa1,0xb1,0x1a,0xe1]))
+    };
+    if (!allowed || !signatures[ext]) {
+      fs.unlink(req.file.path, () => {});
+      return res.status(415).json({ error: "Filinnehållet stämmer inte med en tillåten filtyp." });
+    }
+    next();
+  };
+}
+const imageFileTypes = { png:true, jpg:true, jpeg:true, webp:true, gif:true };
+const documentFileTypes = { pdf:true, doc:true, docx:true, xls:true, xlsx:true, png:true, jpg:true, jpeg:true };
+const spreadsheetFileTypes = { xls:true, xlsx:true };
+
 function cleanText(html) {
   return html
     .replace(/<br\s*\/?>/gi, "\n")
@@ -67,8 +106,13 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
 app.use(express.json());
-app.use("/uploads", express.static("uploads"));
-app.use("/docs", express.static("docs"));
+
+// Den publika logotypen exponeras separat; dokumenten i docs är privata.
+app.get("/brand-logo", (req, res) => {
+  res.sendFile(path.resolve("docs/logo.png"), (err) => {
+    if (err && !res.headersSent) res.sendStatus(404);
+  });
+});
 
 function requireAuth(req, res, next) {
 	const authHeader = req.headers.authorization;
@@ -375,6 +419,14 @@ app.get("/documents", requireAuth, (req, res) => {
   });
 });
 
+app.get("/documents/:name", requireAuth, (req, res) => {
+  const fileName = path.basename(req.params.name);
+  if (!fileName || fileName !== req.params.name) return res.sendStatus(400);
+  res.sendFile(fileName, { root: path.resolve("docs"), dotfiles: "deny" }, (err) => {
+    if (err && !res.headersSent) res.sendStatus(err.statusCode === 404 ? 404 : 500);
+  });
+});
+
 /* Ladda upp dokument till docs med originalnamnet */
 app.post("/documents", requireAuth, requireAdmin, (req, res, next) => {
   const docsDir = path.resolve("docs");
@@ -414,10 +466,13 @@ app.post("/documents", requireAuth, requireAdmin, (req, res, next) => {
       });
     }
 
-    res.status(201).json({
-      message: "Dokumentet laddades upp.",
-      name: req.file.filename,
-      url: `/docs/${encodeURIComponent(req.file.filename)}`
+    validateUploadedFile(documentFileTypes)(req, res, (validationErr) => {
+      if (validationErr) return next(validationErr);
+      res.status(201).json({
+        message: "Dokumentet laddades upp.",
+        name: req.file.filename,
+        url: `/documents/${encodeURIComponent(req.file.filename)}`
+      });
     });
   });
 });
@@ -1375,7 +1430,7 @@ app.delete("/drawings/:drawingId", requireAuth, requireAdmin, (req, res) => {
   });
 });
 
-app.post("/activities/upload", requireAuth, requireEditor, upload.single("image"), (req, res) => {
+app.post("/activities/upload", requireAuth, requireEditor, upload.single("image"), validateUploadedFile(imageFileTypes), (req, res) => {
   console.log("Upload file:", req.file);
   if (!req.file) {
     return res.status(400).json({ error: "Ingen bild vald" });
@@ -1512,7 +1567,7 @@ app.delete("/checklist/:machine", requireAuth, requireAdmin, (req, res) => {
   });
 });
 
-app.post("/orders/import", requireAuth, requireAdmin, upload.single("file"), (req, res) => {
+app.post("/orders/import", requireAuth, requireAdmin, upload.single("file"), validateUploadedFile(spreadsheetFileTypes), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "Ingen fil uppladdad" });
   }
@@ -1656,6 +1711,7 @@ app.post(
   requireAuth,
   requireAdmin,
   upload.single("file"),
+  validateUploadedFile(spreadsheetFileTypes),
   (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: "Ingen fil uppladdad" });
