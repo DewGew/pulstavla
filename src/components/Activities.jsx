@@ -106,7 +106,7 @@ export default function Activities() {
   const loadUsers = useCallback(async () => {
     if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/users`, {
+      const res = await fetch(`${API_URL}/presence/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error("Fel vid hämtning av användare");
