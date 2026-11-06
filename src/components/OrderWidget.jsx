@@ -27,24 +27,32 @@ export default function OrderWidget() {
   };
 
   useEffect(() => {
-    fetch(`${API_URL}/orders`, {
-      headers: localStorage.getItem("token")
-        ? { Authorization: `Bearer ${localStorage.getItem("token")}` }
-        : {},
-    })
-      .then(res => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
+    const fetchOrders = () => {
+      const token = localStorage.getItem("token");
+      fetch(`${API_URL}/orders`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       })
-      .then(setOrders)
-      .catch(console.error);
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
+        .then(data => setOrders(Array.isArray(data) ? data : []))
+        .catch(err => {
+          console.error("Kunde inte hämta ordrar:", err);
+          setOrders([]);
+        });
+    };
 
+    fetchOrders();
     if (!socket.connected) socket.connect();
-    socket.on("ordersUpdated", (data) => {
-      setOrders(data);
-    });
+    // Servern skickar ordersUpdated utan payload. Hämta aktuell lista
+    // från API:t i stället för att spara undefined i orders-state.
+    socket.on("ordersUpdated", fetchOrders);
 
-    return () => socket.disconnect();
+    return () => {
+      socket.off("ordersUpdated", fetchOrders);
+      socket.disconnect();
+    };
   }, []);
 
   const stats = useMemo(() => {
