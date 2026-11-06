@@ -301,7 +301,7 @@ app.get("/settings", requireAuth, (req, res) => {
     // returnera som objekt istället för array
     const settings = {};
     docs.forEach(s => {
-      settings[s.key] = s.value;
+      if (s.key !== "autoLogin") settings[s.key] = s.value;
     });
 
     res.json(settings);
@@ -562,7 +562,7 @@ app.get("/presence/users", requireAuth, (req, res) => {
   });
 });
 
-app.get("/presence", (req, res) => {
+app.get("/presence", requireAuth, (req, res) => {
   presenceDB.find({}, (err, docs) => {
     if (err) return res.status(500).json({ error: "Kunde inte läsa närvaro" });
 
@@ -965,7 +965,7 @@ app.post("/greenCross", requireAuth, requireEditor, (req, res) => {
 /* ---------------- ACTIVITIES ENDPOINTS ---------------- */
 
 // Hämta alla aktiviteter
-app.get("/activities", (req, res) => {
+app.get("/activities", requireAuth, (req, res) => {
   activitiesDB.find({})
     .sort({ sticky: -1, createdAt: -1 })
     .exec((err, docs) => {
@@ -1196,7 +1196,7 @@ app.delete("/structured-widgets/:widgetId", requireAuth, requireEditor, (req, re
 /* ---------------- MÄTPROTOKOLL ENDPOINTS ---------------- */
 // Lista sparade protokoll (bara det som behövs för en väljarlista —
 // inte hela mätpunkts-arrayen, så listan förblir snabb att hämta)
-app.get("/matprotokoll", (req, res) => {
+app.get("/matprotokoll", requireAuth, (req, res) => {
   // FIX: exkludera bara measurements (kan vara stor) istället för att lita
   // på nästlad dot-notation-projektion ("form.ordernr": 1), som inte är
   // garanterat pålitlig i alla NeDB-versioner.
@@ -1211,7 +1211,7 @@ app.get("/matprotokoll", (req, res) => {
 });
 
 // Hämta ett specifikt protokoll (hela form + measurements)
-app.get("/matprotokoll/:matprotokollId", (req, res) => {
+app.get("/matprotokoll/:matprotokollId", requireAuth, (req, res) => {
   const { matprotokollId } = req.params;
 
   matprotokollDB.findOne({ matprotokollId }, (err, doc) => {
@@ -1382,7 +1382,7 @@ checklistDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 270000);
 
 /* ---------------- CHECKLIST ENDPOINTS ---------------- */
 // Hämta topp-lista med maskiner som checkat för en viss vecka
-app.get("/checklist/top", (req, res) => {
+app.get("/checklist/top", requireAuth, (req, res) => {
   const { week } = req.query;
   if (!week) return res.status(400).json({ error: "Vecka saknas" });
 
@@ -1430,7 +1430,7 @@ app.get("/checklist/top", (req, res) => {
 });
 
 // Hämta checklista för en maskin + vecka
-app.get("/checklist/:machine", (req, res) => {
+app.get("/checklist/:machine", requireAuth, (req, res) => {
   const { machine } = req.params;
   const { week } = req.query;
 
@@ -1629,7 +1629,7 @@ app.post("/orders/import", requireAuth, requireAdmin, upload.single("file"), (re
   }
 });
 
-app.get("/orders", (req, res) => {
+app.get("/orders", requireAuth, (req, res) => {
   ordersDB.find({ Leveransdatum: { $ne: null } })
     .sort({ Leveransdatum: 1 }) // 1 = stigande (äldst först)
     .exec((err, docs) => {
@@ -1756,7 +1756,7 @@ app.post(
   }
 );
 
-app.get("/production-orders", (req, res) => {
+app.get("/production-orders", requireAuth, (req, res) => {
   productionOrdersDB.find({ Leveransdatum: { $ne: null } })
     .sort({ Leveransdatum: 1 })
     .exec((err, docs) => {
