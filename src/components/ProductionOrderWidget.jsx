@@ -37,7 +37,7 @@ export default function ProductionOrderImport() {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
       })
-      .then(setOrders)
+      .then(data => setOrders(Array.isArray(data) ? data : []))
       .catch(console.error);
   };
 
