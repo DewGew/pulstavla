@@ -28,8 +28,15 @@ export default function ProductionOrderImport() {
   };
 
   const fetchOrders = () => {
-    fetch(`${API_URL}/production-orders`)
-      .then(res => res.json())
+    fetch(`${API_URL}/production-orders`, {
+      headers: localStorage.getItem("token")
+        ? { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        : {},
+    })
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then(setOrders)
       .catch(console.error);
   };
