@@ -1206,7 +1206,12 @@ app.get("/matprotokoll", requireAuth, (req, res) => {
     .exec((err, docs) => {
       if (err)
         return res.status(500).json({ error: "Kunde inte lista mätprotokoll" });
-      res.json(docs);
+      const visibleDocs = ["admin", "suAdmin"].includes(req.user.role)
+        ? docs
+        : docs.filter((doc) =>
+            doc.form?.upprattadAv === req.user.name && doc.pdfSaved === false
+          );
+      res.json(visibleDocs);
     });
 });
 
@@ -1217,6 +1222,12 @@ app.get("/matprotokoll/:matprotokollId", requireAuth, (req, res) => {
   matprotokollDB.findOne({ matprotokollId }, (err, doc) => {
     if (err) return res.status(500).json({ error: "DB-fel" });
     if (!doc) return res.status(404).json({ error: "Mätprotokoll saknas" });
+    const isAdmin = ["admin", "suAdmin"].includes(req.user.role);
+    const isOwnDraft =
+      doc.form?.upprattadAv === req.user.name && doc.pdfSaved === false;
+    if (!isAdmin && !isOwnDraft) {
+      return res.status(404).json({ error: "Mätprotokoll saknas" });
+    }
     res.json(doc);
   });
 });
