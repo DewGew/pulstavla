@@ -27,8 +27,15 @@ export default function OrderWidget() {
   };
 
   useEffect(() => {
-    fetch(`${API_URL}/orders`)
-      .then(res => res.json())
+    fetch(`${API_URL}/orders`, {
+      headers: localStorage.getItem("token")
+        ? { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        : {},
+    })
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then(setOrders)
       .catch(console.error);
 
