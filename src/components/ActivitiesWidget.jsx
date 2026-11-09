@@ -39,6 +39,7 @@ export default function ActivitiesWidget() {
     loadTasks();
 
         socket.on("activitiesUpdated", loadTasks);
+    return () => socket.off("activitiesUpdated", loadTasks);
   }, [loadTasks]);
 
   /* ---------------- CALCULATIONS ---------------- */
