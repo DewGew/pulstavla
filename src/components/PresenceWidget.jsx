@@ -1,5 +1,5 @@
+import { apiFetch } from "../api";
 import { useEffect, useState } from "react";
-import { API_URL } from "../config";
 import { socket, connectSocket } from "../socket";
 import "./PresenceWidget.css";
 
@@ -17,7 +17,7 @@ export default function PresenceWidget({ currentUser }) {
       try {
         const token = localStorage.getItem("token");
         const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
-        const resUsers = await fetch(`${API_URL}/presence/users`, { headers: authHeaders });
+        const resUsers = await apiFetch(`/presence/users`, { headers: authHeaders });
         if (!resUsers.ok) throw new Error(`HTTP ${resUsers.status}`);
         const allUsers = await resUsers.json();
         const filteredUsers = allUsers.filter(
@@ -25,7 +25,7 @@ export default function PresenceWidget({ currentUser }) {
         );
         setUsers(filteredUsers);
 
-        const resPresence = await fetch(`${API_URL}/presence`, { headers: authHeaders });
+        const resPresence = await apiFetch(`/presence`, { headers: authHeaders });
         const presenceData = await resPresence.json();
         setPresence(presenceData);
       } catch {
@@ -69,7 +69,7 @@ export default function PresenceWidget({ currentUser }) {
 		}));
 
 		try {
-			await fetch(`${API_URL}/presence`, {
+			await apiFetch(`/presence`, {
 				method: "POST",
 				headers: {
           "Content-Type": "application/json",
