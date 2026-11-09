@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { API_URL } from "../config";
-import { socket, connectSocket } from "../socket";
+import { socket } from "../socket";
 import "./AdminUsers.css";
 
 export default function AdminUsers({ currentUser, hideTitle = false, flat = false }) {
@@ -85,7 +85,39 @@ export default function AdminUsers({ currentUser, hideTitle = false, flat = fals
   // and properly cleaned up on unmount. Named handler passed to both
   // socket.on and socket.off so only THIS listener is removed.
   useEffect(() => {
-    
+    const handleOnlineUpdated = ({ username, online }) => {
+      setPresence((prev) => ({
+        ...prev,
+        [username]: { ...prev[username], online },
+      }));
+    };
+
+    socket.on("onlineUpdated", handleOnlineUpdated);
+
+    // FIX: pass the named handler so only this listener is removed
+    return () => {
+      socket.off("onlineUpdated", handleOnlineUpdated);
+    };
+  }, []);
+
+  /* ---------------- ADD USER ---------------- */
+  const addUser = async () => {
+    setMsg("");
+    if (!newUser.username || !newUser.password || !newUser.email || !newUser.name) {
+      showMsg("⚠️ Du måste ange namn, användarnamn, lösenord och e-post.");
+      return false; // FIX: return success flag so caller can decide to close modal
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/users/add`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`, // FIX: auth header
+        },
+        body: JSON.stringify(newUser),
+      });
+
       if (!res.ok) throw new Error();
 
       showMsg("✔️ Ny användare skapad!");
