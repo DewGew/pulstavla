@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
-import { API_URL, WS_URL } from "../config";
-import { io } from "socket.io-client";
+import { API_URL } from "../config";
+import { socket, connectSocket } from "../socket";
 import "./ActivitiesWidget.css";
 
 export default function ActivitiesWidget() {
@@ -38,11 +38,7 @@ export default function ActivitiesWidget() {
   useEffect(() => {
     loadTasks();
 
-    const socket = io(WS_URL, { transports: ["websocket"], 
-  auth: (cb) => cb({ token: localStorage.getItem("token") }),
-});
-    socket.on("activitiesUpdated", loadTasks);
-    return () => socket.disconnect();
+        socket.on("activitiesUpdated", loadTasks);
   }, [loadTasks]);
 
   /* ---------------- CALCULATIONS ---------------- */
