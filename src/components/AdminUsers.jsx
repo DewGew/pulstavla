@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
+import { apiFetch } from "../api";
 import { API_URL } from "../config";
 import { socket } from "../socket";
 import "./AdminUsers.css";
@@ -49,7 +50,7 @@ export default function AdminUsers({ currentUser, hideTitle = false, flat = fals
     setMsg("");
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/users`, {
+      const res = await apiFetch(`/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -69,7 +70,7 @@ export default function AdminUsers({ currentUser, hideTitle = false, flat = fals
   /* ---------------- PRESENCE ---------------- */
   // FIX: auth header added, error handled
   useEffect(() => {
-    fetch(`${API_URL}/presence`, {
+    apiFetch(`/presence`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
       .then((res) => {
@@ -109,7 +110,7 @@ export default function AdminUsers({ currentUser, hideTitle = false, flat = fals
     }
 
     try {
-      const res = await fetch(`${API_URL}/users/add`, {
+      const res = await apiFetch(`/users/add`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -134,7 +135,7 @@ export default function AdminUsers({ currentUser, hideTitle = false, flat = fals
   // FIX: no confirm() — uses confirmDeleteId state for inline confirm
   const deleteUser = async (id) => {
     try {
-      await fetch(`${API_URL}/users/${id}`, {
+      await apiFetch(`/users/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }, // FIX: auth header
       });
@@ -149,7 +150,7 @@ export default function AdminUsers({ currentUser, hideTitle = false, flat = fals
   /* ---------------- UPDATE ROLE ---------------- */
   const updateRole = async (id, role) => {
     try {
-      await fetch(`${API_URL}/users/${id}/role`, {
+      await apiFetch(`/users/${id}/role`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -178,7 +179,7 @@ export default function AdminUsers({ currentUser, hideTitle = false, flat = fals
     }
 
     try {
-      const res = await fetch(`${API_URL}/users/${editUser._id}`, {
+      const res = await apiFetch(`/users/${editUser._id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
