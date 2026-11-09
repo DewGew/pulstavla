@@ -3,6 +3,7 @@ import { apiFetch } from "../api";
 import { socket, connectSocket } from "../socket";
 import "./EditableTextWidget.css";
 import InlineMarkdown from "./InlineMarkdown";
+import RichTextEditor from "./RichTextEditor";
 
 
 export default function StructuredTextWidget({
@@ -223,15 +224,7 @@ export default function StructuredTextWidget({
 									updateSection(i, "subtitle", e.target.value)
 								}
 							/>
-
-							<textarea
-								style={{ marginTop: "7px" }}
-								rows={3}
-								value={s.text}
-								onChange={(e) =>
-									updateSection(i, "text", e.target.value)
-								}
-							/>
+							<RichTextEditor rows={3} value={s.text} onChange={(value) => updateSection(i, "text", value)} />
 
 							<button
 								onClick={() => removeSection(i)}
