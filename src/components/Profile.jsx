@@ -116,49 +116,57 @@ export default function Profile({ user, setUser, setActiveTab }) {
 
   // 🔥 Mina aktiviteter
   const [myTasks, setMyTasks] = useState([]);
-  const [showDone, setShowDone] = useState(false);
-  const [users, setUsers] = useState([]);
-  const [selectedUser, setSelectedUser] = useState("");
-
-  useEffect(() => {
-    const loadUsers = async () => {
-      try {
-        const res = await fetch(`${API_URL}/users`);
-        const data = await res.json();
-
-        const validUsers = data.filter((u) => u.email && u.email !== "-");
-
-        setUsers(validUsers);
-      } catch {
-        console.error("Kunde inte hämta användare");
-      }
-    };
-
-    loadUsers();
-  }, []);
-
-  /* ---------------- HÄMTA MINA UPPGIFTER ---------------- */
+  // Visa även klara aktiviteter från början; användaren kan välja att dölja dem.
+  const [showDone, setShowDone] = useState(true);
+  /* ---------------- HÄMTA MINA AKTIVITETER ---------------- */
   useEffect(() => {
     const loadTasks = async () => {
       try {
-        const res = await fetch(`${API_URL}/activities`);
+        const token = localStorage.getItem("token") || "";
+        const res = await fetch(`${API_URL}/activities`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
         const tasks = await res.json();
-        const userTasks = tasks.filter((t) => t.responsible === user.name);
+        // createdBy anger vem som skickade in aktiviteten. responsible är
+        // den som tilldelats ansvaret och används därför inte här.
+        const userTasks = Array.isArray(tasks)
+          ? tasks.filter((task) => task.createdBy === user.name)
+          : [];
+
         setMyTasks(userTasks);
-      } catch {
-        console.error("Kunde inte hämta aktiviteter");
+      } catch (err) {
+        console.error("Kunde inte hämta aktiviteter:", err);
+        setMyTasks([]);
       }
     };
 
-    loadTasks();
-  }, [user.username]);
+    if (user.name) loadTasks();
+    else setMyTasks([]);
+  }, [user.name]);
 
   useEffect(() => {
     setName(user.name || "");
     setEmail(user.email || "");
   }, [user]);
 
-  const visibleTasks = myTasks.filter((tsk) => (showDone ? true : !tsk.done));
+  const visibleTasks = myTasks
+    .filter((task) => (showDone ? true : !task.done))
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+  const formatCreatedAt = (createdAt) => {
+    if (!createdAt) return "";
+    const date = new Date(createdAt);
+    return Number.isNaN(date.getTime())
+      ? ""
+      : date.toLocaleDateString(lang === "sv" ? "sv-SE" : "en-GB");
+  };
   const hasValidEmail =
     user.email && user.email !== "-" && user.email.includes("@");
 
@@ -200,16 +208,6 @@ export default function Profile({ user, setUser, setActiveTab }) {
     }
 
     setLoading(false);
-  };
-
-  const openTeamsChat = (emailAddr) => {
-    if (!emailAddr) return;
-
-    const link = `https://teams.microsoft.com/l/chat/0/0?users=${encodeURIComponent(
-      emailAddr
-    )}`;
-
-    window.open(link, "_blank");
   };
 
   return (
@@ -279,75 +277,51 @@ export default function Profile({ user, setUser, setActiveTab }) {
         </button>
       </div>
 
-      {/* 📨 SKICKA MEDDELANDE – EGEN RUTA */}
-      {hasValidEmail && (
-        <div className="profile-section">
-          <h3>{t.sendMessageTitle}</h3>
-
-          <select
-            className="profile-input"
-            value={selectedUser}
-            onChange={(e) => setSelectedUser(e.target.value)}
-          >
-            <option value="">{t.selectUser}</option>
-            {users.map((u) => (
-              <option key={u._id} value={u.email}>
-                {u.name} ({u.username})
-              </option>
-            ))}
-          </select>
+      {/* MINA AKTIVITETER */}
+      <div className="profile-section">
+        <div className="my-task-list">
+          <h3>{t.myActivities}</h3>
 
           <button
             className="btn-primary"
-            disabled={!selectedUser}
-            onClick={() => openTeamsChat(selectedUser)}
+            onClick={() => setShowDone((prev) => !prev)}
+            style={{ marginBottom: "10px" }}
           >
-            {t.openTeams}
+            {showDone ? t.hideDone : t.showDone}
           </button>
-        </div>
-      )}
 
-      {!hasValidEmail && (
-        <div className="profile-section">
-          <p className="empty">{t.noEmailWarning}</p>
-        </div>
-      )}
-
-      {/* 🔥 LISTA MED MÖJLIGHET ATT VISA/DÖLJA KLARA */}
-      <div className="profile-section">
-        {myTasks.length > 0 && setActiveTab && (
-          <div className="my-task-list">
-            <h3>{t.myActivities}</h3>
-
-            <button
-              className="btn-primary"
-              onClick={() => setShowDone(!showDone)}
-              style={{ marginBottom: "10px" }}
-            >
-              {showDone ? t.hideDone : t.showDone}
-            </button>
-
+          {visibleTasks.length > 0 ? (
             <ul className="task-ul-no-bullets">
               {visibleTasks.map((task) => (
                 <li key={task._id} className="my-task-item">
                   <strong>{task.title}</strong>
                   <div className="my-task-meta">
-                    <span>{task.category} </span>
-                    {task.deadline && <span>{task.deadline}</span>}
-                    {task.done && <span className="task-done-tag">{t.doneTag}</span>}
+                    <span>{task.category}</span>
+                    {formatCreatedAt(task.createdAt) && (
+                      <span>{formatCreatedAt(task.createdAt)}</span>
+                    )}
+                    {task.done && (
+                      <span className="task-done-tag">{t.doneTag}</span>
+                    )}
                   </div>
                 </li>
               ))}
             </ul>
+          ) : (
+            <p className="empty">{t.noActivities}</p>
+          )}
+
+          {setActiveTab && (
             <p style={{ marginBottom: "5px" }}>
-              <button className="btn-secondary" onClick={() => setActiveTab("activities")}>
+              <button
+                className="btn-secondary"
+                onClick={() => setActiveTab("activities")}
+              >
                 {t.goToActivities}
               </button>
             </p>
-
-            {visibleTasks.length === 0 && <p className="empty">{t.noActivities}</p>}
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {msg && (
