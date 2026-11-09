@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { io } from "socket.io-client";
-import { API_URL, WS_URL } from "../config";
+import { API_URL } from "../config";
+import { socket, connectSocket } from "../socket";
 import "./EditableTextWidget.css";
 
 // FIX: read token once at module level — stable, no re-reads on every save
@@ -87,10 +87,7 @@ export default function EditableTextWidget({
   // FIX: socket created inside useEffect, disconnected on unmount —
   // no more module-level persistent socket connection.
   useEffect(() => {
-    const socket = io(WS_URL, { transports: ["websocket"], 
-  auth: (cb) => cb({ token: localStorage.getItem("token") }),
-});
-
+    
     const handler = (payload) => {
       if (payload.textwidgetid === textwidgetid) {
         setTitle(payload.title || "");
@@ -100,12 +97,11 @@ export default function EditableTextWidget({
       }
     };
 
-    if (!socket.connected) socket.connect();
+    connectSocket();
     socket.on("widgetUpdated", handler);
 
     return () => {
       socket.off("widgetUpdated", handler);
-      socket.disconnect();
     };
   }, [textwidgetid]);
 
