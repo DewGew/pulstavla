@@ -108,3 +108,13 @@
     font-size: clamp(1rem, 0.45vw, 1.5rem);
   }
 }
+
+
+/* Behåll normal textstorlek på stora Android-TV-skärmar. */
+.app.android-large-screen .presence-name {
+  font-size: 0.95rem;
+}
+
+.app.android-large-screen .presence-status {
+  font-size: 0.85rem;
+}
