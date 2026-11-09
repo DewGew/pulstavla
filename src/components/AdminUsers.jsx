@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { apiFetch } from "../api";
 import { API_URL } from "../config";
 import { socket } from "../socket";
@@ -325,7 +326,7 @@ export default function AdminUsers({ currentUser, hideTitle = false, flat = fals
       </table>
 
       {/* -------- EDIT MODAL -------- */}
-      {modalOpen && (
+      {modalOpen && createPortal(
         <div className="modal-overlay">
           <div className="modal-content">
             <h3>Redigera användare</h3>
@@ -366,11 +367,12 @@ export default function AdminUsers({ currentUser, hideTitle = false, flat = fals
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div>,
+          document.body
+        )}
 
       {/* -------- ADD USER MODAL -------- */}
-      {addModalOpen && (
+      {addModalOpen && createPortal(
         <div className="modal-overlay">
           <div className="modal-content">
             <h3>➕ Lägg till ny användare</h3>
