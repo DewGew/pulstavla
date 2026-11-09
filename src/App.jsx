@@ -1,32 +1,47 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { lazy, Suspense, useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSettings } from "./components/SettingsContext";
 import ClockWidget from "./components/ClockWidget";
 import GreenCross from "./components/GreenCross";
 import Login from "./components/Login";
-import Profile from "./components/Profile";
-import AdminUsers from "./components/AdminUsers";
-import Activities from "./components/Activities";
+
+
+
 import ActivitiesWidget from "./components/ActivitiesWidget";
 import PresenceWidget from "./components/PresenceWidget";
 import EditableTextWidget from "./components/EditableTextWidget";
 import StructuredTextWidget from "./components/StructuredTextWidget";
-import MachineChecklist from "./components/MachineChecklist";
+
 import ResourceWidget from "./components/ResourceWidget";
-import MachineDocuments from "./components/MachineDocuments";
+
 import WidgetRotator from "./components/WidgetRotator";
-import Settings from "./components/Settings";
-import OrderImport from "./components/OrderImport";
+
+
 import LunchWidget from "./components/LunchWidget";
 import OrderWidget from "./components/OrderWidget";
-import ProductionOrderImport from "./components/ProductionOrderImport";
+
 import ProductionOrderWidget from "./components/ProductionOrderWidget";
 import QualityCostWidget from "./components/QualityCostWidget";
-import Matprotokoll from "./components/Matprotokoll";
+
 import DrawingWidget from "./components/DrawingWidget";
 import { API_URL } from "./config";
 import { socket, connectSocket, disconnectSocket } from "./socket";
 import { createApi } from "./api";
 import "./App.css";
+
+/*
+ * Sekundära vyer laddas först när användaren öppnar dem.
+ * Detta håller den första dashboard-laddningen mindre, särskilt på TV-enheter.
+ */
+const Profile = lazy(() => import("./components/Profile"));
+const AdminUsers = lazy(() => import("./components/AdminUsers"));
+const Activities = lazy(() => import("./components/Activities"));
+const MachineChecklist = lazy(() => import("./components/MachineChecklist"));
+const MachineDocuments = lazy(() => import("./components/MachineDocuments"));
+const Settings = lazy(() => import("./components/Settings"));
+const OrderImport = lazy(() => import("./components/OrderImport"));
+const ProductionOrderImport = lazy(() => import("./components/ProductionOrderImport"));
+const Matprotokoll = lazy(() => import("./components/Matprotokoll"));
+
 
 const today = new Date().toLocaleDateString("sv-SE", {
   weekday: "long",
@@ -669,17 +684,19 @@ return (
         </div>
       )}
 
-      {activeTab === "activities" && <Activities />}
-      {activeTab === "settings" && <Settings />}
-      {activeTab === "profile" && (
-        <Profile user={user} setUser={setUser} setActiveTab={setActiveTab} />
-      )}
-      {activeTab === "checklist" && <MachineChecklist currentUser={user} />}
-      {activeTab === "adminUsers" && <AdminUsers currentUser={user} />}
-      {activeTab === "documents" && <MachineDocuments />}
-      {activeTab === "orders" && <OrderImport />}
-      {activeTab === "production" && <ProductionOrderImport />}
-      {activeTab === "matprotokoll" && <Matprotokoll />}
+      <Suspense fallback={<div className="page-loading">Laddar sida…</div>}>
+        {activeTab === "activities" && <Activities />}
+        {activeTab === "settings" && <Settings />}
+        {activeTab === "profile" && (
+          <Profile user={user} setUser={setUser} setActiveTab={setActiveTab} />
+        )}
+        {activeTab === "checklist" && <MachineChecklist currentUser={user} />}
+        {activeTab === "adminUsers" && <AdminUsers currentUser={user} />}
+        {activeTab === "documents" && <MachineDocuments />}
+        {activeTab === "orders" && <OrderImport />}
+        {activeTab === "production" && <ProductionOrderImport />}
+        {activeTab === "matprotokoll" && <Matprotokoll />}
+      </Suspense>
     </main>
   </div>
 );
