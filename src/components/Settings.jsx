@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "../api";
-import { API_URL, VERSION } from "../config";
+import { VERSION } from "../config";
 import AdminUsers from "./AdminUsers";
 import "./Settings.css";
 
@@ -300,7 +300,12 @@ export default function Settings() {
 					<h3>Om</h3>
 					<div style={{borderTop: '1px dashed var(--panel-border, #e5e7eb)', marginBottom: 10}}></div>
 					
-					<p><i>Pulstavla har version {VERSION} och är byggd på REACT/VITE webbserver ramverk till {company} av Kapima. Epost: <a href="mailto:info@kapima.se">info@kapima.se</a></i></p>
+					<div className="about-info">
+						<p><strong>Pulstavlan</strong> <span>Version {VERSION}</span></p>
+						<p>En webbaserad pulstavla för visualisering av produktion, resurser, aktiviteter och verksamhetsinformation{company ? ` hos ${company}` : ""}.</p>
+						<p>Byggd med React och Vite. Liveuppdateringar hanteras via Socket.IO.</p>
+						<p>Utveckling och support: <a href="mailto:info@kapima.se">Kapima – info@kapima.se</a></p>
+					</div>
 				</section>
 			)}
 
