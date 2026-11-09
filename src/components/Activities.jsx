@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
 import { apiFetch } from "../api";
-import { API_URL } from "../config";
 import { socket } from "../socket";
 import { useSettings, addPDFHeader, addPDFFooter  } from "./SettingsContext";
 import "./Activities.css";
@@ -82,7 +81,7 @@ export default function Activities() {
       const nextUrls = {};
       await Promise.all(safeRows.filter((task) => task.image).map(async (task) => {
         try {
-          const imageRes = await fetch(`${API_URL}${task.image}`, {
+          const imageRes = await apiFetch(task.image, {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (imageRes.ok) nextUrls[task._id] = URL.createObjectURL(await imageRes.blob());
@@ -550,8 +549,8 @@ export default function Activities() {
                       if (imageFile) {
                         const formData = new FormData();
                         formData.append("image", imageFile);
-                        const uploadRes = await fetch(
-                          `${API_URL}/activities/upload`,
+                        const uploadRes = await apiFetch(
+                          `/activities/upload`,
                           {
                             method: "POST",
                             headers: { Authorization: `Bearer ${token}` },
