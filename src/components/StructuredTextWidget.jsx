@@ -73,7 +73,9 @@ export default function StructuredTextWidget({
       });
   };
 
-  useEffect(loadWidget, [textwidgetid]);
+  useEffect(() => {
+    loadWidget();
+  }, [textwidgetid]);
 	
 	useEffect(() => {
 		onEditingChange?.(isEditing);
