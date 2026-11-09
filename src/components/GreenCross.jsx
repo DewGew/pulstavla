@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { io } from "socket.io-client";
 import "./GreenCross.css";
-import { API_URL, WS_URL } from "../config";
+import { API_URL } from "../config";
+import { socket, connectSocket } from "../socket";
 
 const STATES = ["default", "green", "yellow", "red"];
 const MONTHS = [
@@ -97,10 +97,7 @@ export default function GreenCross({ crossId, green = "Green", yellow = "Yellow"
   // FIX: socket created inside useEffect — disconnected on unmount.
   // No more module-level persistent socket connection.
   useEffect(() => {
-    const socket = io(WS_URL, { transports: ["websocket"], 
-  auth: (cb) => cb({ token: localStorage.getItem("token") }),
-});
-
+    
     const handler = payload => {
       if (
         payload.crossId === crossId &&
@@ -115,7 +112,6 @@ export default function GreenCross({ crossId, green = "Green", yellow = "Yellow"
 
     return () => {
       socket.off("greenCrossUpdate", handler);
-      socket.disconnect();
     };
   }, [crossId, year, month]);
 
