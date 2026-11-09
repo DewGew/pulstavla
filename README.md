@@ -36,28 +36,34 @@ cd pulstavla
 npm ci
 ```
 
-Om du redan har klonat projektet uppdaterar du i stället:
+Om du redan har klonat projektet uppdaterar du i stället från den branch som används, exempelvis:
 
 ```bash
-cd ~/pulstavla
-git pull origin master
+git pull origin development
 npm ci
 ```
 
-### 3. Anpassa nätverksinställningarna
+### 3. Anpassa lokala nätverksinställningar
 
-Öppna `src/config.js` och ändra `API_URL` och `WS_URL` så att de pekar på adressen som användarna når Pulstavla via.
+Nätverksadresser och serverport ligger i den lokala filen `src/config.local.js`. Den filen ignoreras av Git och skrivs därför inte över vid `git pull`.
 
-Exempel om reverse proxyn publicerar appen på `https://pulstavla.example.se`:
+Skapa filen första gången genom att kopiera exempelfilen:
+
+```bash
+cp src/config.local.example.js src/config.local.js
+nano src/config.local.js
+```
+
+Anpassa `API_URL`, `WS_URL` och vid behov `PORT` till din installation. Exempel om reverse proxyn publicerar appen på `https://pulstavla.example.se`:
 
 ```js
 export const API_URL = "https://pulstavla.example.se";
 export const WS_URL = "wss://pulstavla.example.se";
 ```
 
-Behåll portinställningen i filen om servern ska använda standardporten 3000. Anpassa även reverse proxyn så att den skickar HTTP- och WebSocket-trafik till rätt server och port.
+Behåll normalt port 3000 i produktion. Anpassa även reverse proxyn så att den skickar HTTP- och WebSocket-trafik till rätt server och port.
 
-**Viktigt:** `src/config.js` innehåller miljöspecifika adresser och är undantagen från Git-uppdateringar i `.gitignore`. Kontrollera därför filen manuellt efter installation och uppdateringar. Skriv inte över dina lokala inställningar av misstag.
+**Viktigt:** Ändra inte längre nätverksadresser i `src/config.js`. Den filen är programmets gemensamma konfiguration och läser lokala värden från `config.local.js`. Versionsnumret hämtas automatiskt från `package.json`.
 
 ### 4. Skapa serverns miljövariabler
 
@@ -141,19 +147,29 @@ Det kommandot startar både servern och Vites utvecklingsserver. Använd normalt
 
 ## Uppdatera en befintlig installation
 
-Ta först en säkerhetskopia av databaser och uppladdade filer. Kör sedan från projektkatalogen:
+Ta först en säkerhetskopia av databaser och uppladdade filer. Första gången den nya lokala konfigurationsfilen införs måste de befintliga nätverksinställningarna flyttas över innan du hämtar uppdateringen.
+
+Om du har anpassat den gamla `src/config.js`, kör följande från projektkatalogen **innan första pull**:
+
+```bash
+cp src/config.js src/config.local.js
+git restore src/config.js
+```
+
+Detta sparar den gamla filen som lokal konfiguration och återställer den Git-hanterade filen så att uppdateringen kan hämtas utan konflikt. Kontrollera att `src/config.local.js` finns kvar. Filen är ignorerad av Git.
+
+Hämta sedan uppdateringen:
 
 ```bash
 git status --short
-# Säkerställ att lokala ändringar och data är omhändertagna innan uppdatering.
-git pull origin master
+git pull origin development
 npm ci
 npm run build
 ```
 
 Starta sedan om den körande Pulstavla-servern så att den nya versionen laddas.
 
-**Radera eller skriv inte över** katalogerna `db/` och `uploads/` vid uppdatering. De innehåller lokal data. Behåll även din lokala `src/config.js` och miljöfil.
+**Radera eller skriv inte över** katalogerna `db/` och `uploads/` vid uppdatering. De innehåller lokal data. Behåll även `src/config.local.js` och miljöfilen.
 
 ## Data och säkerhet
 
@@ -163,7 +179,7 @@ Starta sedan om den körande Pulstavla-servern så att den nya versionen laddas.
 - `docs/logo.png` exponeras separat som publik logotyp.
 - Lägg aldrig hemligheter, säkerhetskopior eller privata dokument i en publik katalog.
 - Se till att reverse proxyn använder HTTPS och vidarebefordrar WebSocket korrekt.
-- Säkerhetskopiera `db/`, `uploads/` och relevanta lokala konfigurationsfiler regelbundet.
+- Säkerhetskopiera `db/`, `uploads/`, `src/config.local.js` och relevanta miljöfiler regelbundet.
 
 ## Utveckling
 
@@ -172,4 +188,4 @@ npm ci
 npm run start
 ```
 
-Öppna Vites utvecklingsadress som visas i terminalen. Anpassa vid behov utvecklingsadresserna i `src/config.js` och `vite.config.js` till ditt lokala nätverk.
+Öppna Vites utvecklingsadress som visas i terminalen. Anpassa vid behov nätverksadresserna i `src/config.local.js` och `vite.config.js`.
