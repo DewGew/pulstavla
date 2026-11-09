@@ -405,16 +405,6 @@ export default function App() {
           green="Ok"
           yellow="Varning"
           red="Problem"
-          url={{
-            title: "Risker",
-            text: `
-🏗️ Tunga eller ovanliga lyft
-🔧 Underhåll eller maskin ingrepp
-👷 Ny eller inhyrd personal
-🚧 Avstängda skydd / provisoriska lösningar
-⏱ Stress, övertid, låg bemanning
-            `,
-          }}
         />
       </div>
     );
