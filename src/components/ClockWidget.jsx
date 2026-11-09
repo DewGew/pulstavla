@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { API_URL } from "../config";
-import { socket, connectSocket } from "../socket";
+import { socket } from "../socket";
 import "./ClockWidget.css";
 
 // Enkel mappning från Open-Meteo weathercode till ikon + text
