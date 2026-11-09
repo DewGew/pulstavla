@@ -87,6 +87,7 @@ export default function OrderImport() {
 
     
     socket.on("ordersUpdated", fetchOrders);
+    return () => socket.off("ordersUpdated", fetchOrders);
   }, [token, fetchOrders]);
 
   /* ---------------- UPLOAD ---------------- */
