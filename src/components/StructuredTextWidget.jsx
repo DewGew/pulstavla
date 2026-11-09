@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { apiFetch } from "../api";
 import { socket, connectSocket } from "../socket";
 import "./EditableTextWidget.css";
+import InlineMarkdown from "./InlineMarkdown";
 
 
 export default function StructuredTextWidget({
@@ -165,7 +166,7 @@ export default function StructuredTextWidget({
           {sections.map((s, i) => (
             <div key={i} style={{ textAlign: "left" }}>
               <strong>{s.subtitle}</strong>
-              <p>{s.text}</p>
+              <p><InlineMarkdown text={s.text} /></p>
             </div>
           ))}
 					
