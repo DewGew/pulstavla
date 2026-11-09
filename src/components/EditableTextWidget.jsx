@@ -3,6 +3,7 @@ import { apiFetch } from "../api";
 import { API_URL } from "../config";
 import { socket, connectSocket } from "../socket";
 import "./EditableTextWidget.css";
+import InlineMarkdown from "./InlineMarkdown";
 
 // FIX: read token once at module level — stable, no re-reads on every save
 const getToken = () => localStorage.getItem("token");
@@ -159,7 +160,7 @@ export default function EditableTextWidget({
         <>
           <h3>{title}</h3>
           <p className={!text?.trim() ? "empty-state" : undefined}>
-            {text?.trim() || "Ingen text har lagts till än."}
+            <InlineMarkdown text={text?.trim() || "Ingen text har lagts till än."} />
           </p>
 
           {updatedBy && (
