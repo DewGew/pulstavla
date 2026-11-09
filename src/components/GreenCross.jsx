@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { apiFetch } from "../api";
 import "./GreenCross.css";
 import { API_URL } from "../config";
@@ -263,7 +264,7 @@ export default function GreenCross({ crossId, green = "Green", yellow = "Yellow"
       )}
 
       {/* -------- SUGGEST ACTIVITY MODAL -------- */}
-      {showTaskModal && suggestedTask && (
+      {showTaskModal && suggestedTask && createPortal(
         <div className="modal-overlay" onClick={() => setShowTaskModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <h3>Skapa aktivitet?</h3>
@@ -335,11 +336,12 @@ export default function GreenCross({ crossId, green = "Green", yellow = "Yellow"
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* -------- URL INFO MODAL -------- */}
-      {showUrlModal && url && (
+      {showUrlModal && url && createPortal(
         <div className="modal-overlay" onClick={() => setShowUrlModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <h3>{url.title}</h3>
@@ -350,7 +352,8 @@ export default function GreenCross({ crossId, green = "Green", yellow = "Yellow"
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
