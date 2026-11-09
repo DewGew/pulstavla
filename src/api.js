@@ -41,3 +41,11 @@ export function createApi(logout) {
     return res;
   };
 }
+
+// Gemensam API-klient för komponenter utanför App och SettingsContext.
+// Vid 401 meddelas App så att session och WebSocket stängs centralt.
+export const apiFetch = createApi(() => {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("authExpired"));
+  }
+});
