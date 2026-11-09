@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { API_URL } from "../config";
-import { socket, connectSocket } from "../socket";
+import { socket } from "../socket";
 import { useSettings, addPDFHeader, addPDFFooter  } from "./SettingsContext";
 import "./Activities.css";
 import jsPDF from "jspdf";
