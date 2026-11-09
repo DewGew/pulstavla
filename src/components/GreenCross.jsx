@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { apiFetch } from "../api";
 import "./GreenCross.css";
 import { API_URL } from "../config";
 import { socket } from "../socket";
@@ -69,7 +70,7 @@ export default function GreenCross({ crossId, green = "Green", yellow = "Yellow"
   // re-fetches since the server returns all activities regardless.
   // token added to deps so the effect re-runs if auth changes.
   const fetchActivities = useCallback(() => {
-    fetch(`${API_URL}/activities`, {
+    apiFetch(`/activities`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
       .then(res => {
@@ -301,7 +302,7 @@ export default function GreenCross({ crossId, green = "Green", yellow = "Yellow"
                   // FIX: try/catch around the activity POST with user feedback
                   try {
                     setSaveError(null);
-                    const res = await fetch(`${API_URL}/activities`, {
+                    const res = await apiFetch(`/activities`, {
                       method: "POST",
                       headers: authHeaders,
                       body: JSON.stringify(suggestedTask),
