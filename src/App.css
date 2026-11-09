@@ -35,6 +35,19 @@ body {
   --danger: #d9534f;
   --logo-span: #0f172a;
   --strong-text: #9e0606;
+  --muted-text: #64748b;
+  --control-bg: #ffffff;
+  --control-text: #0f172a;
+  --control-border: #cbd5e1;
+  --control-radius: 6px;
+  --focus-ring: #2563eb;
+  --panel-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  --overlay-bg: rgba(0, 0, 0, 0.5);
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
 }
 
 :root[data-theme="dark"] {
@@ -51,6 +64,14 @@ body {
   --danger: #d9534f;
   --logo-span: #d0d0d0;
   --strong-text: #ffc000;
+  --muted-text: #a3a3a3;
+  --control-bg: #2a2a2a;
+  --control-text: #ffffff;
+  --control-border: #555555;
+  --control-radius: 6px;
+  --focus-ring: #ffc000;
+  --panel-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+  --overlay-bg: rgba(0, 0, 0, 0.68);
 }
 
 h2 {
