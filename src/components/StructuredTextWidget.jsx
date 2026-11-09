@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { apiFetch } from "../api";
-import { API_URL } from "../config";
 import { socket, connectSocket } from "../socket";
 import "./EditableTextWidget.css";
 
