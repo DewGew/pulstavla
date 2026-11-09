@@ -123,3 +123,13 @@
 		font-size: 2rem
 	}
 }
+
+/* Gemensam redigerare för widgettexter */
+.rich-text-editor { display: flex; flex-direction: column; gap: 7px; margin-top: 7px; }
+.rich-text-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
+.rich-text-toolbar button, .rich-text-preview-toggle button { border: 1px solid var(--panel-border, #d1d5db); border-radius: 6px; background: var(--card-bg, #fff); color: inherit; padding: 5px 9px; cursor: pointer; }
+.rich-text-help, .rich-text-preview-label { color: var(--muted-text, #6b7280); font-size: 12px; }
+.rich-text-editor textarea { width: 100%; box-sizing: border-box; resize: vertical; border: 1px solid #d1d5db; border-radius: 8px; padding: 9px; font: inherit; line-height: 1.5; }
+.rich-text-preview { border: 1px solid var(--panel-border, #e5e7eb); border-radius: 8px; padding: 9px; text-align: left; white-space: pre-wrap; overflow-wrap: anywhere; }
+.rich-text-preview h4 { margin: 4px 0; }
+.rich-text-preview ul { margin: 4px 0; padding-left: 22px; }
