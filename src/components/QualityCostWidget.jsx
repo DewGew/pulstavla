@@ -69,7 +69,9 @@ export default function QualityCostWidget({
     }
   };
 
-  useEffect(loadWidget, [widgetId]);
+  useEffect(() => {
+    loadWidget();
+  }, [widgetId]);
 
   useEffect(() => {
     onEditingChange?.(isEditing);
