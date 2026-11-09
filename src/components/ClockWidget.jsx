@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { io } from "socket.io-client";
-import { API_URL, WS_URL } from "../config";
+import { API_URL } from "../config";
+import { socket, connectSocket } from "../socket";
 import "./ClockWidget.css";
 
 // Enkel mappning från Open-Meteo weathercode till ikon + text
@@ -138,10 +138,7 @@ export default function ClockWidget({
 
   // Live-sync mellan skärmar — samma mönster som EditableTextWidget
   useEffect(() => {
-    const socket = io(WS_URL, { transports: ["websocket"], 
-  auth: (cb) => cb({ token: localStorage.getItem("token") }),
-});
-
+    
     const handler = (payload) => {
       if (payload.textwidgetid === VISITOR_WIDGET_ID) {
         setVisitorText(payload.text || "");
@@ -151,7 +148,6 @@ export default function ClockWidget({
     socket.on("widgetUpdated", handler);
     return () => {
       socket.off("widgetUpdated", handler);
-      socket.disconnect();
     };
   }, []);
 
