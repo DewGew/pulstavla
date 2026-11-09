@@ -124,6 +124,7 @@ export default function Activities() {
 
     
     socket.on("activitiesUpdated", loadTasks);
+    return () => socket.off("activitiesUpdated", loadTasks);
   }, [token, loadTasks]);
 
   /* ---------------- INITIAL LOAD ---------------- */
