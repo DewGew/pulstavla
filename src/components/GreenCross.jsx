@@ -11,7 +11,7 @@ const MONTHS = [
 ];
 const LAYOUT = [3,3,7,7,7,3,3];
 
-export default function GreenCross({ crossId, green = "Green", yellow = "Yellow", red = "Red", url }) {
+export default function GreenCross({ crossId, green = "Green", yellow = "Yellow", red = "Red" }) {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
@@ -21,7 +21,6 @@ export default function GreenCross({ crossId, green = "Green", yellow = "Yellow"
   const [activityDays, setActivityDays] = useState({});
   const [suggestedTask, setSuggestedTask] = useState(null);
   const [showTaskModal, setShowTaskModal] = useState(false);
-  const [showUrlModal, setShowUrlModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saveError, setSaveError] = useState(null);
 
@@ -255,12 +254,6 @@ export default function GreenCross({ crossId, green = "Green", yellow = "Yellow"
         </div>
       </div>
 
-      {url && (
-        <p className="gc-url" onClick={() => setShowUrlModal(true)}>
-          {url.title}
-        </p>
-      )}
-
       {/* -------- SUGGEST ACTIVITY MODAL -------- */}
       {showTaskModal && suggestedTask && createPortal(
         <div className="modal-overlay" onClick={() => setShowTaskModal(false)}>
@@ -331,22 +324,6 @@ export default function GreenCross({ crossId, green = "Green", yellow = "Yellow"
                 }}
               >
                 Avbryt
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
-
-      {/* -------- URL INFO MODAL -------- */}
-      {showUrlModal && url && createPortal(
-        <div className="modal-overlay" onClick={() => setShowUrlModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <h3>{url.title}</h3>
-            <p style={{ whiteSpace: "pre-line" }}>{url.text}</p>
-            <div className="modal-buttons">
-              <button className="btn-primary" onClick={() => setShowUrlModal(false)}>
-                Stäng
               </button>
             </div>
           </div>
