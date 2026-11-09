@@ -184,7 +184,7 @@ export default function App() {
   }, [user]);
 
   /* ------------------- TOKEN EXPIRY CHECK ------------------- */
-  // Kör även efter inloggning så att den nya sessionens token kontrolleras.
+  // Kontrollera token efter inloggning och logga ut automatiskt när den löper ut.
   useEffect(() => {
     if (!user) return;
 
@@ -193,6 +193,8 @@ export default function App() {
       clearSession();
       return;
     }
+
+    let expiryTimer;
 
     try {
       const base64 = token.split(".")[1];
@@ -210,15 +212,26 @@ export default function App() {
         )
       );
 
-      const now = Math.floor(Date.now() / 1000);
-      if (payload.exp && payload.exp <= now) {
-        console.warn("Token expired");
-        clearSession();
+      if (payload.exp) {
+        const expiresInMs = payload.exp * 1000 - Date.now();
+        if (expiresInMs <= 0) {
+          console.warn("Token expired");
+          clearSession();
+        } else {
+          expiryTimer = window.setTimeout(() => {
+            console.warn("Token expired");
+            clearSession();
+          }, expiresInMs);
+        }
       }
     } catch (err) {
       console.error("Invalid token:", err);
       clearSession();
     }
+
+    return () => {
+      if (expiryTimer) window.clearTimeout(expiryTimer);
+    };
   }, [clearSession, user]);
 
   /* ------------------- WIDGET STATE ------------------- */
