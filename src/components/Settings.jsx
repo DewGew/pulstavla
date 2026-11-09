@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { apiFetch } from "../api";
 import { API_URL, VERSION } from "../config";
 import AdminUsers from "./AdminUsers";
 import "./Settings.css";
@@ -86,7 +87,7 @@ export default function Settings() {
 
 
   useEffect(() => {
-    fetch(`${API_URL}/settings`, {
+    apiFetch(`/settings`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(res => res.json())
@@ -129,7 +130,7 @@ export default function Settings() {
 	  setMessage("");
 
 	  await Promise.all([
-		fetch(`${API_URL}/settings/company`, {
+		apiFetch(`/settings/company`, {
 		  method: "PUT",
 		  headers: {
 			"Content-Type": "application/json",
@@ -137,7 +138,7 @@ export default function Settings() {
 		  },
 		  body: JSON.stringify({ value: company }),
 		}),
-		fetch(`${API_URL}/settings/address`, {
+		apiFetch(`/settings/address`, {
 		  method: "PUT",
 		  headers: {
 			"Content-Type": "application/json",
@@ -145,7 +146,7 @@ export default function Settings() {
 		  },
 		  body: JSON.stringify({ value: address }),
 		}),
-		fetch(`${API_URL}/settings/email`, {
+		apiFetch(`/settings/email`, {
 		  method: "PUT",
 		  headers: {
 			"Content-Type": "application/json",
@@ -163,7 +164,7 @@ export default function Settings() {
     setSaving(true);
     setMessage("");
 
-    await fetch(`${API_URL}/settings/system`, {
+    await apiFetch(`/settings/system`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -182,7 +183,7 @@ export default function Settings() {
     setSaving(true);
     setMessage("");
 
-    await fetch(`${API_URL}/settings/machines`, {
+    await apiFetch(`/settings/machines`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -705,7 +706,7 @@ export default function Settings() {
 							setSaving(true);
 							setMessage("");
 
-							await fetch(`${API_URL}/settings/checklists`, {
+							await apiFetch(`/settings/checklists`, {
 								method: "PUT",
 								headers: {
 									"Content-Type": "application/json",
