@@ -192,8 +192,8 @@ export default function MachineDocuments() {
 	  if (!confirmed) return;
 
 	  try {
-		const response = await fetch(
-		  `${API_URL}/documents/${encodeURIComponent(doc.name)}`,
+		const response = await apiFetch(
+		  `/documents/${encodeURIComponent(doc.name)}`,
 		  {
 			method: "DELETE",
 			headers: {
