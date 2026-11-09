@@ -3,10 +3,10 @@
 .structuredTextWidget {
   align-items: stretch !important;
   padding: 14px 16px;
-  background: var(--card-bg, #fff);
+  background: var(--panel);
   border: 1px solid var(--panel-border, #e5e7eb);
-  border-radius: var(--card-radius, 12px);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  border-radius: var(--card-radius);
+  box-shadow: var(--panel-shadow);
 }
 
 /* Titel (visningsläge) */
@@ -16,8 +16,8 @@
 .EditableTextWidget .title-input,
 .structuredTextWidget .title-input {
   width: 100%;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--control-radius);
   padding: 6px 8px;
   font-size: 15px;
   font-weight: 600;
@@ -52,7 +52,7 @@
 .EditableTextWidget .edit-btn {
   background: none;
   border: none;
-  color: #2563eb;
+  color: var(--accent);
   font-size: 13px;
   padding: 0;
 }
@@ -74,11 +74,6 @@
   font-family: inherit;
   line-height: 1.5;
 }
-.EditableTextWidget textarea:focus,
-.structuredTextWidget textarea:focus {
-  outline: none;
-  border-color: #2563eb;
-}
 
 /* Buttons row */
 .structuredTextWidget .actions,
@@ -91,7 +86,7 @@
 /* Error */
 .structuredTextWidget .error,
 .EditableTextWidget .error {
-  color: #dc2626;
+  color: var(--danger);
   font-size: 13px;
 }
 
@@ -99,7 +94,7 @@
   border: 1px solid var(--panel-border);
   padding: 10px;
   margin-top: 10px;
-  border-radius: 6px;
+  border-radius: var(--control-radius);
 }
 .move-buttons {
   display: flex;
@@ -141,7 +136,7 @@
   padding: 7px;
   background: var(--bg-cell, var(--bg, #f8fafc));
   border: 1px solid var(--panel-border, #d1d5db);
-  border-radius: 9px;
+  border-radius: var(--control-radius);
 }
 
 .rich-text-toolbar button,
@@ -172,14 +167,14 @@
 .rich-text-toolbar button:focus-visible,
 .rich-text-preview-toggle button:focus-visible,
 .rich-text-editor textarea:focus-visible {
-  outline: 2px solid var(--header-text, #2563eb);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
 .rich-text-help,
 .rich-text-preview-label {
-  color: var(--text, #64748b);
-  opacity: 0.7;
+  color: var(--muted-text);
+  opacity: 1;
   font-size: 12px;
 }
 
@@ -204,8 +199,8 @@
 }
 
 .rich-text-editor textarea::placeholder {
-  color: var(--text, #64748b);
-  opacity: 0.55;
+  color: var(--muted-text);
+  opacity: 0.8;
 }
 
 .rich-text-preview {
