@@ -126,81 +126,74 @@ export default function Settings() {
 	}, [settings, machineGroups]);
 
   async function saveCompany() {
-	  setSaving(true);
-	  setMessage("");
+    setSaving(true);
+    setMessage("");
 
-	  await Promise.all([
-		apiFetch(`/settings/company`, {
-		  method: "PUT",
-		  headers: {
-			"Content-Type": "application/json",
-			Authorization: `Bearer ${token}`,
-		  },
-		  body: JSON.stringify({ value: company }),
-		}),
-		apiFetch(`/settings/address`, {
-		  method: "PUT",
-		  headers: {
-			"Content-Type": "application/json",
-			Authorization: `Bearer ${token}`,
-		  },
-		  body: JSON.stringify({ value: address }),
-		}),
-		apiFetch(`/settings/email`, {
-		  method: "PUT",
-		  headers: {
-			"Content-Type": "application/json",
-			Authorization: `Bearer ${token}`,
-		  },
-		  body: JSON.stringify({ value: email }),
-		}),
-	  ]);
-
-	  setSaving(false);
-	  setMessage("Företagsuppgifter sparade");
-	}
+    try {
+      const responses = await Promise.all([
+        apiFetch("/settings/company", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+          body: JSON.stringify({ value: company }),
+        }),
+        apiFetch("/settings/address", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+          body: JSON.stringify({ value: address }),
+        }),
+        apiFetch("/settings/email", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+          body: JSON.stringify({ value: email }),
+        }),
+      ]);
+      if (responses.some((res) => !res.ok)) throw new Error("Servern avvisade en eller flera uppdateringar");
+      setMessage("Företagsuppgifter sparade");
+    } catch (err) {
+      console.error("Kunde inte spara företagsuppgifter:", err);
+      setMessage("Kunde inte spara företagsuppgifter");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function saveSystem() {
     setSaving(true);
     setMessage("");
-
-    await apiFetch(`/settings/system`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        value: { apiUrl, wsUrl, interval, lat, lon, qual, qual2, yearLabel },
-      }),
-    });
-
-    setSaving(false);
-    setMessage("Systeminställningar sparade");
+    try {
+      const res = await apiFetch("/settings/system", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ value: { apiUrl, wsUrl, interval, lat, lon, qual, qual2, yearLabel } }),
+      });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      setMessage("Systeminställningar sparade");
+    } catch (err) {
+      console.error("Kunde inte spara systeminställningar:", err);
+      setMessage("Kunde inte spara systeminställningar");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function saveMachines() {
     setSaving(true);
     setMessage("");
-
-    await apiFetch(`/settings/machines`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        value: {
-          groups: machineGroups,
-          list: machines,
-        },
-      }),
-    });
-
-    setSaving(false);
-    setMessage("Resurser och grupper sparade");
+    try {
+      const res = await apiFetch("/settings/machines", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ value: { groups: machineGroups, list: machines } }),
+      });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      setMessage("Resurser och grupper sparade");
+    } catch (err) {
+      console.error("Kunde inte spara resurser och grupper:", err);
+      setMessage("Kunde inte spara resurser och grupper");
+    } finally {
+      setSaving(false);
+    }
   }
-
   if (!settings) return <p>Laddar inställningar...</p>;
 
   return (
@@ -703,21 +696,23 @@ export default function Settings() {
 					<button
 						className="btn-primary"
 						onClick={async () => {
-							setSaving(true);
-							setMessage("");
-
-							await apiFetch(`/settings/checklists`, {
-								method: "PUT",
-								headers: {
-									"Content-Type": "application/json",
-									Authorization: `Bearer ${token}`,
-								},
-								body: JSON.stringify({ value: checklists }),
-							});
-
-							setSaving(false);
-							setMessage("Checklistor sparade");
-						}}
+                            setSaving(true);
+                            setMessage("");
+                            try {
+                              const res = await apiFetch("/settings/checklists", {
+                                method: "PUT",
+                                headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+                                body: JSON.stringify({ value: checklists }),
+                              });
+                              if (!res.ok) throw new Error("HTTP " + res.status);
+                              setMessage("Checklistor sparade");
+                            } catch (err) {
+                              console.error("Kunde inte spara checklistor:", err);
+                              setMessage("Kunde inte spara checklistor");
+                            } finally {
+                              setSaving(false);
+                            }
+                          }}
 					>
 						Spara checklistor
 					</button>
@@ -729,7 +724,7 @@ export default function Settings() {
 					<AdminUsers currentUser={currentUser} hideTitle flat />
 				</section>
 			)}
-      {message && <div className="profile-message success">{message}</div>}
+      {message && <div className={`profile-message ${message.startsWith("Kunde inte") ? "error" : "success"}`}>{message}</div>}
     </div>
   );
 }
