@@ -1,5 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { createPortal } from "react-dom";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { apiFetch } from "../api";
 import "./GreenCross.css";
 import { socket } from "../socket";
@@ -19,13 +18,8 @@ export default function GreenCross({ crossId, green = "Green", yellow = "Yellow"
   const [cells, setCells] = useState([]);
   const [highlight, setHighlight] = useState({});
   const [activityDays, setActivityDays] = useState({});
-  const [suggestedTask, setSuggestedTask] = useState(null);
-  const [showTaskModal, setShowTaskModal] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [saveError, setSaveError] = useState(null);
 
-  // FIX: read token and user once with stable useState initializer.
-  // JSON.parse wrapped in try/catch to handle corrupted localStorage.
   const [token] = useState(() => localStorage.getItem("token"));
   const [currentUser] = useState(() => {
     try {
@@ -37,7 +31,6 @@ export default function GreenCross({ crossId, green = "Green", yellow = "Yellow"
 
   const canEdit = currentUser.role === "admin" || currentUser.role === "suAdmin";
 
-  // FIX: auth headers helper
   const authHeaders = useMemo(() => ({
     "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -49,7 +42,6 @@ export default function GreenCross({ crossId, green = "Green", yellow = "Yellow"
     setDays(Array.from({ length: totalDays }, (_, i) => i + 1));
     setLoading(true);
 
-    // FIX: auth header added to green cross fetch
     apiFetch(`/greenCross/${crossId}/${year}/${month}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
@@ -63,12 +55,9 @@ export default function GreenCross({ crossId, green = "Green", yellow = "Yellow"
       .finally(() => setLoading(false));
   }, [crossId, year, month, token]);
 
-  /* ---------------- FETCH ACTIVITIES ---------------- */
-  // FIX: only depends on crossId and token — year/month caused unnecessary
-  // re-fetches since the server returns all activities regardless.
-  // token added to deps so the effect re-runs if auth changes.
+  /* ---------------- FETCH ACTIVITIES (calendar markers only) ---------------- */
   const fetchActivities = useCallback(() => {
-    apiFetch(`/activities`, {
+    apiFetch("/activities", {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
       .then(res => {
@@ -79,8 +68,7 @@ export default function GreenCross({ crossId, green = "Green", yellow = "Yellow"
         const map = {};
         list.forEach(a => {
           if (a.crossId === crossId && a.deadline && a.flag) {
-            const dateOnly = a.deadline.split("T")[0];
-            map[dateOnly] = a.flag;
+            map[a.deadline.split("T")[0]] = a.flag;
           }
         });
         setActivityDays(map);
@@ -93,10 +81,7 @@ export default function GreenCross({ crossId, green = "Green", yellow = "Yellow"
   }, [fetchActivities]);
 
   /* ---------------- WEBSOCKET ---------------- */
-  // FIX: socket created inside useEffect — disconnected on unmount.
-  // No more module-level persistent socket connection.
   useEffect(() => {
-    
     const handler = payload => {
       if (
         payload.crossId === crossId &&
@@ -108,41 +93,10 @@ export default function GreenCross({ crossId, green = "Green", yellow = "Yellow"
     };
 
     socket.on("greenCrossUpdate", handler);
-
-    return () => {
-      socket.off("greenCrossUpdate", handler);
-    };
+    return () => socket.off("greenCrossUpdate", handler);
   }, [crossId, year, month]);
 
-  /* ---------------- CREATE SUGGESTION ---------------- */
-  const createSuggestedActivity = (color, date) => {
-    if (color === "yellow")
-      return {
-        title: "Observation / Risk",
-        description: "Identifierad risk.",
-        category: "Förslag",
-        deadline: date,
-        flag: "red",
-        crossId,
-      };
-
-    if (color === "red")
-      return {
-        title: "Avvikelse – åtgärd krävs",
-        description: "Problem identifierat.",
-        category: "Problem",
-        deadline: date,
-        flag: "yellow",
-        crossId,
-      };
-
-    return null;
-  };
-
   /* ---------------- CLICK CELL ---------------- */
-  // FIX: fetch moved outside the setState updater callback.
-  // Side effects inside setState are a React anti-pattern — the updater
-  // can run more than once in Strict Mode.
   const toggleCell = useCallback((index) => {
     setCells(prev => {
       const updated = [...prev];
@@ -152,28 +106,15 @@ export default function GreenCross({ crossId, green = "Green", yellow = "Yellow"
       setHighlight({ [index]: true });
       setTimeout(() => setHighlight({}), 400);
 
-      // FIX: fetch outside setState, using the computed `updated` array
-      // captured in this closure — safe because we're not in the updater
-      apiFetch(`/greenCross`, {
+      apiFetch("/greenCross", {
         method: "POST",
         headers: authHeaders,
         body: JSON.stringify({ crossId, year, month, cells: updated }),
-      }).catch(() => console.warn("Kunne ikke lagre GreenCross"));
-
-      const day = index + 1;
-      const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-
-      if ((next === "yellow" || next === "red") && !activityDays[dateStr]) {
-        const suggestion = createSuggestedActivity(next, dateStr);
-        if (suggestion) {
-          setSuggestedTask(suggestion);
-          setShowTaskModal(true);
-        }
-      }
+      }).catch(() => console.warn("Kunde inte lagra GreenCross"));
 
       return updated;
     });
-  }, [crossId, year, month, activityDays, authHeaders]);
+  }, [crossId, year, month, authHeaders]);
 
   /* ---------------- COUNTS ---------------- */
   const counts = useMemo(() => ({
@@ -183,9 +124,6 @@ export default function GreenCross({ crossId, green = "Green", yellow = "Yellow"
   }), [cells]);
 
   /* ---------------- BUILD GRID ROWS ---------------- */
-  // FIX: dayCounter moved out of render body into useMemo to avoid
-  // mutating a plain let variable during render, which is fragile
-  // with React concurrent features.
   const gridRows = useMemo(() => {
     let dayCounter = 0;
 
@@ -225,7 +163,6 @@ export default function GreenCross({ crossId, green = "Green", yellow = "Yellow"
     });
   }, [days, year, month, cells, highlight, activityDays, canEdit, toggleCell]);
 
-  /* ---------------- RENDER ---------------- */
   return (
     <div className="green-cross-wrapper gc-grid">
       <div className="gc-controls">
@@ -239,12 +176,7 @@ export default function GreenCross({ crossId, green = "Green", yellow = "Yellow"
         />
       </div>
 
-      {/* FIX: loading indicator while fetching cell data */}
-      {loading ? (
-        <p className="gc-loading">Laddar…</p>
-      ) : (
-        gridRows
-      )}
+      {loading ? <p className="gc-loading">Laddar…</p> : gridRows}
 
       <div className="gc-legend-row">
         <div className="gc-counts">
@@ -253,83 +185,6 @@ export default function GreenCross({ crossId, green = "Green", yellow = "Yellow"
           <div><span>🔴</span>= {red} ({counts.red})</div>
         </div>
       </div>
-
-      {/* -------- SUGGEST ACTIVITY MODAL -------- */}
-      {showTaskModal && suggestedTask && createPortal(
-        <div className="modal-overlay" onClick={() => setShowTaskModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <h3>Skapa aktivitet?</h3>
-
-            <input
-              type="text"
-              value={suggestedTask.title}
-              onChange={e => setSuggestedTask({ ...suggestedTask, title: e.target.value })}
-            />
-
-            <textarea
-              rows="3"
-              value={suggestedTask.description}
-              onChange={e => setSuggestedTask({ ...suggestedTask, description: e.target.value })}
-            />
-
-            <select
-              value={suggestedTask.category}
-              onChange={e => setSuggestedTask({ ...suggestedTask, category: e.target.value })}
-            >
-              <option>Säkerhet</option>
-              <option>Problem</option>
-              <option>Underhåll</option>
-              <option>Förslag</option>
-              <option>Övrigt</option>
-            </select>
-
-            {saveError && (
-              <p style={{ color: "red", marginTop: "6px" }}>{saveError}</p>
-            )}
-
-            <div className="modal-buttons">
-              <button
-                className="btn-primary"
-                onClick={async () => {
-                  // FIX: try/catch around the activity POST with user feedback
-                  try {
-                    setSaveError(null);
-                    const res = await apiFetch(`/activities`, {
-                      method: "POST",
-                      headers: authHeaders,
-                      body: JSON.stringify(suggestedTask),
-                    });
-
-                    if (!res.ok) throw new Error("Kunde inte skapa aktivitet");
-
-                    setActivityDays(prev => ({
-                      ...prev,
-                      [suggestedTask.deadline]: suggestedTask.flag,
-                    }));
-
-                    setShowTaskModal(false);
-                    setSuggestedTask(null);
-                  } catch (err) {
-                    setSaveError(err.message);
-                  }
-                }}
-              >
-                Skapa aktivitet
-              </button>
-              <button
-                className="btn-danger"
-                onClick={() => {
-                  setShowTaskModal(false);
-                  setSaveError(null);
-                }}
-              >
-                Avbryt
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
     </div>
   );
 }
