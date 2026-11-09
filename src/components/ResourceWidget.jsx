@@ -182,7 +182,7 @@ export default function ResourceWidget({ currentUser }) {
       </div>
 
       {activeMachine && (
-        <div className="modal" onClick={() => setActiveMachine(null)}>
+        <div className="modal-overlay" onClick={() => setActiveMachine(null)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <h4 style={{ color: "var(--header-text)" }}>Välj operatör – {activeMachine}</h4>
 
