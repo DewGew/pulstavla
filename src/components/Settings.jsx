@@ -9,6 +9,7 @@ const YEAR_LABEL = (year - 2) + "/" + (year - 1)
 
 export default function Settings() {
 	const [settings, setSettings] = useState(null);
+	const [settingsError, setSettingsError] = useState("");
 
 	const [company, setCompany] = useState("");
 	const [address, setAddress] = useState("");
@@ -90,7 +91,10 @@ export default function Settings() {
     apiFetch(`/settings`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      })
       .then(data => {
         setSettings(data);
         setCompany(data.company || "");
@@ -108,6 +112,10 @@ export default function Settings() {
         setMachineGroups(data.machines?.groups || {});
 		setChecklists(data.checklists || {});
 		setSelectedGroup(Object.keys(data.machines?.groups || {})[0] || "");
+      })
+      .catch(err => {
+        console.error("Kunde inte hämta inställningar:", err);
+        setSettingsError("Kunde inte hämta inställningar. Kontrollera anslutningen och försök igen.");
       });
   }, []);
 	
@@ -194,7 +202,9 @@ export default function Settings() {
       setSaving(false);
     }
   }
-  if (!settings) return <p>Laddar inställningar...</p>;
+  if (!settings) {
+    return <p role="status">{settingsError || "Laddar inställningar..."}</p>;
+  }
 
   return (
     <div className="settings-box">
