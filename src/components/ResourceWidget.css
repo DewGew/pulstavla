@@ -1,6 +1,6 @@
 .resource-list {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, 1fr); /* två kolumner på desktop */
   gap: 8px;
 }
 
@@ -67,9 +67,4 @@
 	.resource-item {
 		font-size: 1.5rem;
 	}
-}
-
-/* Behåll tidigare kompakt resursvisning på stora Android-TV-skärmar. */
-.app.android-large-screen .resource-item {
-  font-size: 0.75em;
 }
