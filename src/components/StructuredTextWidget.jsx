@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { apiFetch } from "../api";
 import { API_URL } from "../config";
 import { socket, connectSocket } from "../socket";
 import "./EditableTextWidget.css";
@@ -22,7 +23,7 @@ export default function StructuredTextWidget({
 
   /* ---------------- FETCH / CREATE ---------------- */
   const loadWidget = () => {
-    fetch(`${API_URL}/structured-widgets/${textwidgetid}`, {
+    apiFetch(`/structured-widgets/${textwidgetid}`, {
       headers: localStorage.getItem("token")
         ? { Authorization: `Bearer ${localStorage.getItem("token")}` }
         : {},
@@ -50,7 +51,7 @@ export default function StructuredTextWidget({
         if (!token) return;
 
         try {
-          const res = await fetch(`${API_URL}/structured-widgets`, {
+          const res = await apiFetch(`/structured-widgets`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
