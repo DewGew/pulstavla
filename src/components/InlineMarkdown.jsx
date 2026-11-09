@@ -1,12 +1,11 @@
-const LINK_PATTERN = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
-
 export default function InlineMarkdown({ text = "" }) {
   const content = String(text ?? "");
   const parts = [];
   let lastIndex = 0;
   let match;
+  const linkPattern = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
 
-  while ((match = LINK_PATTERN.exec(content)) !== null) {
+  while ((match = linkPattern.exec(content)) !== null) {
     const [markdown, label, rawUrl] = match;
 
     if (match.index > lastIndex) {
