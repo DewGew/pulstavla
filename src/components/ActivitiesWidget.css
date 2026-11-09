@@ -44,8 +44,8 @@
   color: #2b8a3e;
 }
 
-@media screen and (min-width: 3840px) {
-	.stat span {
-		font-size: 36px;
-	}
+@media (min-width: 2560px) {
+  .stat span {
+    font-size: clamp(1.4rem, 0.65vw, 2rem);
+  }
 }
