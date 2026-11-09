@@ -15,8 +15,6 @@ export default function Settings() {
 	const [address, setAddress] = useState("");
 	const [email, setEmail] = useState("");
 	
-	const [apiUrl, setApiUrl] = useState("");
-	const [wsUrl, setWsUrl] = useState("");
 	const [interval, setIntervalValue] = useState(10000);
 	const [lat, setLat] = useState(56.1612);
 	const [lon, setLon] = useState(15.5869);
@@ -100,8 +98,6 @@ export default function Settings() {
         setCompany(data.company || "");
 		setAddress(data.address || "");
 		setEmail(data.email || "");
-        setApiUrl(data.system?.apiUrl || "");
-        setWsUrl(data.system?.wsUrl || "");
 		setIntervalValue(data.system?.interval || 10000);
 		setLat(data.system?.lat || 56.1612);
 		setLon(data.system?.lon || 15.5869);
@@ -172,7 +168,7 @@ export default function Settings() {
       const res = await apiFetch("/settings/system", {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-        body: JSON.stringify({ value: { apiUrl, wsUrl, interval, lat, lon, qual, qual2, yearLabel } }),
+        body: JSON.stringify({ value: { interval, lat, lon, qual, qual2, yearLabel } }),
       });
       if (!res.ok) throw new Error("HTTP " + res.status);
       setMessage("Systeminställningar sparade");
@@ -315,36 +311,7 @@ export default function Settings() {
 					<h3>System</h3>
 					<div style={{borderTop: '1px dashed var(--panel-border, #e5e7eb)', marginBottom: 10}}></div>
 
-					{canEdit && (
-					/* Denna Inställning fungerar inte annu */
-						<label>
-							API URL
-							<input
-								className="settings-input"
-								value={apiUrl}
-								onChange={e => setApiUrl(e.target.value)}
-							/>
-							<small style={{ display: "block", opacity: 0.7, marginBottom: 4 }}>
-								Adress till pulstavlan 
-							</small>
-						</label>
-					)}
-					{canEdit && (
-					/* Denna Inställning fungerar inte annu */
-						<label>
-							WebSocket URL
-							<input
-								className="settings-input"
-								placeholder="t.ex wss://192.168.1.100:123"
-								value={wsUrl}
-								onChange={e => setWsUrl(e.target.value)}
-							/>
-							<small style={{ display: "block", opacity: 0.7, marginBottom: 4 }}>
-								Adress för live uppdateringar.
-							</small>
-						</label>
-					)}
-					
+
 					<label>
 						Widget-rotationsintervall (ms)
 						<input
