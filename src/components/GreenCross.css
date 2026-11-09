@@ -4,6 +4,8 @@
   background: var(--panel);
   border-radius: var(--card-radius);
   box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
 }
 
 /* ---------------- CONTROLS (månad/år) ---------------- */
@@ -27,7 +29,9 @@
 /* ---------------- ROWS ---------------- */
 .gc-row {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 6px;
   justify-content: center;
   margin-bottom: 6px;
@@ -66,7 +70,7 @@
 }
 
 .gc-empty {
-  width: 60px;
+  width: 100%;
   height: 50px;
   background: transparent;
 }
@@ -182,7 +186,7 @@
   /* Celler */
   .gc-cell,
   .gc-empty {
-    width: 35px;
+    width: 100%;
     height: 35px;
     font-size: 0.75rem;
   }
