@@ -328,7 +328,7 @@ export default function MachineDocuments() {
          ========================= */}
       {modalDoc && (
         <div
-          className="modal"
+          className="modal-overlay"
           onClick={closeModal}
         >
           <div
@@ -366,7 +366,7 @@ export default function MachineDocuments() {
          ========================= */}
       {uploadModal && (
         <div
-          className="modal"
+          className="modal-overlay"
           onClick={closeUploadModal}
         >
           <div
