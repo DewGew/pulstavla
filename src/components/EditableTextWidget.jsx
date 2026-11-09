@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { apiFetch } from "../api";
 import { API_URL } from "../config";
 import { socket, connectSocket } from "../socket";
 import "./EditableTextWidget.css";
@@ -36,7 +37,7 @@ export default function EditableTextWidget({
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
     try {
-      const res = await fetch(`${API_URL}/widgets/${textwidgetid}`, { headers });
+      const res = await apiFetch(`/widgets/${textwidgetid}`, { headers });
 
       if (res.ok) {
         const data = await res.json();
@@ -49,7 +50,7 @@ export default function EditableTextWidget({
 
       // Widget not found — auto-create it
       if (res.status === 404) {
-        const createRes = await fetch(`${API_URL}/widgets`, {
+        const createRes = await apiFetch(`/widgets`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -118,7 +119,7 @@ export default function EditableTextWidget({
 
       const token = getToken();
 
-      const res = await fetch(`${API_URL}/widgets/${textwidgetid}`, {
+      const res = await apiFetch(`/widgets/${textwidgetid}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
