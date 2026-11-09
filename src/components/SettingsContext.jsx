@@ -3,6 +3,7 @@ import { API_URL } from "../config";
 import { io } from "socket.io-client";
 import { WS_URL } from "../config";
 import { createApi } from "../api";
+import { socket, connectSocket } from "../socket";
 
 const SettingsContext = createContext(null);
 
@@ -49,7 +50,7 @@ export function SettingsProvider({ children }) {
 
   useEffect(() => {
     function connectSocket() {
-      if (localStorage.getItem("token") && !socket.connected) socket.connect();
+      connectSocket();
     }
 
     function onSettingsUpdated({ key, value }) {
