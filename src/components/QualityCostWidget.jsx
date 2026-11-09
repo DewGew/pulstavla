@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { apiFetch } from "../api";
 import { API_URL } from "../config";
 import { socket, connectSocket } from "../socket";
 import "./QualityCostWidget.css";
@@ -32,12 +33,12 @@ export default function QualityCostWidget({
     }
 
     try {
-      const res = await fetch(`${API_URL}/structured-widgets/${widgetId}`, {
+      const res = await apiFetch(`/structured-widgets/${widgetId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (res.status === 404) {
-        const createRes = await fetch(`${API_URL}/structured-widgets`, {
+        const createRes = await apiFetch(`/structured-widgets`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -119,7 +120,7 @@ export default function QualityCostWidget({
     setError("");
 
     try {
-      const res = await fetch(`${API_URL}/structured-widgets/${widgetId}`, {
+      const res = await apiFetch(`/structured-widgets/${widgetId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
