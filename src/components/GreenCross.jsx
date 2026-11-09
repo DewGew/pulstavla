@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { apiFetch } from "../api";
 import "./GreenCross.css";
-import { API_URL } from "../config";
 import { socket } from "../socket";
 
 const STATES = ["default", "green", "yellow", "red"];
@@ -11,7 +10,6 @@ const MONTHS = [
   "Juli","Augusti","September","Oktober","November","December"
 ];
 const LAYOUT = [3,3,7,7,7,3,3];
-const GREEN_URL = `${API_URL}/greenCross`;
 
 export default function GreenCross({ crossId, green = "Green", yellow = "Yellow", red = "Red", url }) {
   const today = new Date();
@@ -53,7 +51,7 @@ export default function GreenCross({ crossId, green = "Green", yellow = "Yellow"
     setLoading(true);
 
     // FIX: auth header added to green cross fetch
-    fetch(`${GREEN_URL}/${crossId}/${year}/${month}`, {
+    apiFetch(`/greenCross/${crossId}/${year}/${month}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
       .then(res => res.json())
@@ -157,7 +155,7 @@ export default function GreenCross({ crossId, green = "Green", yellow = "Yellow"
 
       // FIX: fetch outside setState, using the computed `updated` array
       // captured in this closure — safe because we're not in the updater
-      fetch(GREEN_URL, {
+      apiFetch(`/greenCross`, {
         method: "POST",
         headers: authHeaders,
         body: JSON.stringify({ crossId, year, month, cells: updated }),
