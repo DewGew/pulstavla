@@ -1,5 +1,7 @@
+import packageJson from "../package.json";
+
 const DEV = process.env.NODE_ENV === "development";
-export const VERSION = "2.7.2"
+export const VERSION = packageJson.version;
 export const PORT = DEV
 	? 5000
 	: 3000;
