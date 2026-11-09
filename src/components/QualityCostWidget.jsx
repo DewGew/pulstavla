@@ -1,11 +1,8 @@
 import { useState, useEffect } from "react";
-import { io } from "socket.io-client";
-import { API_URL, WS_URL } from "../config";
+import { API_URL } from "../config";
+import { socket, connectSocket } from "../socket";
 import "./QualityCostWidget.css";
 
-const socket = io(WS_URL, { transports: ["websocket"], 
-  auth: (cb) => cb({ token: localStorage.getItem("token") }),
-});
 
 export default function QualityCostWidget({
   widgetId = "quality-costs",
@@ -74,7 +71,7 @@ export default function QualityCostWidget({
       }
     };
 
-    if (!socket.connected) socket.connect();
+    connectSocket();
     socket.on("structuredWidgetUpdated", handler);
     return () => socket.off("structuredWidgetUpdated", handler);
   }, [widgetId]);
