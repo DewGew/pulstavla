@@ -213,16 +213,24 @@ export default function App() {
       );
 
       if (payload.exp) {
-        const expiresInMs = payload.exp * 1000 - Date.now();
-        if (expiresInMs <= 0) {
-          console.warn("Token expired");
-          clearSession();
-        } else {
-          expiryTimer = window.setTimeout(() => {
+        const checkExpiry = () => {
+          const expiresInMs = payload.exp * 1000 - Date.now();
+
+          if (expiresInMs <= 0) {
             console.warn("Token expired");
             clearSession();
-          }, expiresInMs);
-        }
+            return;
+          }
+
+          // setTimeout har en maximal säker fördröjning på cirka 24,8 dagar.
+          // Kontrollera därför igen efter högst en dag tills token går ut.
+          expiryTimer = window.setTimeout(
+            checkExpiry,
+            Math.min(expiresInMs, 24 * 60 * 60 * 1000)
+          );
+        };
+
+        checkExpiry();
       }
     } catch (err) {
       console.error("Invalid token:", err);
