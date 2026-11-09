@@ -1,10 +1,18 @@
+.resource-widget {
+  width: 100%;
+  min-width: 0;
+}
+
 .resource-list {
   display: grid;
-  grid-template-columns: repeat(4, 1fr); /* två kolumner på desktop */
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
 
 .resource-item {
+  min-width: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
