@@ -27,13 +27,13 @@ npm --version
 
 ## Installation på Raspberry Pi
 
-Exemplen nedan använder katalogen `/home/pi/pulstavla` och grenen `development`. Anpassa sökväg, användare, IP-adress och gren om din installation använder andra värden.
+Exemplen nedan använder katalogen `/home/pi/pulstest` och grenen `development`. Anpassa sökväg, användare, IP-adress och gren om din installation använder andra värden.
 
 ### 1. Hämta koden och installera beroenden
 
 ```bash
-git clone --branch development https://github.com/DewGew/pulstavla.git
-cd pulstavla
+git clone --branch development https://github.com/DewGew/pulstavla.git /home/pi/pulstest
+cd /home/pi/pulstest
 npm ci
 ```
 
@@ -152,8 +152,8 @@ After=network.target
 [Service]
 Type=simple
 User=pi
-WorkingDirectory=/home/pi/pulstavla
-EnvironmentFile=/home/pi/pulstavla.env
+WorkingDirectory=/home/pi/pulstest
+EnvironmentFile=/home/pi/pulstest.env
 ExecStart=/usr/bin/npm run server
 Restart=always
 RestartSec=5
@@ -195,7 +195,7 @@ Gör en säkerhetskopia innan uppdatering. Säkerhetskopiera minst `db/`, `uploa
 Gå till projektkatalogen och kontrollera först lokala ändringar:
 
 ```bash
-cd /home/pi/pulstavla
+cd /home/pi/pulstest
 git status --short
 ```
 
