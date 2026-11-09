@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { API_URL, WS_URL } from "../config";
-import { io } from "socket.io-client";
+import { API_URL } from "../config";
+import { socket, connectSocket } from "../socket";
 import "./OrderImport.css";
 
 /* ---------------- WEEK RANGE HELPER ---------------- */
@@ -83,13 +83,8 @@ export default function ProductionOrderImport() {
   useEffect(() => {
     if (!token) return;
 
-    const socket = io(WS_URL, {
-      transports: ["websocket"],
-      auth: { token },
-    });
-
+    
     socket.on("productionOrdersUpdated", fetchOrders);
-    return () => socket.disconnect();
   }, [token, fetchOrders]);
 
   /* ---------------- UPLOAD ---------------- */
