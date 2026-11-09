@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { apiFetch } from "../api";
 import { API_URL } from "../config";
 import { socket } from "../socket";
@@ -367,7 +368,7 @@ export default function OrderImport() {
             ))}
           </tbody>
         </table>
-		{selectedOrder && (
+		{selectedOrder && createPortal(
 		  <div className="modal-overlay" onClick={() => setSelectedOrder(null)}>
 			<div className="modal-content" onClick={(e) => e.stopPropagation()}>
 			  <h3>Order {selectedOrder.Ordernr}</h3>
@@ -385,7 +386,8 @@ export default function OrderImport() {
 			  </table>
 			  <button className="btn-primary" onClick={() => setSelectedOrder(null)}>Stäng</button>
 			</div>
-		  </div>
+		  </div>,
+		  document.body
 		)}
       </div>
     </div>
