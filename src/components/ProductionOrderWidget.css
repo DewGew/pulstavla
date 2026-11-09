@@ -39,10 +39,9 @@
 	margin-top: 10px;
 }
 
-@media (min-width: 2560px) {
-  .plan-resource-row,
-  .plan-total {
-    font-size: clamp(1rem, 0.45vw, 1.5rem);
-    line-height: 1.4;
-  }
+@media screen and (min-width: 3840px) {
+	.plan-resource-row,
+	.plan-total	{
+	  font-size: 1.9rem;
+	}		
 }
