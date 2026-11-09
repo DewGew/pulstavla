@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { API_URL } from "../config";
-import { socket, connectSocket } from "../socket";
+import { socket } from "../socket";
 import "./DrawingWidget.css";
 
 const COLORS = ["#111827", "#dc2626", "#2563eb", "#16a34a", "#f59e0b"];
