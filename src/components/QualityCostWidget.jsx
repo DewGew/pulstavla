@@ -20,37 +20,53 @@ export default function QualityCostWidget({
   const [isSaving, setIsSaving] = useState(false);
   const [updatedBy, setUpdatedBy] = useState("");
   const [updatedAt, setUpdatedAt] = useState(null);
+  const [error, setError] = useState("");
 
   /* -------- FETCH -------- */
 
-  const loadWidget = () => {
-    fetch(`${API_URL}/structured-widgets/${widgetId}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("saknas");
-        return res.json();
-      })
-      .then((data) => {
-        setTitle(data.title || initialTitle);
-        setRows(data.sections || []);
-        setUpdatedBy(data.updatedBy || "");
-        setUpdatedAt(data.updatedAt || null);
-      })
-      .catch(() => {
-        fetch(`${API_URL}/structured-widgets`, {
+  const loadWidget = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("Du behöver logga in för att läsa widgeten.");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/structured-widgets/${widgetId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.status === 404) {
+        const createRes = await fetch(`${API_URL}/structured-widgets`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify({
             widgetId,
             title: initialTitle,
             sections: initialRows,
           }),
-        })
-          .then((res) => res.json())
-          .then((doc) => {
-            setTitle(doc.title);
-            setRows(doc.sections || []);
-          });
-      });
+        });
+        if (!createRes.ok) throw new Error("Kunde inte skapa widgeten.");
+        const doc = await createRes.json();
+        setTitle(doc.title || initialTitle);
+        setRows(Array.isArray(doc.sections) ? doc.sections : []);
+        return;
+      }
+
+      if (!res.ok) throw new Error(`Kunde inte läsa widgeten (HTTP ${res.status}).`);
+      const data = await res.json();
+      setTitle(data.title || initialTitle);
+      setRows(Array.isArray(data.sections) ? data.sections : []);
+      setUpdatedBy(data.updatedBy || "");
+      setUpdatedAt(data.updatedAt || null);
+      setError("");
+    } catch (err) {
+      setError(err.message || "Ett fel uppstod när widgeten skulle läsas.");
+      console.error("Kunde inte läsa kvalitetsbristkostnad:", err);
+    }
   };
 
   useEffect(loadWidget, [widgetId]);
@@ -92,23 +108,35 @@ export default function QualityCostWidget({
 
   const handleSave = async () => {
     const token = localStorage.getItem("token");
+    if (!token) {
+      setError("Du behöver logga in igen innan du kan spara.");
+      return;
+    }
 
     setIsSaving(true);
+    setError("");
 
-    await fetch(`${API_URL}/structured-widgets/${widgetId}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        title,
-        sections: rows,
-      }),
-    });
+    try {
+      const res = await fetch(`${API_URL}/structured-widgets/${widgetId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ title, sections: rows }),
+      });
 
-    setIsSaving(false);
-    setIsEditing(false);
+      if (res.status === 401) throw new Error("Din inloggning har gått ut. Logga in igen.");
+      if (res.status === 403) throw new Error("Du saknar behörighet att redigera widgeten.");
+      if (!res.ok) throw new Error(`Kunde inte spara ändringarna (HTTP ${res.status}).`);
+
+      setIsEditing(false);
+    } catch (err) {
+      setError(err.message || "Ett fel uppstod när ändringarna skulle sparas.");
+      console.error("Kunde inte spara kvalitetsbristkostnad:", err);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const formatCost = (value) => {
@@ -284,11 +312,13 @@ export default function QualityCostWidget({
             + Lägg till månad/kvartal
           </button>
 
+          {error && <p className="error" role="alert">{error}</p>}
+
           <div className="actions">
             <button
               className="btn-danger"
 			  style={{ marginTop: "7px" }}
-              onClick={() => setIsEditing(false)}
+              onClick={() => { setIsEditing(false); setError(""); loadWidget(); }}
             >
               Avbryt
             </button>
