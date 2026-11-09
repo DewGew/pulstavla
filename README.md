@@ -152,7 +152,7 @@ Ta först en säkerhetskopia av databaser och uppladdade filer. Första gången 
 Om du har anpassat den gamla `src/config.js`, kör följande från projektkatalogen **innan första pull**:
 
 ```bash
-cp src/config.js src/config.local.js
+cp -n src/config.js src/config.local.js
 git restore src/config.js
 ```
 
