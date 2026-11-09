@@ -435,9 +435,9 @@ export default function AdminUsers({ currentUser, hideTitle = false, flat = fals
                 Avbryt
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
