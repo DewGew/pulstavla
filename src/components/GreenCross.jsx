@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import "./GreenCross.css";
 import { API_URL } from "../config";
-import { socket, connectSocket } from "../socket";
+import { socket } from "../socket";
 
 const STATES = ["default", "green", "yellow", "red"];
 const MONTHS = [
