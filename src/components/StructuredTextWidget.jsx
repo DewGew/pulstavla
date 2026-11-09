@@ -1,11 +1,8 @@
 import { useState, useEffect } from "react";
-import { io } from "socket.io-client";
-import { API_URL, WS_URL } from "../config";
+import { API_URL } from "../config";
+import { socket, connectSocket } from "../socket";
 import "./EditableTextWidget.css";
 
-const socket = io(WS_URL, { transports: ["websocket"], 
-  auth: (cb) => cb({ token: localStorage.getItem("token") }),
-});
 
 export default function StructuredTextWidget({
   textwidgetid,
@@ -92,7 +89,7 @@ export default function StructuredTextWidget({
 				setUpdatedAt(payload.updatedAt || null);
 			}
 		};
-    if (!socket.connected) socket.connect();
+    connectSocket();
     socket.on("structuredWidgetUpdated", handler);
     return () => socket.off("structuredWidgetUpdated", handler);
   }, [textwidgetid]);

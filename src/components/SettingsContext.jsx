@@ -1,14 +1,10 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { API_URL } from "../config";
-import { io } from "socket.io-client";
-import { WS_URL } from "../config";
 import { createApi } from "../api";
+import { socket, connectSocket } from "../socket";
 
 const SettingsContext = createContext(null);
 
-const socket = io(WS_URL, { transports: ["websocket"], 
-  auth: (cb) => cb({ token: localStorage.getItem("token") }),
-});
 
 export function SettingsProvider({ children }) {
   const [settings, setSettings] = useState(null);
@@ -48,10 +44,6 @@ export function SettingsProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    function connectSocket() {
-      if (localStorage.getItem("token") && !socket.connected) socket.connect();
-    }
-
     function onSettingsUpdated({ key, value }) {
       setSettings(prev => ({
         ...prev,

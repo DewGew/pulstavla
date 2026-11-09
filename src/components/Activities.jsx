@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
-import { API_URL, WS_URL } from "../config";
+import { API_URL } from "../config";
+import { socket } from "../socket";
 import { useSettings, addPDFHeader, addPDFFooter  } from "./SettingsContext";
-import { io } from "socket.io-client";
 import "./Activities.css";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -122,13 +122,9 @@ export default function Activities() {
   useEffect(() => {
     if (!token) return;
 
-    const socket = io(WS_URL, {
-      transports: ["websocket"],
-      auth: { token },
-    });
-
+    
     socket.on("activitiesUpdated", loadTasks);
-    return () => socket.disconnect();
+    return () => socket.off("activitiesUpdated", loadTasks);
   }, [token, loadTasks]);
 
   /* ---------------- INITIAL LOAD ---------------- */

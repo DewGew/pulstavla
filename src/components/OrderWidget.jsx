@@ -1,11 +1,8 @@
 import { useEffect, useState, useMemo } from "react";
-import { io } from "socket.io-client";
-import { API_URL, WS_URL } from "../config";
+import { API_URL } from "../config";
+import { socket, connectSocket } from "../socket";
 import "./OrderWidget.css";
 
-const socket = io(WS_URL, { transports: ["websocket"], 
-  auth: (cb) => cb({ token: localStorage.getItem("token") }),
-});
 
 export default function OrderWidget() {
   const [orders, setOrders] = useState([]);
@@ -44,14 +41,14 @@ export default function OrderWidget() {
     };
 
     fetchOrders();
-    if (!socket.connected) socket.connect();
+    connectSocket();
     // Servern skickar ordersUpdated utan payload. Hämta aktuell lista
     // från API:t i stället för att spara undefined i orders-state.
     socket.on("ordersUpdated", fetchOrders);
 
     return () => {
       socket.off("ordersUpdated", fetchOrders);
-      socket.disconnect();
+
     };
   }, []);
 

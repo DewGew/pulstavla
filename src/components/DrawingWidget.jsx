@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { io } from "socket.io-client";
-import { API_URL, WS_URL } from "../config";
+import { API_URL } from "../config";
+import { socket } from "../socket";
 import "./DrawingWidget.css";
 
 const COLORS = ["#111827", "#dc2626", "#2563eb", "#16a34a", "#f59e0b"];
@@ -62,10 +62,7 @@ export default function DrawingWidget({
 
   /* ---------------- WS ---------------- */
   useEffect(() => {
-    const socket = io(WS_URL, { transports: ["websocket"], 
-  auth: (cb) => cb({ token: localStorage.getItem("token") }),
-});
-
+    
     const handler = (payload) => {
       if (payload.drawingId === drawingId) {
         setStrokes(payload.strokes || []);
@@ -78,7 +75,7 @@ export default function DrawingWidget({
     socket.on("drawingUpdated", handler);
     return () => {
       socket.off("drawingUpdated", handler);
-      socket.disconnect();
+
     };
   }, [drawingId]);
 

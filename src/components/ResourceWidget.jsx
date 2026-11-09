@@ -1,12 +1,9 @@
 import { useEffect, useState } from "react";
-import { io } from "socket.io-client";
-import { API_URL, WS_URL } from "../config";
+import { API_URL } from "../config";
+import { socket, connectSocket } from "../socket";
 
 import "./ResourceWidget.css";
 
-const socket = io(WS_URL, { transports: ["websocket"], 
-  auth: (cb) => cb({ token: localStorage.getItem("token") }),
-});
 
 export default function ResourceWidget({ currentUser }) {
   const [status, setStatus] = useState({}); // { machineName: {status, operator} }
@@ -87,7 +84,7 @@ export default function ResourceWidget({ currentUser }) {
 
   /* ---------------- WebSocket uppdatering ---------------- */
   useEffect(() => {
-    if (!socket.connected) socket.connect();
+    connectSocket();
     socket.on("presenceUpdated", ({ username, status: s, operator }) => {
       setStatus((prev) => ({
         ...prev,

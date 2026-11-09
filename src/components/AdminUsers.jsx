@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { io } from "socket.io-client";
-import { API_URL, WS_URL } from "../config";
+import { API_URL } from "../config";
+import { socket } from "../socket";
 import "./AdminUsers.css";
 
 export default function AdminUsers({ currentUser, hideTitle = false, flat = false }) {
@@ -85,8 +85,6 @@ export default function AdminUsers({ currentUser, hideTitle = false, flat = fals
   // and properly cleaned up on unmount. Named handler passed to both
   // socket.on and socket.off so only THIS listener is removed.
   useEffect(() => {
-    const socket = io(WS_URL, { transports: ["websocket"] });
-
     const handleOnlineUpdated = ({ username, online }) => {
       setPresence((prev) => ({
         ...prev,
@@ -99,7 +97,6 @@ export default function AdminUsers({ currentUser, hideTitle = false, flat = fals
     // FIX: pass the named handler so only this listener is removed
     return () => {
       socket.off("onlineUpdated", handleOnlineUpdated);
-      socket.disconnect();
     };
   }, []);
 

@@ -1,11 +1,8 @@
 import { useEffect, useState, useMemo } from "react";
-import { io } from "socket.io-client";
-import { API_URL, WS_URL } from "../config";
+import { API_URL } from "../config";
+import { socket, connectSocket } from "../socket";
 import "./ProductionOrderWidget.css";
 
-const socket = io(WS_URL, { transports: ["websocket"], 
-  auth: (cb) => cb({ token: localStorage.getItem("token") }),
-});
 
 export default function ProductionOrderImport() {
   const [orders, setOrders] = useState([]);
@@ -43,9 +40,9 @@ export default function ProductionOrderImport() {
 
   useEffect(() => {
     fetchOrders();
-    if (!socket.connected) socket.connect();
+    connectSocket();
     socket.on("productionOrdersUpdated", fetchOrders);
-    return () => socket.disconnect();
+    return () => socket.off("productionOrdersUpdated", fetchOrders);
   }, []);
 
   const stats = useMemo(() => {
