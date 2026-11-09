@@ -1,5 +1,5 @@
+import { apiFetch } from "../api";
 import { useEffect, useState } from "react";
-import { API_URL } from "../config";
 import { socket, connectSocket } from "../socket";
 
 import "./ResourceWidget.css";
@@ -16,7 +16,7 @@ export default function ResourceWidget({ currentUser }) {
 	const token = localStorage.getItem("token");
 
   useEffect(() => {
-    fetch(`${API_URL}/presence/users`, {
+    apiFetch(`/presence/users`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
       .then(res => {
@@ -31,7 +31,7 @@ export default function ResourceWidget({ currentUser }) {
 	useEffect(() => {
 		const loadMachines = async () => {
 			try {
-				const res = await fetch(`${API_URL}/settings`, {
+				const res = await apiFetch(`/settings`, {
 					headers: {
 						Authorization: `Bearer ${token}`,
 					},
@@ -59,7 +59,7 @@ export default function ResourceWidget({ currentUser }) {
 
 		const loadStatus = async () => {
 			try {
-				const res = await fetch(`${API_URL}/presence`, {
+				const res = await apiFetch(`/presence`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
 				const data = await res.json();
@@ -130,7 +130,7 @@ export default function ResourceWidget({ currentUser }) {
 		}));
 
 		try {
-		await fetch(`${API_URL}/presence`, {
+		await apiFetch(`/presence`, {
 			method: "POST",
 			headers: {
             "Content-Type": "application/json",
