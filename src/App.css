@@ -999,3 +999,27 @@ textarea:disabled {
   font: inherit;
   cursor: pointer;
 }
+
+
+/* Semantiska statusfärger – delas av GreenCross, Resource och Presence */
+:root {
+  --status-green-bg: #d6ffe0;
+  --status-green-text: #0f7a1a;
+  --status-green-border: #35c759;
+  --status-yellow-bg: #fff4cc;
+  --status-yellow-text: #7a5a00;
+  --status-yellow-border: #f5b700;
+  --status-red-bg: #ffe6e6;
+  --status-red-text: #b30000;
+  --status-red-border: #d93030;
+  --status-weekend: #c62828;
+}
+:root[data-theme="dark"] {
+  --status-green-bg: #1f3d2a;
+  --status-green-text: #8eff9b;
+  --status-yellow-bg: #3b2f12;
+  --status-yellow-text: #ffd966;
+  --status-red-bg: #3a1f1f;
+  --status-red-text: #ffb3b3;
+  --status-weekend: #ff8a8a;
+}
