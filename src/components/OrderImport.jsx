@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { API_URL } from "../config";
-import { socket, connectSocket } from "../socket";
+import { socket } from "../socket";
 import "./OrderImport.css";
 
 /* ---------------- WEEK RANGE HELPER ---------------- */
