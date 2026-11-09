@@ -118,26 +118,6 @@ export default function Profile({ user, setUser, setActiveTab }) {
   const [myTasks, setMyTasks] = useState([]);
   // Visa även klara aktiviteter från början; användaren kan välja att dölja dem.
   const [showDone, setShowDone] = useState(true);
-  const [users, setUsers] = useState([]);
-  const [selectedUser, setSelectedUser] = useState("");
-
-  useEffect(() => {
-    const loadUsers = async () => {
-      try {
-        const res = await fetch(`${API_URL}/users`);
-        const data = await res.json();
-
-        const validUsers = data.filter((u) => u.email && u.email !== "-");
-
-        setUsers(validUsers);
-      } catch {
-        console.error("Kunde inte hämta användare");
-      }
-    };
-
-    loadUsers();
-  }, []);
-
   /* ---------------- HÄMTA MINA AKTIVITETER ---------------- */
   useEffect(() => {
     const loadTasks = async () => {
@@ -230,16 +210,6 @@ export default function Profile({ user, setUser, setActiveTab }) {
     setLoading(false);
   };
 
-  const openTeamsChat = (emailAddr) => {
-    if (!emailAddr) return;
-
-    const link = `https://teams.microsoft.com/l/chat/0/0?users=${encodeURIComponent(
-      emailAddr
-    )}`;
-
-    window.open(link, "_blank");
-  };
-
   return (
     <div className="profile-box">
       <div
@@ -306,40 +276,6 @@ export default function Profile({ user, setUser, setActiveTab }) {
           {loading ? t.updating : t.updateButton}
         </button>
       </div>
-
-      {/* 📨 SKICKA MEDDELANDE – EGEN RUTA */}
-      {hasValidEmail && (
-        <div className="profile-section">
-          <h3>{t.sendMessageTitle}</h3>
-
-          <select
-            className="profile-input"
-            value={selectedUser}
-            onChange={(e) => setSelectedUser(e.target.value)}
-          >
-            <option value="">{t.selectUser}</option>
-            {users.map((u) => (
-              <option key={u._id} value={u.email}>
-                {u.name} ({u.username})
-              </option>
-            ))}
-          </select>
-
-          <button
-            className="btn-primary"
-            disabled={!selectedUser}
-            onClick={() => openTeamsChat(selectedUser)}
-          >
-            {t.openTeams}
-          </button>
-        </div>
-      )}
-
-      {!hasValidEmail && (
-        <div className="profile-section">
-          <p className="empty">{t.noEmailWarning}</p>
-        </div>
-      )}
 
       {/* MINA AKTIVITETER */}
       <div className="profile-section">
