@@ -116,7 +116,8 @@ export default function Profile({ user, setUser, setActiveTab }) {
 
   // 🔥 Mina aktiviteter
   const [myTasks, setMyTasks] = useState([]);
-  const [showDone, setShowDone] = useState(false);
+  // Visa även klara aktiviteter från början; användaren kan välja att dölja dem.
+  const [showDone, setShowDone] = useState(true);
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState("");
 
@@ -137,28 +138,55 @@ export default function Profile({ user, setUser, setActiveTab }) {
     loadUsers();
   }, []);
 
-  /* ---------------- HÄMTA MINA UPPGIFTER ---------------- */
+  /* ---------------- HÄMTA MINA AKTIVITETER ---------------- */
   useEffect(() => {
     const loadTasks = async () => {
       try {
-        const res = await fetch(`${API_URL}/activities`);
+        const token = localStorage.getItem("token") || "";
+        const res = await fetch(`${API_URL}/activities`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
         const tasks = await res.json();
-        const userTasks = tasks.filter((t) => t.responsible === user.name);
+        // createdBy anger vem som skickade in aktiviteten. responsible är
+        // den som tilldelats ansvaret och används därför inte här.
+        const userTasks = Array.isArray(tasks)
+          ? tasks.filter((task) => task.createdBy === user.name)
+          : [];
+
         setMyTasks(userTasks);
-      } catch {
-        console.error("Kunde inte hämta aktiviteter");
+      } catch (err) {
+        console.error("Kunde inte hämta aktiviteter:", err);
+        setMyTasks([]);
       }
     };
 
-    loadTasks();
-  }, [user.username]);
+    if (user.name) loadTasks();
+    else setMyTasks([]);
+  }, [user.name]);
 
   useEffect(() => {
     setName(user.name || "");
     setEmail(user.email || "");
   }, [user]);
 
-  const visibleTasks = myTasks.filter((tsk) => (showDone ? true : !tsk.done));
+  const visibleTasks = myTasks
+    .filter((task) => (showDone ? true : !task.done))
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+  const formatCreatedAt = (createdAt) => {
+    if (!createdAt) return "";
+    const date = new Date(createdAt);
+    return Number.isNaN(date.getTime())
+      ? ""
+      : date.toLocaleDateString(lang === "sv" ? "sv-SE" : "en-GB");
+  };
   const hasValidEmail =
     user.email && user.email !== "-" && user.email.includes("@");
 
@@ -313,41 +341,51 @@ export default function Profile({ user, setUser, setActiveTab }) {
         </div>
       )}
 
-      {/* 🔥 LISTA MED MÖJLIGHET ATT VISA/DÖLJA KLARA */}
+      {/* MINA AKTIVITETER */}
       <div className="profile-section">
-        {myTasks.length > 0 && setActiveTab && (
-          <div className="my-task-list">
-            <h3>{t.myActivities}</h3>
+        <div className="my-task-list">
+          <h3>{t.myActivities}</h3>
 
-            <button
-              className="btn-primary"
-              onClick={() => setShowDone(!showDone)}
-              style={{ marginBottom: "10px" }}
-            >
-              {showDone ? t.hideDone : t.showDone}
-            </button>
+          <button
+            className="btn-primary"
+            onClick={() => setShowDone((prev) => !prev)}
+            style={{ marginBottom: "10px" }}
+          >
+            {showDone ? t.hideDone : t.showDone}
+          </button>
 
+          {visibleTasks.length > 0 ? (
             <ul className="task-ul-no-bullets">
               {visibleTasks.map((task) => (
                 <li key={task._id} className="my-task-item">
                   <strong>{task.title}</strong>
                   <div className="my-task-meta">
-                    <span>{task.category} </span>
-                    {task.deadline && <span>{task.deadline}</span>}
-                    {task.done && <span className="task-done-tag">{t.doneTag}</span>}
+                    <span>{task.category}</span>
+                    {formatCreatedAt(task.createdAt) && (
+                      <span>{formatCreatedAt(task.createdAt)}</span>
+                    )}
+                    {task.done && (
+                      <span className="task-done-tag">{t.doneTag}</span>
+                    )}
                   </div>
                 </li>
               ))}
             </ul>
+          ) : (
+            <p className="empty">{t.noActivities}</p>
+          )}
+
+          {setActiveTab && (
             <p style={{ marginBottom: "5px" }}>
-              <button className="btn-secondary" onClick={() => setActiveTab("activities")}>
+              <button
+                className="btn-secondary"
+                onClick={() => setActiveTab("activities")}
+              >
                 {t.goToActivities}
               </button>
             </p>
-
-            {visibleTasks.length === 0 && <p className="empty">{t.noActivities}</p>}
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {msg && (
