@@ -857,3 +857,14 @@ margin-bottom: 1rem;
     padding: 1rem;
   }
 }
+
+
+/* Android-TV: Chrome kan rapportera 3840 CSS-pixlar vid 50 % zoom.
+   Använd en mer kompakt dashboardmodell på stora Android-skärmar. */
+.app.android-large-screen .widget-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.app.android-large-screen .widget-top {
+  display: none;
+}
