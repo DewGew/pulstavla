@@ -1,11 +1,8 @@
 import { useEffect, useState } from "react";
-import { io } from "socket.io-client";
-import { API_URL, WS_URL } from "../config";
+import { API_URL } from "../config";
+import { socket, connectSocket } from "../socket";
 import "./PresenceWidget.css";
 
-const socket = io(WS_URL, { transports: ["websocket"], 
-  auth: (cb) => cb({ token: localStorage.getItem("token") }),
-});
 
 export default function PresenceWidget({ currentUser }) {
   const [users, setUsers] = useState([]);
@@ -41,7 +38,7 @@ export default function PresenceWidget({ currentUser }) {
 
   /* ---------------- WebSocket för realtidsuppdatering ---------------- */
   useEffect(() => {
-		if (!socket.connected) socket.connect();
+		connectSocket();
 		socket.on("presenceUpdated", ({ username, present }) => {
 			setPresence(prev => ({
 				...prev,
