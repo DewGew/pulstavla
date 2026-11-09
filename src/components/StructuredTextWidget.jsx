@@ -105,8 +105,8 @@ export default function StructuredTextWidget({
 
 			const token = localStorage.getItem("token");
 
-			const res = await fetch(
-				`${API_URL}/structured-widgets/${textwidgetid}`,
+			const res = await apiFetch(
+				`/structured-widgets/${textwidgetid}`,
 				{
 					method: "PUT",
 					headers: {
