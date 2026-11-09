@@ -68,3 +68,8 @@
 		font-size: 1.5rem;
 	}
 }
+
+/* Behåll tidigare kompakt resursvisning på stora Android-TV-skärmar. */
+.app.android-large-screen .resource-item {
+  font-size: 0.75em;
+}
