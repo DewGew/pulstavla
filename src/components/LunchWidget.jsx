@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { apiFetch } from "../api";
 import { API_URL } from "../config";
 import "./LunchWidget.css";
 
@@ -19,7 +20,7 @@ export default function LunchWidget({footerOrder, price}) {
   const loadMenu = useCallback(async () => {
     setError(null);
     try {
-      const res = await fetch(`${API_URL}/lunch`);
+      const res = await apiFetch(`/lunch`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setImageUrl(`${API_URL}${data.imageUrl}?v=${data.week}-${data.year}`);
