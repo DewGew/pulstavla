@@ -18,31 +18,31 @@
 
 .stat.total {
 	border-left: 6px solid var(--text);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--panel-shadow);
 }
 
 .stat.red {
-  border-left: 6px solid #c92a2a;
+  border-left: 6px solid var(--status-red-border);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  color: #c92a2a;
+  color: var(--status-red-text);
 }
 
 .stat.yellow {
-	border-left: 6px solid #e67700;
+	border-left: 6px solid var(--status-yellow-border);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  color: #e67700;
+  color: var(--status-yellow-text);
 }
 
 .stat.green {
-	border-left: 6px solid #2b8a3e;
+	border-left: 6px solid var(--status-green-border);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  color: #2b8a3e;
+  color: var(--status-green-text);
 }
 
 .stat.blue {
-	border-left: 6px solid #5353ec;
+	border-left: 6px solid var(--accent);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  color: #5353ec;
+  color: var(--accent);
 }
 
 .clickable {
