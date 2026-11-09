@@ -184,18 +184,26 @@ export default function App() {
   }, [user]);
 
   /* ------------------- TOKEN EXPIRY CHECK ------------------- */
-  // FIX: logout is now stable (useCallback), so it's safe in the dep array.
+  // Kör även efter inloggning så att den nya sessionens token kontrolleras.
   useEffect(() => {
+    if (!user) return;
+
     const token = localStorage.getItem("token");
-    if (!token) return;
+    if (!token) {
+      clearSession();
+      return;
+    }
 
     try {
       const base64 = token.split(".")[1];
-      if (!base64) { logout(); return; }
+      if (!base64) throw new Error("Token saknar payload");
 
+      // JWT använder base64url, som behöver normaliseras före atob.
+      const normalized = base64.replace(/-/g, "+").replace(/_/g, "/");
+      const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
       const payload = JSON.parse(
         decodeURIComponent(
-          atob(base64)
+          atob(padded)
             .split("")
             .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
             .join("")
@@ -203,7 +211,7 @@ export default function App() {
       );
 
       const now = Math.floor(Date.now() / 1000);
-      if (payload.exp && payload.exp < now) {
+      if (payload.exp && payload.exp <= now) {
         console.warn("Token expired");
         clearSession();
       }
@@ -211,7 +219,7 @@ export default function App() {
       console.error("Invalid token:", err);
       clearSession();
     }
-  }, [clearSession]);
+  }, [clearSession, user]);
 
   /* ------------------- WIDGET STATE ------------------- */
   const [widget, setWidget] = useState(null);
