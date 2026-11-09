@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { API_URL } from "../config";
-import { socket, connectSocket } from "../socket";
+import { socket } from "../socket";
 import "./ActivitiesWidget.css";
 
 export default function ActivitiesWidget() {
