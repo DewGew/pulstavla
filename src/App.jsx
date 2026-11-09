@@ -111,7 +111,14 @@ export default function App() {
   /* ------------------- LOGIN ------------------- */
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem("user");
-    return saved ? JSON.parse(saved) : null;
+    if (!saved) return null;
+    try {
+      return JSON.parse(saved);
+    } catch {
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+      return null;
+    }
   });
 
   const handleLogin = (loggedInUser) => {
@@ -121,33 +128,38 @@ export default function App() {
     connectSocket();
   };
 
-  // FIX: useCallback so logout has a stable reference across renders,
-  // which prevents stale-closure bugs in useEffects that depend on it.
-  const logout = useCallback(async () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (token) {
-        await fetch(`${API_URL}/logout`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-      }
-    } catch (err) {
-      console.warn("Logout API misslyckades:", err.message);
-    }
-
+  // Rensa alltid den lokala sessionen direkt. Utloggning ska fungera
+  // även om servern är nere eller token redan har gått ut.
+  const clearSession = useCallback(() => {
     setActiveTab("overview");
     setUser(null);
-	setOpenMenu(false)
+    setOpenMenu(false);
     localStorage.removeItem("user");
     localStorage.removeItem("token");
     disconnectSocket();
     window.dispatchEvent(new Event("authChanged"));
-  }, []); // no deps — only uses setters and fetch
+  }, []);
+
+  const logout = useCallback(() => {
+    const token = localStorage.getItem("token");
+    clearSession();
+
+    // Serverns logout är ett extra försök; gränssnittet väntar inte på nätverket.
+    if (token) {
+      fetch(`${API_URL}/logout`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch((err) => console.warn("Logout API misslyckades:", err.message));
+    }
+  }, [clearSession]);
 
   /* ------------------- API ------------------- */
-  // FIX: memoize apiFetch so it isn't recreated on every render.
-  const apiFetch = useMemo(() => createApi(logout), [logout]);
+  const apiFetch = useMemo(() => createApi(clearSession), [clearSession]);
+
+  useEffect(() => {
+    window.addEventListener("authExpired", clearSession);
+    return () => window.removeEventListener("authExpired", clearSession);
+  }, [clearSession]);
 
   /* ------------------- TABS ------------------- */
   const [activeTab, setActiveTab] = useState("overview");
@@ -193,13 +205,13 @@ export default function App() {
       const now = Math.floor(Date.now() / 1000);
       if (payload.exp && payload.exp < now) {
         console.warn("Token expired");
-        logout();
+        clearSession();
       }
     } catch (err) {
       console.error("Invalid token:", err);
-      logout();
+      clearSession();
     }
-  }, [logout]);
+  }, [clearSession]);
 
   /* ------------------- WIDGET STATE ------------------- */
   const [widget, setWidget] = useState(null);
