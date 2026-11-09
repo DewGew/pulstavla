@@ -90,7 +90,7 @@
 .clock-visitor .edit-btn {
   background: none;
   border: none;
-  color: #2563eb;
+  color: var(--accent);
   font-size: 13px;
   padding: 0;
 }
