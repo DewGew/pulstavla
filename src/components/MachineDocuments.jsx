@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { apiFetch } from "../api";
 import "./MachineDocuments.css";
 import { API_URL } from "../config";
@@ -326,7 +327,7 @@ export default function MachineDocuments() {
       {/* =========================
           Förhandsvisningsmodal
          ========================= */}
-      {modalDoc && (
+      {modalDoc && createPortal(
         <div
           className="modal-overlay"
           onClick={closeModal}
@@ -358,13 +359,14 @@ export default function MachineDocuments() {
               <p>Förhandsvisning ej tillgänglig</p>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* =========================
           Uppladdningsmodal
          ========================= */}
-      {uploadModal && (
+      {uploadModal && createPortal(
         <div
           className="modal-overlay"
           onClick={closeUploadModal}
@@ -441,7 +443,8 @@ export default function MachineDocuments() {
 
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>
