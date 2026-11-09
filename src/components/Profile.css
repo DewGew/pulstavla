@@ -6,7 +6,7 @@
   width: 100%;
   max-width: 800px;
   margin: 0 auto;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  box-shadow: var(--panel-shadow);
 }
 
 .profile-box h2 {
@@ -48,7 +48,7 @@
 }
 
 .role-badge.admin {
-  background: #ffe0e0;
+  background: var(--status-red-bg);
   color: #a80000;
   border-left: 3px solid #ff4d4d;
 }
@@ -114,25 +114,15 @@
 }
 
 .profile-message.success {
-  background: #d9ffe3;
-  color: #117a26;
-  border-left: 4px solid #35c759;
+  background: var(--status-green-bg);
+  color: var(--status-green-text);
+  border-left: 4px solid var(--status-green-border);
 }
 
 .profile-message.error {
   background: #ffe0e0;
-  color: #b30000;
-  border-left: 4px solid #d93030;
-}
-
-:root[data-theme="dark"] .profile-message.success {
-  background: #1f3d2a;
-  color: #8eff9b;
-}
-
-:root[data-theme="dark"] .profile-message.error {
-  background: #3a1f1f;
-  color: #ffb3b3;
+  color: var(--status-red-text);
+  border-left: 4px solid var(--status-red-border);
 }
 
 :root[data-theme="dark"] .role-badge.admin {
