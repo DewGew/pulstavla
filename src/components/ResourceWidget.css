@@ -31,24 +31,21 @@
 }
 
 .resource-item.green {
-  background: #d6ffe0;
-  color: #0f7a1a;
-  border-left-color: #35c759;
+  background: var(--status-green-bg);
+  color: var(--status-green-text);
+  border-left-color: var(--status-green-border);
 }
 .resource-item.yellow {
-  background: #fff4cc;
-  color: #7a5a00;
-  border-left-color: #f5b700;
+  background: var(--status-yellow-bg);
+  color: var(--status-yellow-text);
+  border-left-color: var(--status-yellow-border);
 }
 .resource-item.red {
-  background: #ffe6e6;
-  color: #b30000;
-  border-left-color: #d93030;
+  background: var(--status-red-bg);
+  color: var(--status-red-text);
+  border-left-color: var(--status-red-border);
 }
 
-:root[data-theme="dark"] .resource-item.green { background: #1f3d2a; color: #8eff9b; border-left-color: #35c759; }
-:root[data-theme="dark"] .resource-item.yellow { background: #3b2f12; color: #ffd966; border-left-color: #f5b700; }
-:root[data-theme="dark"] .resource-item.red { background: #3a1f1f; color: #ffb3b3; border-left-color: #d93030; }
 
 @media (max-width: 768px) {
   .resource-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
