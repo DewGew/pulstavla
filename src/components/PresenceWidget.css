@@ -31,18 +31,16 @@
 }
 
 .presence-item.here {
-  background: #d6ffe0;
-  color: #0f7a1a;
-  border-left-color: #35c759;
+  background: var(--status-green-bg);
+  color: var(--status-green-text);
+  border-left-color: var(--status-green-border);
 }
 .presence-item.away {
-  background: #ffe6e6;
-  color: #b30000;
-  border-left-color: #d93030;
+  background: var(--status-red-bg);
+  color: var(--status-red-text);
+  border-left-color: var(--status-red-border);
 }
 
-:root[data-theme="dark"] .presence-item.here { background: #1f3d2a; color: #8eff9b; border-left-color: #35c759; }
-:root[data-theme="dark"] .presence-item.away { background: #3a1f1f; color: #ffb3b3; border-left-color: #d93030; }
 
 .presence-name { font-size: 0.9rem; font-weight: 600; }
 .presence-status { font-size: 0.8rem; opacity: 0.9; }
