@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { apiFetch } from "../api";
 import { socket } from "../socket";
 import { useSettings, addPDFHeader, addPDFFooter  } from "./SettingsContext";
@@ -438,7 +439,7 @@ export default function Activities() {
         </button>
 
         {/* -------- MODAL -------- */}
-        {showModal && (
+        {showModal && createPortal(
           <div className="modal-overlay" onClick={() => setShowModal(false)}>
             <div
               className="modal-content"
@@ -583,12 +584,13 @@ export default function Activities() {
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
 
       {/* FIX: imageModal moved outside task-form to root level */}
-      {imageModal && (
+      {imageModal && createPortal(
         <div
           className="modal-overlay"
           onClick={() => setImageModal(null)}
@@ -605,7 +607,8 @@ export default function Activities() {
               style={{ width: "100%", height: "auto", display: "block" }}
             />
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* -------- FILTER -------- */}
