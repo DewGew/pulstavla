@@ -85,6 +85,7 @@ export default function ProductionOrderImport() {
 
     
     socket.on("productionOrdersUpdated", fetchOrders);
+    return () => socket.off("productionOrdersUpdated", fetchOrders);
   }, [token, fetchOrders]);
 
   /* ---------------- UPLOAD ---------------- */
