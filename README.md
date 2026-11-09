@@ -181,6 +181,26 @@ Starta sedan om den körande Pulstavla-servern så att den nya versionen laddas.
 - Se till att reverse proxyn använder HTTPS och vidarebefordrar WebSocket korrekt.
 - Säkerhetskopiera `db/`, `uploads/`, `src/config.local.js` och relevanta miljöfiler regelbundet.
 
+## Versionshantering (SemVer)
+
+Pulstavla följer **Semantic Versioning (SemVer)** med formatet `MAJOR.MINOR.PATCH`. Aktuell version är **2.8.0**. Versionsnumret finns i `package.json` och används automatiskt av applikationen via `src/config.js`. Ändra inte versionsnumret på flera ställen.
+
+Öka rätt del av versionsnumret:
+
+- **MAJOR** – inkompatibla ändringar som kan kräva anpassning av befintliga installationer, till exempel `2.8.0` → `3.0.0`.
+- **MINOR** – nya funktioner som är bakåtkompatibla, till exempel `2.8.0` → `2.9.0`.
+- **PATCH** – bakåtkompatibla buggfixar och mindre korrigeringar, till exempel `2.8.0` → `2.8.1`.
+
+Använd npm för att höja versionen. Kör kommandot på utvecklingsgrenen efter att ändringarna är klara:
+
+```bash
+npm version patch   # buggfix
+npm version minor   # ny bakåtkompatibel funktion
+npm version major   # inkompatibel större ändring
+```
+
+`npm version` uppdaterar versionsnumret i `package.json` och `package-lock.json`, skapar en versionscommit och en Git-tagg. Kontrollera ändringarna och publicera sedan både commit och tagg till GitHub. Använd motsvarande versionsnummer i releaseinformation. Ändra aldrig MAJOR, MINOR eller PATCH enbart för att markera en vanlig kodcommit.
+
 ## Utveckling
 
 ```bash
