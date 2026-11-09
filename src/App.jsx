@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { io } from "socket.io-client";
 import { useSettings } from "./components/SettingsContext";
 import ClockWidget from "./components/ClockWidget";
 import GreenCross from "./components/GreenCross";
@@ -24,7 +23,8 @@ import ProductionOrderWidget from "./components/ProductionOrderWidget";
 import QualityCostWidget from "./components/QualityCostWidget";
 import Matprotokoll from "./components/Matprotokoll";
 import DrawingWidget from "./components/DrawingWidget";
-import { API_URL, WS_URL } from "./config";
+import { API_URL } from "./config";
+import { socket, connectSocket, disconnectSocket } from "./socket";
 import { createApi } from "./api";
 import "./App.css";
 
@@ -36,18 +36,6 @@ const today = new Date().toLocaleDateString("sv-SE", {
 });
 
 const todayDate = today.charAt(0).toUpperCase() + today.slice(1);
-
-/* ---- GLOBAL SOCKET.IO CLIENT ---- */
-// Defined outside component so it's created only once
-const socket = io(WS_URL, {
-  transports: ["websocket"],
-  reconnection: true,
-  reconnectionAttempts: 10,
-  reconnectionDelay: 1000,
-  timeout: 5000,
-
-  auth: (cb) => cb({ token: localStorage.getItem("token") }),
-});
 
 export default function App() {
   const { settings, loading } = useSettings();
@@ -115,7 +103,7 @@ export default function App() {
     setUser(loggedInUser);
     localStorage.setItem("user", JSON.stringify(loggedInUser));
     window.dispatchEvent(new Event("authChanged"));
-    if (!socket.connected) socket.connect();
+    connectSocket();
   };
 
   // FIX: useCallback so logout has a stable reference across renders,
@@ -138,6 +126,8 @@ export default function App() {
 	setOpenMenu(false)
     localStorage.removeItem("user");
     localStorage.removeItem("token");
+    disconnectSocket();
+    window.dispatchEvent(new Event("authChanged"));
   }, []); // no deps — only uses setters and fetch
 
   /* ------------------- API ------------------- */
