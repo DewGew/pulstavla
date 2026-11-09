@@ -259,15 +259,19 @@ export default function App() {
       .catch((err) => console.warn("Fetch avbruten:", err.message));
   }, [apiFetch, user]);
 
+  // Android-TV med Chrome kan rapportera en mycket stor CSS-viewport vid 50 % zoom.
+  // Behandla därför stora Android-skärmar separat från äkta desktop-4K.
+  const isAndroidLargeScreen = /Android/i.test(navigator.userAgent) && window.screen.width >= 1200;
+
 	/* ------------------- ORIENTATION / PAGINATION ------------------- */
 	const [isPortrait, setIsPortrait] = useState(
 	  window.matchMedia("(orientation: portrait)").matches
 	);
 	const [isUltraWide, setIsUltraWide] = useState(
-	  window.matchMedia("(min-width: 2560px)").matches
+	  (!isAndroidLargeScreen && window.matchMedia("(min-width: 2560px)").matches)
 	);
 	const [is4K, setIs4K] = useState(
-	  window.matchMedia("(min-width: 3840px)").matches
+	  (!isAndroidLargeScreen && window.matchMedia("(min-width: 3840px)").matches)
 	);
 
 	useEffect(() => {
@@ -276,8 +280,8 @@ export default function App() {
 	  const fourKMedia = window.matchMedia("(min-width: 3840px)");
 
 	  const handleOrientation = (e) => setIsPortrait(e.matches);
-	  const handleUltraWide = (e) => setIsUltraWide(e.matches);
-	  const handle4K = (e) => setIs4K(e.matches);
+	  const handleUltraWide = (e) => setIsUltraWide(!isAndroidLargeScreen && e.matches);
+	  const handle4K = (e) => setIs4K(!isAndroidLargeScreen && e.matches);
 
 	  orientationMedia.addEventListener("change", handleOrientation);
 	  ultraWideMedia.addEventListener("change", handleUltraWide);
@@ -529,7 +533,7 @@ export default function App() {
 
   /* ------------------- DASHBOARD ------------------- */
 return (
-  <div className={`app ${navPosition}`}>
+  <div className={`app ${navPosition}${isAndroidLargeScreen ? " android-large-screen" : ""}`}>
     {/* Topbar / Sidebar */}
     <header className="dashboard">
 		<h1 className="logo">
