@@ -2,23 +2,15 @@
 
 
 /* Lista med användare som grid med två kolumner */
-.presence-widget {
-  width: 100%;
-  min-width: 0;
-}
-
 .presence-list {
   display: grid;
-  width: 100%;
-  min-width: 0;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
 	margin-top: 8px;
 }
 
 /* Enskild användarrad */
 .presence-item {
-  min-width: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -76,7 +68,7 @@
 /* Responsivt: en kolumn på mobil */
 @media (max-width: 600px) {
   .presence-list {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 /* =================== Presence Widget - iPhone 12 Pro =================== */
@@ -92,7 +84,7 @@
   }
 
   .presence-list {
-    grid-template-columns: repeat(3, minmax(0, 1fr)); /* en kolumn på iPhone */
+    grid-template-columns: repeat(3, 1fr); /* en kolumn på iPhone */
     gap: 6px;
   }
 
