@@ -90,7 +90,7 @@
 }
 
 /* Verktygsrad */
-.dash-toolbar { display: flex; justify-content: space-between; align-items: center; gap: .75rem; margin-bottom: 1rem; }
+.dash-toolbar { display: flex; justify-content: space-between; align-items: center; gap: .75rem; margin-bottom: 0.75rem; }
 .dash-tabs { display: flex; gap: .4rem; }
 .dash-tabs button, .dash-btn {
   border: 1px solid var(--panel-border); background: var(--panel); color: inherit;
