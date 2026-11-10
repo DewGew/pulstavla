@@ -1,62 +1,32 @@
-/* Resource – kompakt layout för dashboardens 3x4-ruta */
-.resource-widget { padding: .65rem; }
-.resource-widget h3 { margin-bottom: .35rem; }
+/* Resources – innehållet optimerat för en 3x4-dashboardruta */
+.resource-widget { padding: .65rem; min-height: 0; gap: .35rem; }
+.resource-widget h3 { flex: 0 0 auto; margin-bottom: .15rem; }
 .resource-list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-  width: 100%;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: minmax(34px, auto); align-content: start; gap: 5px;
+  width: 100%; min-height: 0; flex: 1 1 auto; overflow-y: auto;
+  overscroll-behavior: contain; padding: 1px 2px 1px 0;
 }
-
 .resource-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  min-height: 42px;
-  padding: 6px 8px;
-  border: 1px solid var(--panel-border);
-  border-left: 4px solid var(--panel-border);
-  border-radius: var(--cell-radius);
-  background: var(--bg-cell);
-  color: var(--text-cell);
-  font-size: 0.8rem;
-  overflow-wrap: anywhere;
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+  display: flex; align-items: center; min-width: 0; min-height: 34px;
+  padding: 5px 7px; border: 1px solid var(--panel-border);
+  border-left: 4px solid var(--panel-border); border-radius: var(--cell-radius);
+  background: var(--bg-cell); color: var(--text-cell); font-size: .78rem;
+  line-height: 1.15; overflow-wrap: anywhere; text-align: left; cursor: pointer;
+  transition: background .18s ease, border-color .18s ease;
 }
-
-.resource-item:hover {
-  background: var(--hover-bg);
-  transform: translateY(-1px);
+.resource-item:hover { background: var(--hover-bg); }
+.resource-item.green { background: var(--status-green-bg); color: var(--status-green-text); border-left-color: var(--status-green-border); }
+.resource-item.yellow { background: var(--status-yellow-bg); color: var(--status-yellow-text); border-left-color: var(--status-yellow-border); }
+.resource-item.red { background: var(--status-red-bg); color: var(--status-red-text); border-left-color: var(--status-red-border); }
+.resource-item small { font-size: .9em; }
+.resource-widget .gc-legend-row {
+  flex: 0 0 auto; display: flex; justify-content: center; flex-wrap: wrap;
+  gap: 4px 12px; width: 100%; padding-top: 4px; font-size: .7rem; line-height: 1.2;
 }
-
-.resource-item.green {
-  background: var(--status-green-bg);
-  color: var(--status-green-text);
-  border-left-color: var(--status-green-border);
-}
-.resource-item.yellow {
-  background: var(--status-yellow-bg);
-  color: var(--status-yellow-text);
-  border-left-color: var(--status-yellow-border);
-}
-.resource-item.red {
-  background: var(--status-red-bg);
-  color: var(--status-red-text);
-  border-left-color: var(--status-red-border);
-}
-
-
-@media (max-width: 768px) {
-  .resource-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@media (max-width: 480px) {
-  .resource-list { grid-template-columns: 1fr; }
-  .resource-item { min-height: 52px; padding: 8px 10px; }
-}
-@media screen and (min-width: 3840px) {
-  .resource-item { font-size: 1.5rem; min-height: 80px; }
+.resource-widget .gc-legend-row > div { white-space: nowrap; }
+@media (max-width: 480px) { .resource-list { grid-template-columns: 1fr; } }
+@media (min-width: 3840px) {
+  .resource-item { font-size: 1.25rem; min-height: 54px; }
+  .resource-widget .gc-legend-row { font-size: 1rem; }
 }
