@@ -104,8 +104,8 @@ export const WIDGET_TYPES = {
   },
 
   /* ---------- Personal & information ---------- */
-  presence: { group: "Personal", label: "Närvaro", icon: "🧑‍🤝‍🧑", desc: "Vem är på plats", size: { w: 3, h: 3 }, fields: [], render: (p, c) => <PresenceWidget currentUser={c.user} /> },
-  resources: { group: "Personal", label: "Resurser", icon: "🗓️", desc: "Bemanning och resurser", size: { w: 3, h: 3 }, fields: [], render: (p, c) => <ResourceWidget currentUser={c.user} /> },
+  presence: { group: "Personal", label: "Närvaro", icon: "🧑‍🤝‍🧑", desc: "Vem är på plats", size: { w: 3, h: 4 }, fields: [], render: (p, c) => <PresenceWidget currentUser={c.user} /> },
+  resources: { group: "Personal", label: "Resurser", icon: "🗓️", desc: "Bemanning och resurser", size: { w: 3, h: 4 }, fields: [], render: (p, c) => <ResourceWidget currentUser={c.user} /> },
   activities: { group: "Personal", label: "Aktiviteter", icon: "✅", desc: "Aktivitetslista", size: { w: 3, h: 3 }, fields: [], render: () => <ActivitiesWidget /> },
   structuredText: {
     group: "Information", label: "Textblock med rubriker", icon: "📝", desc: "Redigerbar text med underrubriker",
