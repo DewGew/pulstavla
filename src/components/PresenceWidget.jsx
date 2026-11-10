@@ -85,41 +85,35 @@ export default function PresenceWidget({ currentUser }) {
   return (
     <div className="widget presence-widget">
       <h3>Närvaro</h3>
-      <div className="presence-sections">
-        <section className="presence-section">
-          <h4 style={{ color: "var(--header-text)" }}>Produktion</h4>
-          <div className="presence-list">
-            {users
-              .filter(u => u.role === "user")
-              .map(u => (
-                <div
-                  key={u._id || u.username}
-                  className={`presence-item ${presence[u.username]?.present ? "here" : "away"}`}
-                  onClick={canEdit ? () => togglePresence(u.username) : undefined}
-                >
-                  <span className="presence-name">{u.username}</span>
-                  <span className="presence-status">{presence[u.username]?.present ? "🟢" : "🔴"}</span>
-                </div>
-              ))}
-          </div>
-        </section>
-        <section className="presence-section">
-          <h4 style={{ color: "var(--header-text)" }}>Kontor</h4>
-          <div className="presence-list">
-            {users
-              .filter(u => u.role === "admin" || u.role === "suAdmin")
-              .map(u => (
-                <div
-                  key={u._id || u.username}
-                  className={`presence-item ${presence[u.username]?.present ? "here" : "away"}`}
-                  onClick={adminEdit ? () => togglePresence(u.username) : undefined}
-                >
-                  <span className="presence-name">{u.username}</span>
-                  <span className="presence-status">{presence[u.username]?.present ? "🟢" : "🔴"}</span>
-                </div>
-              ))}
-          </div>
-        </section>
+			<h4 style={{ color: "var(--header-text)" }}>Produktion</h4>
+      <div className="presence-list">
+        {users
+          .filter(u => u.role === "user")
+          .map(u => (
+            <div
+              key={u._id || u.username}
+              className={`presence-item ${presence[u.username]?.present ? "here" : "away"}`}
+              onClick={canEdit ? () => togglePresence(u.username) : undefined}
+            >
+              <span className="presence-name">{u.username}</span>
+              <span className="presence-status">{presence[u.username]?.present ? "🟢" : "🔴"}</span>
+            </div>
+          ))}
+      </div>
+			<h4 style={{ color: "var(--header-text)" }}>Kontor</h4>
+      <div className="presence-list">
+        {users
+          .filter(u => u.role === "admin" || u.role === "suAdmin")
+          .map(u => (
+            <div
+              key={u._id || u.username}
+              className={`presence-item ${presence[u.username]?.present ? "here" : "away"}`}
+              onClick={adminEdit ? () => togglePresence(u.username) : undefined}
+            >
+              <span className="presence-name">{u.username}</span>
+              <span className="presence-status">{presence[u.username]?.present ? "🟢" : "🔴"}</span>
+            </div>
+          ))}
       </div>
 			<div className="gc-legend-row">
 					<div><span>🟢</span>= Närvarande</div>
