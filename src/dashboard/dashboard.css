@@ -94,10 +94,9 @@
 .dash-tabs { display: flex; gap: .4rem; }
 .dash-tabs button, .dash-btn {
   border: 1px solid var(--panel-border); background: var(--panel); color: inherit;
-  padding: .45rem .9rem; border-radius: 999px; cursor: pointer; font: inherit; font-size: .9rem;
+  padding: .45rem .9rem; border-radius: 8px; cursor: pointer; font: inherit; font-size: .9rem;
 }
 .dash-tabs button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-.dash-btn { border-radius: 8px; }
 .dash-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .dash-btn.danger { color: var(--kpi-bad); border-color: var(--kpi-bad); }
 .dash-btn:disabled { opacity: .5; cursor: not-allowed; }
