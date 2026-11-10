@@ -46,6 +46,21 @@ function countRows(widgets) {
 
 const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
 
+const getScreenFormat = () => {
+  const width = window.innerWidth;
+  if (width <= 700) return "mobile";
+  if (width < 2200) return "desktop-1920";
+  if (width < 3200) return "desktop-2560";
+  return "ultra-3840";
+};
+
+const SCREEN_FORMATS = [
+  ["mobile", "Mobil"],
+  ["desktop-1920", "Desktop (1920)"],
+  ["desktop-2560", "Desktop 4K (2560)"],
+  ["ultra-3840", "Ultra 4K (3840)"],
+];
+
 export default function DashboardView({ user }) {
   const { settings } = useSettings();
   const canEdit = user?.role === "admin" || user?.role === "suAdmin";
@@ -61,10 +76,31 @@ export default function DashboardView({ user }) {
   const [error, setError] = useState("");
   const [selectedId, setSelectedId] = useState(null);
   const [picker, setPicker] = useState(false);
+  const [screenFormat, setScreenFormat] = useState(getScreenFormat);
+
+  useEffect(() => {
+    const updateScreenFormat = () => setScreenFormat(getScreenFormat());
+    window.addEventListener("resize", updateScreenFormat);
+    window.addEventListener("orientationchange", updateScreenFormat);
+    return () => {
+      window.removeEventListener("resize", updateScreenFormat);
+      window.removeEventListener("orientationchange", updateScreenFormat);
+    };
+  }, []);
 
   const cfg = editing ? draft : config;
   const items = cfg.items;
   const active = items.find((d) => d.id === activeId) || items[0];
+
+  // Välj automatiskt den dashboard som är avsedd för aktuell skärm.
+  // Äldre dashboards utan format används som reserv om ingen exakt matchning finns.
+  useEffect(() => {
+    if (editing || forcedId || !items.length) return;
+    const matching = items.find((d) => d.format === screenFormat);
+    const fallback = items.find((d) => !d.format) || items[0];
+    const target = matching || fallback;
+    if (target && target.id !== activeId) setActiveId(target.id);
+  }, [screenFormat, items, editing, forcedId]);
 
   useEffect(() => {
     if (active && !forcedId) localStorage.setItem("activeDashboard", active.id);
@@ -126,7 +162,7 @@ export default function DashboardView({ user }) {
     setSelectedId(w.id); setPicker(false);
   };
   const addDashboard = () => {
-    const d = { id: uid(), name: `Dashboard ${draft.items.length + 1}`, inRotation: true, fit: true, widgets: [] };
+    const d = { id: uid(), name: `Dashboard ${draft.items.length + 1}`, format: screenFormat, inRotation: true, fit: true, widgets: [] };
     setDraft((x) => ({ ...x, items: [...x.items, d] })); setActiveId(d.id);
   };
   const removeDashboard = () => {
@@ -179,6 +215,14 @@ export default function DashboardView({ user }) {
       {editing && (
         <div className="dash-settings">
           <label>Namn <input value={active.name} onChange={(e) => updateActive((d) => ({ ...d, name: e.target.value }))} /></label>
+          <label>Visningsformat
+            <select
+              value={active.format || screenFormat}
+              onChange={(e) => updateActive((d) => ({ ...d, format: e.target.value }))}
+            >
+              {SCREEN_FORMATS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </label>
           <label className="chk"><input type="checkbox" checked={active.inRotation !== false} onChange={(e) => updateActive((d) => ({ ...d, inRotation: e.target.checked }))} /> Med i automatisk rotation</label>
           <label className="chk"><input type="checkbox" checked={fit} onChange={(e) => updateActive((d) => ({ ...d, fit: e.target.checked }))} /> Anpassa till skärmhöjd</label>
           <label>Byt dashboard var <input type="number" min="0" value={draft.rotateSeconds || 0} onChange={(e) => setDraft((x) => ({ ...x, rotateSeconds: clamp(Number(e.target.value) || 0, 0, 3600) }))} /> sek (0 = av)</label>
