@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import { apiFetch } from "../api";
 import "./MachineChecklist.css";
 import { API_URL } from "../config";
 import { useSettings, addPDFHeader, addPDFFooter  } from "./SettingsContext";
@@ -100,7 +101,7 @@ export default function MachineChecklist({ currentUser }) {
   /* ---------------- FETCH CHECKLIST ---------------- */
   useEffect(() => {
     if (!currentMachine) return;
-    fetch(`${API_URL}/checklist/${currentMachine}?week=${selectedWeek}`, {
+    apiFetch(`/checklist/${currentMachine}?week=${selectedWeek}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
       .then(res => {
@@ -117,7 +118,7 @@ export default function MachineChecklist({ currentUser }) {
   /* ---------------- FETCH TOP LIST ---------------- */
   useEffect(() => {
     if (!selectedWeek) return;
-    fetch(`${API_URL}/checklist/top?week=${selectedWeek}`, {
+    apiFetch(`/checklist/top?week=${selectedWeek}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
       .then(res => {
@@ -150,7 +151,7 @@ export default function MachineChecklist({ currentUser }) {
       user: currentUser?.name || "Operator",
     };
 
-    fetch(`${API_URL}/checklist/${currentMachine}`, {
+    apiFetch(`/checklist/${currentMachine}`, {
       method: "POST",
       headers: authHeaders,
       body: JSON.stringify(payload),
@@ -207,7 +208,7 @@ export default function MachineChecklist({ currentUser }) {
         const { year, week } = getISOWeekAndYear(futureDate);
         const weekKey = formatWeekKey(year, week);
 
-        fetch(`${API_URL}/checklist/${currentMachine}?week=${weekKey}`, {
+        apiFetch(`/checklist/${currentMachine}?week=${weekKey}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         })
           .then(res => res.ok ? res.json() : Promise.reject())
@@ -219,7 +220,7 @@ export default function MachineChecklist({ currentUser }) {
                 date: today.toLocaleDateString("sv-SE"),
               },
             };
-            return fetch(`${API_URL}/checklist/${currentMachine}`, {
+            return apiFetch(`/checklist/${currentMachine}`, {
               method: "POST",
               headers: authHeaders,
               body: JSON.stringify({

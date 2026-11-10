@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
-import { API_URL } from "../config";
+import { createPortal } from "react-dom";
+import { apiFetch } from "../api";
 import { socket } from "../socket";
 import { useSettings, addPDFHeader, addPDFFooter  } from "./SettingsContext";
 import "./Activities.css";
@@ -62,7 +63,7 @@ export default function Activities() {
     setLoadingTasks(true);
     setError(null);
     try {
-      const res = await fetch(`${API_URL}/activities`, {
+      const res = await apiFetch(`/activities`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -81,7 +82,7 @@ export default function Activities() {
       const nextUrls = {};
       await Promise.all(safeRows.filter((task) => task.image).map(async (task) => {
         try {
-          const imageRes = await fetch(`${API_URL}${task.image}`, {
+          const imageRes = await apiFetch(task.image, {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (imageRes.ok) nextUrls[task._id] = URL.createObjectURL(await imageRes.blob());
@@ -106,7 +107,7 @@ export default function Activities() {
   const loadUsers = useCallback(async () => {
     if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/presence/users`, {
+      const res = await apiFetch(`/presence/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error("Fel vid hämtning av användare");
@@ -156,7 +157,7 @@ export default function Activities() {
         const formData = new FormData();
         formData.append("image", imageFile);
 
-        const uploadRes = await fetch(`${API_URL}/activities/upload`, {
+        const uploadRes = await apiFetch(`/activities/upload`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
           body: formData,
@@ -166,7 +167,7 @@ export default function Activities() {
         imageUrl = data.url;
       }
 
-      await fetch(`${API_URL}/activities`, {
+      await apiFetch(`/activities`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -193,7 +194,7 @@ export default function Activities() {
   /* ---------------- UPDATE TASK ---------------- */
   const updateTask = async (id, changes) => {
     try {
-      await fetch(`${API_URL}/activities/${id}`, {
+      await apiFetch(`/activities/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -211,7 +212,7 @@ export default function Activities() {
   // FIX: no longer uses blocking confirm() — uses inline confirmDeleteId state.
   const deleteTask = async (id) => {
     try {
-      await fetch(`${API_URL}/activities/${id}`, {
+      await apiFetch(`/activities/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -438,7 +439,7 @@ export default function Activities() {
         </button>
 
         {/* -------- MODAL -------- */}
-        {showModal && (
+        {showModal && createPortal(
           <div className="modal-overlay" onClick={() => setShowModal(false)}>
             <div
               className="modal-content"
@@ -549,8 +550,8 @@ export default function Activities() {
                       if (imageFile) {
                         const formData = new FormData();
                         formData.append("image", imageFile);
-                        const uploadRes = await fetch(
-                          `${API_URL}/activities/upload`,
+                        const uploadRes = await apiFetch(
+                          `/activities/upload`,
                           {
                             method: "POST",
                             headers: { Authorization: `Bearer ${token}` },
@@ -583,12 +584,13 @@ export default function Activities() {
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
 
       {/* FIX: imageModal moved outside task-form to root level */}
-      {imageModal && (
+      {imageModal && createPortal(
         <div
           className="modal-overlay"
           onClick={() => setImageModal(null)}
@@ -605,7 +607,8 @@ export default function Activities() {
               style={{ width: "100%", height: "auto", display: "block" }}
             />
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* -------- FILTER -------- */}

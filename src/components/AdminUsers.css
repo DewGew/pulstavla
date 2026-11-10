@@ -7,7 +7,7 @@
   padding: 1.5rem;
   width: 100%;
   margin: 0 auto;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  box-shadow: var(--panel-shadow);
 }
 
 .admin-users.flat {
@@ -31,7 +31,7 @@
   background: var(--accent);
   padding: 12px 16px; /* lite större */
   border-radius: var(--card-radius);
-  color: #fff;
+  color: var(--control-text);
   margin-bottom: 20px;
   font-weight: 600;
 }
@@ -63,12 +63,7 @@
   color: var(--text);
 }
 
-.add-user-box input:focus,
-.add-user-box select:focus,
-.autologin input:focus {
-  outline: none;
-  border-color: var(--accent);
-}
+
 
 /* ===================== USER TABLE ===================== */
 
@@ -109,10 +104,7 @@
   color: var(--text);
 }
 
-.user-table select:focus {
-  outline: none;
-  border-color: var(--accent);
-}
+
 
 
 /* ===================== RESPONSIVE ===================== */

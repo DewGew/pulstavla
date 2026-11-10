@@ -3,10 +3,10 @@
 .structuredTextWidget {
   align-items: stretch !important;
   padding: 14px 16px;
-  background: var(--card-bg, #fff);
+  background: var(--panel);
   border: 1px solid var(--panel-border, #e5e7eb);
-  border-radius: var(--card-radius, 12px);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  border-radius: var(--card-radius);
+  box-shadow: var(--panel-shadow);
 }
 
 /* Titel (visningsläge) */
@@ -16,8 +16,8 @@
 .EditableTextWidget .title-input,
 .structuredTextWidget .title-input {
   width: 100%;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--control-radius);
   padding: 6px 8px;
   font-size: 15px;
   font-weight: 600;
@@ -52,7 +52,7 @@
 .EditableTextWidget .edit-btn {
   background: none;
   border: none;
-  color: #2563eb;
+  color: var(--accent);
   font-size: 13px;
   padding: 0;
 }
@@ -74,11 +74,6 @@
   font-family: inherit;
   line-height: 1.5;
 }
-.EditableTextWidget textarea:focus,
-.structuredTextWidget textarea:focus {
-  outline: none;
-  border-color: #2563eb;
-}
 
 /* Buttons row */
 .structuredTextWidget .actions,
@@ -91,7 +86,7 @@
 /* Error */
 .structuredTextWidget .error,
 .EditableTextWidget .error {
-  color: #dc2626;
+  color: var(--danger);
   font-size: 13px;
 }
 
@@ -99,7 +94,7 @@
   border: 1px solid var(--panel-border);
   padding: 10px;
   margin-top: 10px;
-  border-radius: 6px;
+  border-radius: var(--control-radius);
 }
 .move-buttons {
   display: flex;
@@ -122,4 +117,110 @@
 	.structuredTextWidget input {
 		font-size: 2rem
 	}
+}
+
+/* Gemensam redigerare för widgettexter – följer appens ljusa/mörka tema */
+.rich-text-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-top: 9px;
+  min-width: 0;
+}
+
+.rich-text-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 7px;
+  background: var(--bg-cell, var(--bg, #f8fafc));
+  border: 1px solid var(--panel-border, #d1d5db);
+  border-radius: var(--control-radius);
+}
+
+.rich-text-toolbar button,
+.rich-text-preview-toggle button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  min-width: 36px;
+  padding: 6px 10px;
+  border: 1px solid var(--panel-border, #d1d5db);
+  border-radius: 6px;
+  background: var(--bg, #fff);
+  color: var(--text, #0f172a);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.rich-text-toolbar button:hover,
+.rich-text-preview-toggle button:hover {
+  background: var(--hover-bg, #f1f5f9);
+  border-color: var(--header-text, #64748b);
+}
+
+.rich-text-toolbar button:focus-visible,
+.rich-text-preview-toggle button:focus-visible,
+.rich-text-editor textarea:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.rich-text-help,
+.rich-text-preview-label {
+  color: var(--muted-text);
+  opacity: 1;
+  font-size: 12px;
+}
+
+.rich-text-help {
+  margin-left: 4px;
+}
+
+.rich-text-editor textarea {
+  display: block;
+  width: 100%;
+  min-height: 90px;
+  box-sizing: border-box;
+  resize: vertical;
+  border: 1px solid var(--panel-border, #d1d5db);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--bg-cell, var(--bg, #fff));
+  color: var(--text, #0f172a);
+  font: inherit;
+  line-height: 1.5;
+  color-scheme: light dark;
+}
+
+.rich-text-editor textarea::placeholder {
+  color: var(--muted-text);
+  opacity: 0.8;
+}
+
+.rich-text-preview {
+  border: 1px solid var(--panel-border, #e5e7eb);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--bg-cell, var(--bg, #fff));
+  color: var(--text, #0f172a);
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.rich-text-preview-label {
+  margin-bottom: 6px;
+}
+
+.rich-text-preview h4 { margin: 4px 0; color: var(--strong-text, var(--text)); }
+.rich-text-preview ul { margin: 4px 0; padding-left: 22px; }
+
+@media (max-width: 600px) {
+  .rich-text-help { flex-basis: 100%; margin: 2px 0 0; }
 }

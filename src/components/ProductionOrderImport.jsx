@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { apiFetch } from "../api";
 import { API_URL } from "../config";
 import { socket } from "../socket";
 import "./OrderImport.css";
@@ -62,7 +63,7 @@ export default function ProductionOrderImport() {
   // FIX: auth header added.
   const fetchOrders = useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/production-orders`, {
+      const res = await apiFetch(`/production-orders`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -103,7 +104,7 @@ export default function ProductionOrderImport() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch(`${API_URL}/production-orders/import`, {
+      const res = await apiFetch(`/production-orders/import`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,

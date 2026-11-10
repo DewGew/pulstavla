@@ -111,7 +111,14 @@ export default function App() {
   /* ------------------- LOGIN ------------------- */
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem("user");
-    return saved ? JSON.parse(saved) : null;
+    if (!saved) return null;
+    try {
+      return JSON.parse(saved);
+    } catch {
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+      return null;
+    }
   });
 
   const handleLogin = (loggedInUser) => {
@@ -121,33 +128,38 @@ export default function App() {
     connectSocket();
   };
 
-  // FIX: useCallback so logout has a stable reference across renders,
-  // which prevents stale-closure bugs in useEffects that depend on it.
-  const logout = useCallback(async () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (token) {
-        await fetch(`${API_URL}/logout`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-      }
-    } catch (err) {
-      console.warn("Logout API misslyckades:", err.message);
-    }
-
+  // Rensa alltid den lokala sessionen direkt. Utloggning ska fungera
+  // även om servern är nere eller token redan har gått ut.
+  const clearSession = useCallback(() => {
     setActiveTab("overview");
     setUser(null);
-	setOpenMenu(false)
+    setOpenMenu(false);
     localStorage.removeItem("user");
     localStorage.removeItem("token");
     disconnectSocket();
     window.dispatchEvent(new Event("authChanged"));
-  }, []); // no deps — only uses setters and fetch
+  }, []);
+
+  const logout = useCallback(() => {
+    const token = localStorage.getItem("token");
+    clearSession();
+
+    // Serverns logout är ett extra försök; gränssnittet väntar inte på nätverket.
+    if (token) {
+      fetch(`${API_URL}/logout`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch((err) => console.warn("Logout API misslyckades:", err.message));
+    }
+  }, [clearSession]);
 
   /* ------------------- API ------------------- */
-  // FIX: memoize apiFetch so it isn't recreated on every render.
-  const apiFetch = useMemo(() => createApi(logout), [logout]);
+  const apiFetch = useMemo(() => createApi(clearSession), [clearSession]);
+
+  useEffect(() => {
+    window.addEventListener("authExpired", clearSession);
+    return () => window.removeEventListener("authExpired", clearSession);
+  }, [clearSession]);
 
   /* ------------------- TABS ------------------- */
   const [activeTab, setActiveTab] = useState("overview");
@@ -172,34 +184,63 @@ export default function App() {
   }, [user]);
 
   /* ------------------- TOKEN EXPIRY CHECK ------------------- */
-  // FIX: logout is now stable (useCallback), so it's safe in the dep array.
+  // Kontrollera token efter inloggning och logga ut automatiskt när den löper ut.
   useEffect(() => {
+    if (!user) return;
+
     const token = localStorage.getItem("token");
-    if (!token) return;
+    if (!token) {
+      clearSession();
+      return;
+    }
+
+    let expiryTimer;
 
     try {
       const base64 = token.split(".")[1];
-      if (!base64) { logout(); return; }
+      if (!base64) throw new Error("Token saknar payload");
 
+      // JWT använder base64url, som behöver normaliseras före atob.
+      const normalized = base64.replace(/-/g, "+").replace(/_/g, "/");
+      const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
       const payload = JSON.parse(
         decodeURIComponent(
-          atob(base64)
+          atob(padded)
             .split("")
             .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
             .join("")
         )
       );
 
-      const now = Math.floor(Date.now() / 1000);
-      if (payload.exp && payload.exp < now) {
-        console.warn("Token expired");
-        logout();
+      if (payload.exp) {
+        const checkExpiry = () => {
+          const expiresInMs = payload.exp * 1000 - Date.now();
+
+          if (expiresInMs <= 0) {
+            console.warn("Token expired");
+            clearSession();
+            return;
+          }
+
+          // setTimeout har en maximal säker fördröjning på cirka 24,8 dagar.
+          // Kontrollera därför igen efter högst en dag tills token går ut.
+          expiryTimer = window.setTimeout(
+            checkExpiry,
+            Math.min(expiresInMs, 24 * 60 * 60 * 1000)
+          );
+        };
+
+        checkExpiry();
       }
     } catch (err) {
       console.error("Invalid token:", err);
-      logout();
+      clearSession();
     }
-  }, [logout]);
+
+    return () => {
+      if (expiryTimer) window.clearTimeout(expiryTimer);
+    };
+  }, [clearSession, user]);
 
   /* ------------------- WIDGET STATE ------------------- */
   const [widget, setWidget] = useState(null);
@@ -218,15 +259,19 @@ export default function App() {
       .catch((err) => console.warn("Fetch avbruten:", err.message));
   }, [apiFetch, user]);
 
+  // Android-TV med Chrome kan rapportera en mycket stor CSS-viewport vid 50 % zoom.
+  // Behandla därför stora Android-skärmar separat från äkta desktop-4K.
+  const isAndroidLargeScreen = /Android/i.test(navigator.userAgent) && window.screen.width >= 1200;
+
 	/* ------------------- ORIENTATION / PAGINATION ------------------- */
 	const [isPortrait, setIsPortrait] = useState(
 	  window.matchMedia("(orientation: portrait)").matches
 	);
 	const [isUltraWide, setIsUltraWide] = useState(
-	  window.matchMedia("(min-width: 2560px)").matches
+	  (!isAndroidLargeScreen && window.matchMedia("(min-width: 2560px)").matches)
 	);
 	const [is4K, setIs4K] = useState(
-	  window.matchMedia("(min-width: 3840px)").matches
+	  (!isAndroidLargeScreen && window.matchMedia("(min-width: 3840px)").matches)
 	);
 
 	useEffect(() => {
@@ -235,8 +280,8 @@ export default function App() {
 	  const fourKMedia = window.matchMedia("(min-width: 3840px)");
 
 	  const handleOrientation = (e) => setIsPortrait(e.matches);
-	  const handleUltraWide = (e) => setIsUltraWide(e.matches);
-	  const handle4K = (e) => setIs4K(e.matches);
+	  const handleUltraWide = (e) => setIsUltraWide(!isAndroidLargeScreen && e.matches);
+	  const handle4K = (e) => setIs4K(!isAndroidLargeScreen && e.matches);
 
 	  orientationMedia.addEventListener("change", handleOrientation);
 	  ultraWideMedia.addEventListener("change", handleUltraWide);
@@ -364,16 +409,6 @@ export default function App() {
           green="Ok"
           yellow="Varning"
           red="Problem"
-          url={{
-            title: "Risker",
-            text: `
-🏗️ Tunga eller ovanliga lyft
-🔧 Underhåll eller maskin ingrepp
-👷 Ny eller inhyrd personal
-🚧 Avstängda skydd / provisoriska lösningar
-⏱ Stress, övertid, låg bemanning
-            `,
-          }}
         />
       </div>
     );
@@ -498,7 +533,7 @@ export default function App() {
 
   /* ------------------- DASHBOARD ------------------- */
 return (
-  <div className={`app ${navPosition}`}>
+  <div className={`app ${navPosition}${isAndroidLargeScreen ? " android-large-screen" : ""}`}>
     {/* Topbar / Sidebar */}
     <header className="dashboard">
 		<h1 className="logo">

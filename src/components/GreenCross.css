@@ -1,232 +1,120 @@
-/* ===================== GREEN CROSS WIDGET ===================== */
-
+/* GreenCross – gemensamt visuellt språk med Resource och Presence */
 .green-cross-wrapper.gc-grid {
-  background: var(--panel);
+  width: 100%;
+  padding: 0;
+  background: transparent;
   border-radius: var(--card-radius);
-  box-sizing: border-box;
 }
 
-/* ---------------- CONTROLS (månad/år) ---------------- */
 .gc-controls {
   display: flex;
-  gap: 8px;
-  margin-bottom: 15px;
   justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 14px;
 }
 
 .gc-controls select,
 .gc-controls input {
-  padding: 6px 10px;
+  min-height: 36px;
+  padding: 7px 10px;
   border: 1px solid var(--panel-border);
   border-radius: var(--cell-radius);
-  background: var(--panel);
-  color: var(--text);
-  font-size: 0.9rem;
+  background: var(--bg-cell);
+  color: var(--text-cell);
+  font: inherit;
 }
 
-/* ---------------- ROWS ---------------- */
 .gc-row {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 6px;
-  justify-content: center;
   margin-bottom: 6px;
 }
 
-/* ---------------- CELLS ---------------- */
+.gc-cell,
+.gc-empty {
+  min-width: 0;
+  height: 50px;
+  border-radius: var(--cell-radius);
+}
+
 .gc-cell {
   position: relative;
-  height: 50px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--cell-radius);
   border: 1px solid var(--panel-border);
+  background: var(--bg-cell);
+  color: var(--text-cell);
+  font: inherit;
   font-weight: 600;
   cursor: pointer;
   user-select: none;
-  transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
-  background: var(--bg-cell);
-  color: var(--text-cell);
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
 }
 
+.gc-cell.green { background: var(--status-green-bg); color: var(--status-green-text); border-left: 4px solid var(--status-green-border); }
+.gc-cell.yellow { background: var(--status-yellow-bg); color: var(--status-yellow-text); border-left: 4px solid var(--status-yellow-border); }
+.gc-cell.red { background: var(--status-red-bg); color: var(--status-red-text); border-left: 4px solid var(--status-red-border); }
+.gc-cell.default { background: var(--bg-cell); color: var(--text-cell); }
 
-.gc-cell.green { background: #00b050; }
-.gc-cell.yellow { background: #ffc000; }
-.gc-cell.red { background: #d32f2f; }
-.gc-cell.default { background: var(--bg-cell); }
 
-.gc-cell.highlight {
-  box-shadow: 0 0 8px 3px var(--accent);
-}
+.gc-cell:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.gc-cell.highlight { box-shadow: 0 0 0 2px var(--accent); }
+.gc-cell.gc-disabled { pointer-events: none; cursor: not-allowed; opacity: 0.65; }
 
-.gc-cell.gc-disabled {
-  pointer-events: none;
-  cursor: not-allowed;
-}
+.gc-empty { background: transparent; }
+.gc-day { z-index: 1; }
+.gc-weekend { color: var(--status-weekend); font-weight: 700; }
+.gc-flag { position: absolute; right: 3px; bottom: 1px; font-size: 18px; }
+.gc-flag.yellow, .gc-flag.red { color: var(--header-text); }
 
-.gc-empty {
-  width: 60px;
-  height: 50px;
-  background: transparent;
-}
-
-/* ---------------- LEGEND ---------------- */
 .gc-legend-row {
-  margin-top: 15px;
-  font-size: 0.9rem;
   display: flex;
-  justify-content: center; /* centrera hela raden */
-  align-items: center;     /* vertikal centering */
-  gap: 20px;               /* avstånd mellan färgerna */
-  flex-wrap: nowrap;        /* hindra radbrytning */
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 14px;
+  font-size: 0.85rem;
+  color: var(--text);
 }
 
-.gc-counts {
-  display: flex;
-  align-items: center;
-  gap: 10px;               /* avstånd mellan box + text */
-}
-
-.gc-counts div {
-  display: flex;
-  align-items: center;
-  gap: 4px;                /* avstånd mellan legend-box och label */
-}
+.gc-counts,
+.gc-counts div { display: flex; align-items: center; gap: 6px; }
 
 .legend-box {
-  width: 18px;
-  height: 18px;
-  border-radius: var(--cell-radius);
   display: inline-block;
-  border: 1px solid #666;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--cell-radius);
 }
+.legend-box.green { background: var(--status-green-bg); }
+.legend-box.yellow { background: var(--status-yellow-bg); }
+.legend-box.red { background: var(--status-red-bg); }
 
-.gc-flag {
-  position: absolute;
-  bottom: 1px;
-  right: 2px;
-  font-size: 20px;
-}
+.gc-url { margin-top: 8px; color: var(--header-text); cursor: pointer; }
+.gc-url:hover { opacity: 0.8; }
+.modal-content p { white-space: pre-line; text-align: left; }
 
-.gc-day {
-  z-index: 1;
-}
-
-.gc-weekend {
-  color: #c62828;      /* röd datumtext */
-  font-weight: 700;
-}
-
-.gc-flag.yellow { color: var(--accent); }
-.gc-flag.red    { color: var(--accent); }
-
-.legend-box.green   { background: var(--gc-green, #3cb043); }
-.legend-box.yellow  { background: var(--gc-yellow, #f7d71e); }
-.legend-box.red     { background: var(--gc-red, #d62828); }
-
-.gc-url {
-  cursor: pointer;
-  color: var(--header-text);
-  margin-top: 8px;
-}
-
-.gc-url:hover {
-  opacity: 0.8;
-}
-
-.modal-content p {
-  white-space: pre-line;
-	text-align: left;
-}
-
-/* ---------------- HOVER ---------------- */
-.gc-cell:hover {
-  filter: brightness(1.2);
-}
-
-/* ---------------- RESPONSIVE ---------------- */
 @media (max-width: 768px) {
-  .gc-row {
-    gap: 4px;
-  }
-
-  .gc-cell {
-    width: 40px;
-    height: 40px;
-    font-size: 0.85rem;
-  }
-
-  .gc-controls {
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .gc-legend-row {
-    gap: 12px;
-  }
-
-  .legend-box {
-    width: 14px;
-    height: 14px;
-  }
+  .gc-row { gap: 4px; }
+  .gc-cell, .gc-empty { height: 40px; }
+  .gc-controls { flex-direction: column; align-items: stretch; }
+  .gc-legend-row { gap: 10px; }
 }
-/* ===================== GREEN CROSS WIDGET - iPhone 12 Pro ===================== */
 @media (max-width: 414px) {
-  /* Rader */
-  .gc-row {
-    gap: 3px;                  /* mindre mellanrum */
-    grid-template-columns: repeat(7, 1fr); /* behåll 7 kolumner men kompakt */
-  }
-
-  /* Celler */
-  .gc-cell,
-  .gc-empty {
-    width: 35px;
-    height: 35px;
-    font-size: 0.75rem;
-  }
-
-  /* Controls (månad/år) */
-  .gc-controls {
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .gc-controls select,
-  .gc-controls input {
-    font-size: 0.8rem;
-    padding: 5px 8px;
-  }
-
-  /* Legend */
-  .gc-legend-row {
-    gap: 8px;                 /* mindre mellanrum mellan färger */
-    font-size: 0.8rem;
-    flex-wrap: wrap;           /* tillåt radbrytning om smalt */
-  }
-
-  .gc-counts div {
-    gap: 3px;                 /* mindre mellanrum mellan box + text */
-  }
-
-  .legend-box {
-    width: 12px;
-    height: 12px;
-  }
+  .gc-row { gap: 3px; }
+  .gc-cell, .gc-empty { height: 35px; font-size: 0.75rem; }
+  .gc-controls select, .gc-controls input { font-size: 0.85rem; }
+  .gc-legend-row { gap: 8px; font-size: 0.78rem; }
+  .legend-box { width: 13px; height: 13px; }
 }
 @media screen and (min-width: 3840px) {
-  .gc-cell,
-  .gc-empty {
-    width: 80px;
-    height: 75px;
-    font-size: 2rem;
-  }
-  .gc-legend-row {
-	  font-size: 1.4rem;
-  }
-  .gc-controls select,
-  .gc-controls input {
-    font-size: 1.5rem;
-  }
+  .gc-cell, .gc-empty { height: 75px; font-size: 2rem; }
+  .gc-legend-row { font-size: 1.4rem; }
+  .gc-controls select, .gc-controls input { font-size: 1.5rem; }
 }

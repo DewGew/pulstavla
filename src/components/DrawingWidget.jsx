@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { apiFetch } from "../api";
 import { API_URL } from "../config";
 import { socket } from "../socket";
 import "./DrawingWidget.css";
@@ -28,7 +29,7 @@ export default function DrawingWidget({
 
   /* ---------------- FETCH ---------------- */
   useEffect(() => {
-    fetch(`${API_URL}/drawings/${drawingId}`, {
+    apiFetch(`/drawings/${drawingId}`, {
       headers: localStorage.getItem("token")
         ? { Authorization: `Bearer ${localStorage.getItem("token")}` }
         : {},
@@ -44,7 +45,7 @@ export default function DrawingWidget({
         setUpdatedAt(data.updatedAt || null);
       })
       .catch(() => {
-        fetch(`${API_URL}/drawings`, {
+        apiFetch(`/drawings`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -144,7 +145,7 @@ export default function DrawingWidget({
     setIsSaving(true);
 
     try {
-      await fetch(`${API_URL}/drawings/${drawingId}`, {
+      await apiFetch(`/drawings/${drawingId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

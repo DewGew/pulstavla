@@ -35,6 +35,19 @@ body {
   --danger: #d9534f;
   --logo-span: #0f172a;
   --strong-text: #9e0606;
+  --muted-text: #64748b;
+  --control-bg: #ffffff;
+  --control-text: #0f172a;
+  --control-border: #cbd5e1;
+  --control-radius: 6px;
+  --focus-ring: #2563eb;
+  --panel-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  --overlay-bg: rgba(0, 0, 0, 0.5);
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
 }
 
 :root[data-theme="dark"] {
@@ -51,6 +64,14 @@ body {
   --danger: #d9534f;
   --logo-span: #d0d0d0;
   --strong-text: #ffc000;
+  --muted-text: #a3a3a3;
+  --control-bg: #2a2a2a;
+  --control-text: #ffffff;
+  --control-border: #555555;
+  --control-radius: 6px;
+  --focus-ring: #ffc000;
+  --panel-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+  --overlay-bg: rgba(0, 0, 0, 0.68);
 }
 
 h2 {
@@ -894,5 +915,199 @@ margin-bottom: 1rem;
   .widget-grid {
     grid-template-columns: repeat(4, 1fr); /* bättre för stående */
     gap: 1rem;
+  }
+}
+
+/* =====================================================
+   Gemensam grund för formulär, knappar och modaler
+   Widget-specifika layouter ligger kvar i respektive CSS.
+   ===================================================== */
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+input,
+select,
+textarea {
+  color: var(--control-text);
+  background-color: var(--control-bg);
+  border: 1px solid var(--control-border);
+  border-radius: var(--control-radius);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted-text);
+  opacity: 0.8;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Gemensamma knappar: befintliga färgklasser och komponentlayouter
+   behålls, men får samma grundläggande radie och typografi. */
+.btn-primary,
+.btn-secondary,
+.btn-danger,
+.sortdir,
+.theme-toggle,
+.nav button {
+  border-radius: var(--control-radius);
+  font-family: inherit;
+  font-weight: 500;
+}
+
+/* Gemensam modalram */
+.modal-overlay {
+  background: var(--overlay-bg);
+}
+
+.modal-content {
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--panel-shadow);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}
+
+.modal-content input,
+.modal-content select,
+.modal-content textarea {
+  min-height: 36px;
+  padding: 8px 10px;
+}
+
+.modal-buttons button {
+  min-height: 36px;
+  padding: 8px 14px;
+  border-radius: var(--control-radius);
+  font: inherit;
+  cursor: pointer;
+}
+
+
+/* Semantiska statusfärger – delas av GreenCross, Resource och Presence */
+:root {
+  --status-green-bg: #d6ffe0;
+  --status-green-text: #0f7a1a;
+  --status-green-border: #35c759;
+  --status-yellow-bg: #fff4cc;
+  --status-yellow-text: #7a5a00;
+  --status-yellow-border: #f5b700;
+  --status-red-bg: #ffe6e6;
+  --status-red-text: #b30000;
+  --status-red-border: #d93030;
+  --status-weekend: #c62828;
+}
+:root[data-theme="dark"] {
+  --status-green-bg: #1f3d2a;
+  --status-green-text: #8eff9b;
+  --status-yellow-bg: #3b2f12;
+  --status-yellow-text: #ffd966;
+  --status-red-bg: #3a1f1f;
+  --status-red-text: #ffb3b3;
+  --status-weekend: #ff8a8a;
+}
+
+
+/* Slutlig responsiv grund – särskilt sidomeny och små skärmar */
+@media (max-width: 768px) {
+  .app.side {
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  .app.side .dashboard {
+    width: 100%;
+    height: auto;
+    flex-direction: column;
+    align-items: stretch;
+    border-right: 0;
+    border-bottom: 1px solid var(--panel-border);
+  }
+
+  .app.side .nav,
+  .app.side .logo-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .app.side .content {
+    width: 100%;
+    min-width: 0;
+    padding: 1rem;
+    overflow: visible;
+  }
+
+  .widget-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .modal-content {
+    width: calc(100% - 24px);
+    max-width: 600px;
+    padding: 1.25rem;
+  }
+
+  .modal-buttons {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .app.side .dashboard {
+    padding: 0.75rem;
+  }
+
+  .app.side .content,
+  .content {
+    padding: 0.75rem;
+  }
+
+  .widget-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+
+  .widget {
+    max-width: 100%;
+    padding: 0.8rem;
+  }
+
+  .nav {
+    width: 100%;
+  }
+
+  .nav button,
+  .nav .nav-dropdown {
+    max-width: 100%;
+  }
+
+  .modal-content {
+    width: calc(100% - 16px);
+    padding: 1rem;
+  }
+
+  .modal-buttons {
+    justify-content: stretch;
+  }
+
+  .modal-buttons button {
+    flex: 1 1 auto;
   }
 }

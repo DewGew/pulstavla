@@ -5,9 +5,11 @@ export default function Login({ onLogin }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (pending) return;
     setError("");
 
     if (!username || !password) {
@@ -15,17 +17,34 @@ export default function Login({ onLogin }) {
       return;
     }
 
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 15000);
+    setPending(true);
+
     try {
       const res = await fetch(`${API_URL}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
+        signal: controller.signal,
       });
 
-      const data = await res.json();
+      let data = {};
+      try {
+        data = await res.json();
+      } catch {
+        // Servern kan svara med ett tomt eller ogiltigt JSON-svar.
+      }
 
       if (!res.ok || !data.success) {
-        setError(data.error || "Fel användarnamn eller lösenord");
+        setError(data.error || (res.status >= 500
+          ? "Serverfel. Försök igen om en stund."
+          : "Fel användarnamn eller lösenord"));
+        return;
+      }
+
+      if (!data.token || !data.user) {
+        setError("Servern returnerade ett ogiltigt inloggningssvar.");
         return;
       }
 
@@ -33,8 +52,15 @@ export default function Login({ onLogin }) {
       localStorage.setItem("user", JSON.stringify(data.user));
       onLogin(data.user);
     } catch (err) {
-      console.error(err);
-      setError("Kunde inte ansluta till servern");
+      if (err?.name === "AbortError") {
+        setError("Inloggningen tog för lång tid. Försök igen.");
+      } else {
+        console.error("Inloggning misslyckades:", err);
+        setError("Kunde inte nå servern. Kontrollera nätverksanslutningen.");
+      }
+    } finally {
+      window.clearTimeout(timeoutId);
+      setPending(false);
     }
   }
 
@@ -63,8 +89,8 @@ export default function Login({ onLogin }) {
           required
         />
 
-        <button className="login-button" type="submit">
-          Logga in
+        <button className="login-button" type="submit" disabled={pending}>
+          {pending ? "Loggar in…" : "Logga in"}
         </button>
       </form>
     </div>

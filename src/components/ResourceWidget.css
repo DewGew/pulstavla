@@ -1,21 +1,28 @@
+/* Resource – gemensam kort-, status- och typografistil */
 .resource-list {
   display: grid;
-  grid-template-columns: repeat(4, 1fr); /* två kolumner på desktop */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
+  width: 100%;
 }
 
 .resource-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--bg-cell);
+  gap: 8px;
+  min-width: 0;
+  min-height: 60px;
+  padding: 9px 10px;
   border: 1px solid var(--panel-border);
-  padding: 5px 6px;
+  border-left: 4px solid var(--panel-border);
   border-radius: var(--cell-radius);
-  cursor: pointer;
-  transition: 0.2s;
+  background: var(--bg-cell);
   color: var(--text-cell);
-  font-size: 0.75em;
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
 }
 
 .resource-item:hover {
@@ -24,47 +31,29 @@
 }
 
 .resource-item.green {
-  background: #d6ffe0;
-  color: #0f7a1a;
-  border-left: 4px solid #35c759;
-	min-height: 60px;
+  background: var(--status-green-bg);
+  color: var(--status-green-text);
+  border-left-color: var(--status-green-border);
 }
-
-.resource-item.red {
-  background: #ffe6e6;
-  color: #b30000;
-  border-left: 4px solid #d93030;
-	min-height: 60px;
-}
-
 .resource-item.yellow {
-  background: #fff4cc;        /* varm ljusgul */
-  color: #7a5a00;             /* mörk gul/brun text */
-  border-left: 4px solid #f5b700; /* tydlig gul markering */
-	min-height: 60px;
+  background: var(--status-yellow-bg);
+  color: var(--status-yellow-text);
+  border-left-color: var(--status-yellow-border);
+}
+.resource-item.red {
+  background: var(--status-red-bg);
+  color: var(--status-red-text);
+  border-left-color: var(--status-red-border);
 }
 
-/* Dark mode kompensation */
-:root[data-theme="dark"] .resource-item.green {
-  background: #1f3d2a;
-  color: #8eff9b;
-  border-left-color: #35c759;
-}
 
-:root[data-theme="dark"] .resource-item.yellow {
-  background: #3b2f12;        /* mörk bärnstensgul */
-  color: #ffd966;             /* ljus gul text */
-  border-left-color: #f5b700;
+@media (max-width: 768px) {
+  .resource-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-
-:root[data-theme="dark"] .resource-item.red {
-  background: #3a1f1f;
-  color: #ffb3b3;
-  border-left-color: #d93030;
+@media (max-width: 480px) {
+  .resource-list { grid-template-columns: 1fr; }
+  .resource-item { min-height: 52px; padding: 8px 10px; }
 }
-
 @media screen and (min-width: 3840px) {
-	.resource-item {
-		font-size: 1.5rem;
-	}
+  .resource-item { font-size: 1.5rem; min-height: 80px; }
 }

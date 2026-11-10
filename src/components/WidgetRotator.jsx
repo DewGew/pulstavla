@@ -28,7 +28,7 @@ export default function WidgetRotator({
   };
 
   return (
-    <div className="widget-rotator">
+    <div className={`widget-rotator${paused ? " rotator-editing" : ""}`}>
       
       {/* Navigation */}
       {items.length > 1 && (

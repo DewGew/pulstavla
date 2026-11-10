@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { apiFetch } from "../api";
 import { API_URL } from "../config";
 import { socket, connectSocket } from "../socket";
 import "./EditableTextWidget.css";
+import InlineMarkdown from "./InlineMarkdown";
+import RichTextEditor from "./RichTextEditor";
 
 // FIX: read token once at module level — stable, no re-reads on every save
 const getToken = () => localStorage.getItem("token");
@@ -36,7 +39,7 @@ export default function EditableTextWidget({
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
     try {
-      const res = await fetch(`${API_URL}/widgets/${textwidgetid}`, { headers });
+      const res = await apiFetch(`/widgets/${textwidgetid}`, { headers });
 
       if (res.ok) {
         const data = await res.json();
@@ -49,7 +52,7 @@ export default function EditableTextWidget({
 
       // Widget not found — auto-create it
       if (res.status === 404) {
-        const createRes = await fetch(`${API_URL}/widgets`, {
+        const createRes = await apiFetch(`/widgets`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -118,7 +121,7 @@ export default function EditableTextWidget({
 
       const token = getToken();
 
-      const res = await fetch(`${API_URL}/widgets/${textwidgetid}`, {
+      const res = await apiFetch(`/widgets/${textwidgetid}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -158,7 +161,7 @@ export default function EditableTextWidget({
         <>
           <h3>{title}</h3>
           <p className={!text?.trim() ? "empty-state" : undefined}>
-            {text?.trim() || "Ingen text har lagts till än."}
+            <InlineMarkdown text={text?.trim() || "Ingen text har lagts till än."} />
           </p>
 
           {updatedBy && (
@@ -191,12 +194,7 @@ export default function EditableTextWidget({
             placeholder="Titel"
             autoFocus
           />
-          <textarea
-            style={{ marginTop: "7px" }}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            rows={4}
-          />
+          <RichTextEditor value={text} onChange={setText} rows={4} />
 
           {error && <p className="error">{error}</p>}
 

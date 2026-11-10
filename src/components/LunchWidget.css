@@ -9,13 +9,13 @@
 .lunch-image {
   width: 100%;
   height: auto;
-  border-radius: 8px;
+  border-radius: var(--card-radius);
   display: block;
 }
 
 .widget-loading,
 .widget-error {
-  color: #666;
+  color: var(--muted-text);
   font-size: 0.9rem;
 }
 

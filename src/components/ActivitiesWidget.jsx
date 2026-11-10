@@ -1,5 +1,5 @@
+import { apiFetch } from "../api";
 import { useEffect, useState, useCallback } from "react";
-import { API_URL } from "../config";
 import { socket } from "../socket";
 import "./ActivitiesWidget.css";
 
@@ -18,7 +18,7 @@ export default function ActivitiesWidget() {
   const loadTasks = useCallback(async () => {
     setError(null);
     try {
-      const res = await fetch(`${API_URL}/activities`, {
+      const res = await apiFetch(`/activities`, {
         // FIX: include auth header in case the endpoint requires it
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });

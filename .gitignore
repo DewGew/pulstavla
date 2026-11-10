@@ -28,3 +28,4 @@ dist-ssr
 *.env.*
 /db/
 /src/config.js
+/src/config.local.js

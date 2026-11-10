@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { API_URL, VERSION } from "../config";
+import { apiFetch } from "../api";
+import { VERSION } from "../config";
 import AdminUsers from "./AdminUsers";
 import "./Settings.css";
 
@@ -8,13 +9,12 @@ const YEAR_LABEL = (year - 2) + "/" + (year - 1)
 
 export default function Settings() {
 	const [settings, setSettings] = useState(null);
+	const [settingsError, setSettingsError] = useState("");
 
 	const [company, setCompany] = useState("");
 	const [address, setAddress] = useState("");
 	const [email, setEmail] = useState("");
 	
-	const [apiUrl, setApiUrl] = useState("");
-	const [wsUrl, setWsUrl] = useState("");
 	const [interval, setIntervalValue] = useState(10000);
 	const [lat, setLat] = useState(56.1612);
 	const [lon, setLon] = useState(15.5869);
@@ -86,17 +86,18 @@ export default function Settings() {
 
 
   useEffect(() => {
-    fetch(`${API_URL}/settings`, {
+    apiFetch(`/settings`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      })
       .then(data => {
         setSettings(data);
         setCompany(data.company || "");
 		setAddress(data.address || "");
 		setEmail(data.email || "");
-        setApiUrl(data.system?.apiUrl || "");
-        setWsUrl(data.system?.wsUrl || "");
 		setIntervalValue(data.system?.interval || 10000);
 		setLat(data.system?.lat || 56.1612);
 		setLon(data.system?.lon || 15.5869);
@@ -107,6 +108,10 @@ export default function Settings() {
         setMachineGroups(data.machines?.groups || {});
 		setChecklists(data.checklists || {});
 		setSelectedGroup(Object.keys(data.machines?.groups || {})[0] || "");
+      })
+      .catch(err => {
+        console.error("Kunde inte hämta inställningar:", err);
+        setSettingsError("Kunde inte hämta inställningar. Kontrollera anslutningen och försök igen.");
       });
   }, []);
 	
@@ -125,82 +130,77 @@ export default function Settings() {
 	}, [settings, machineGroups]);
 
   async function saveCompany() {
-	  setSaving(true);
-	  setMessage("");
+    setSaving(true);
+    setMessage("");
 
-	  await Promise.all([
-		fetch(`${API_URL}/settings/company`, {
-		  method: "PUT",
-		  headers: {
-			"Content-Type": "application/json",
-			Authorization: `Bearer ${token}`,
-		  },
-		  body: JSON.stringify({ value: company }),
-		}),
-		fetch(`${API_URL}/settings/address`, {
-		  method: "PUT",
-		  headers: {
-			"Content-Type": "application/json",
-			Authorization: `Bearer ${token}`,
-		  },
-		  body: JSON.stringify({ value: address }),
-		}),
-		fetch(`${API_URL}/settings/email`, {
-		  method: "PUT",
-		  headers: {
-			"Content-Type": "application/json",
-			Authorization: `Bearer ${token}`,
-		  },
-		  body: JSON.stringify({ value: email }),
-		}),
-	  ]);
-
-	  setSaving(false);
-	  setMessage("Företagsuppgifter sparade");
-	}
+    try {
+      const responses = await Promise.all([
+        apiFetch("/settings/company", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+          body: JSON.stringify({ value: company }),
+        }),
+        apiFetch("/settings/address", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+          body: JSON.stringify({ value: address }),
+        }),
+        apiFetch("/settings/email", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+          body: JSON.stringify({ value: email }),
+        }),
+      ]);
+      if (responses.some((res) => !res.ok)) throw new Error("Servern avvisade en eller flera uppdateringar");
+      setMessage("Företagsuppgifter sparade");
+    } catch (err) {
+      console.error("Kunde inte spara företagsuppgifter:", err);
+      setMessage("Kunde inte spara företagsuppgifter");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function saveSystem() {
     setSaving(true);
     setMessage("");
-
-    await fetch(`${API_URL}/settings/system`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        value: { apiUrl, wsUrl, interval, lat, lon, qual, qual2, yearLabel },
-      }),
-    });
-
-    setSaving(false);
-    setMessage("Systeminställningar sparade");
+    try {
+      const res = await apiFetch("/settings/system", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ value: { interval, lat, lon, qual, qual2, yearLabel } }),
+      });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      setMessage("Systeminställningar sparade");
+    } catch (err) {
+      console.error("Kunde inte spara systeminställningar:", err);
+      setMessage("Kunde inte spara systeminställningar");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function saveMachines() {
     setSaving(true);
     setMessage("");
-
-    await fetch(`${API_URL}/settings/machines`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        value: {
-          groups: machineGroups,
-          list: machines,
-        },
-      }),
-    });
-
-    setSaving(false);
-    setMessage("Resurser och grupper sparade");
+    try {
+      const res = await apiFetch("/settings/machines", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ value: { groups: machineGroups, list: machines } }),
+      });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      setMessage("Resurser och grupper sparade");
+    } catch (err) {
+      console.error("Kunde inte spara resurser och grupper:", err);
+      setMessage("Kunde inte spara resurser och grupper");
+    } finally {
+      setSaving(false);
+    }
   }
-
-  if (!settings) return <p>Laddar inställningar...</p>;
+  if (!settings) {
+    return <p role="status">{settingsError || "Laddar inställningar..."}</p>;
+  }
 
   return (
     <div className="settings-box">
@@ -300,7 +300,12 @@ export default function Settings() {
 					<h3>Om</h3>
 					<div style={{borderTop: '1px dashed var(--panel-border, #e5e7eb)', marginBottom: 10}}></div>
 					
-					<p><i>Pulstavla har version {VERSION} och är byggd på REACT/VITE webbserver ramverk till {company} av Kapima. Epost: <a href="mailto:info@kapima.se">info@kapima.se</a></i></p>
+					<div className="about-info">
+						<p><strong>Pulstavlan</strong> <span>Version {VERSION}</span></p>
+						<p>En webbaserad pulstavla för visualisering av produktion, resurser, aktiviteter och verksamhetsinformation{company ? ` hos ${company}` : ""}.</p>
+						<p>Byggd med React och Vite. Liveuppdateringar hanteras via Socket.IO.</p>
+						<p>Utveckling och support: <a href="mailto:info@kapima.se">Kapima – info@kapima.se</a></p>
+					</div>
 				</section>
 			)}
 
@@ -311,36 +316,7 @@ export default function Settings() {
 					<h3>System</h3>
 					<div style={{borderTop: '1px dashed var(--panel-border, #e5e7eb)', marginBottom: 10}}></div>
 
-					{canEdit && (
-					/* Denna Inställning fungerar inte annu */
-						<label>
-							API URL
-							<input
-								className="settings-input"
-								value={apiUrl}
-								onChange={e => setApiUrl(e.target.value)}
-							/>
-							<small style={{ display: "block", opacity: 0.7, marginBottom: 4 }}>
-								Adress till pulstavlan 
-							</small>
-						</label>
-					)}
-					{canEdit && (
-					/* Denna Inställning fungerar inte annu */
-						<label>
-							WebSocket URL
-							<input
-								className="settings-input"
-								placeholder="t.ex wss://192.168.1.100:123"
-								value={wsUrl}
-								onChange={e => setWsUrl(e.target.value)}
-							/>
-							<small style={{ display: "block", opacity: 0.7, marginBottom: 4 }}>
-								Adress för live uppdateringar.
-							</small>
-						</label>
-					)}
-					
+
 					<label>
 						Widget-rotationsintervall (ms)
 						<input
@@ -702,21 +678,23 @@ export default function Settings() {
 					<button
 						className="btn-primary"
 						onClick={async () => {
-							setSaving(true);
-							setMessage("");
-
-							await fetch(`${API_URL}/settings/checklists`, {
-								method: "PUT",
-								headers: {
-									"Content-Type": "application/json",
-									Authorization: `Bearer ${token}`,
-								},
-								body: JSON.stringify({ value: checklists }),
-							});
-
-							setSaving(false);
-							setMessage("Checklistor sparade");
-						}}
+                            setSaving(true);
+                            setMessage("");
+                            try {
+                              const res = await apiFetch("/settings/checklists", {
+                                method: "PUT",
+                                headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+                                body: JSON.stringify({ value: checklists }),
+                              });
+                              if (!res.ok) throw new Error("HTTP " + res.status);
+                              setMessage("Checklistor sparade");
+                            } catch (err) {
+                              console.error("Kunde inte spara checklistor:", err);
+                              setMessage("Kunde inte spara checklistor");
+                            } finally {
+                              setSaving(false);
+                            }
+                          }}
 					>
 						Spara checklistor
 					</button>
@@ -728,7 +706,7 @@ export default function Settings() {
 					<AdminUsers currentUser={currentUser} hideTitle flat />
 				</section>
 			)}
-      {message && <div className="profile-message success">{message}</div>}
+      {message && <div className={`profile-message ${message.startsWith("Kunde inte") ? "error" : "success"}`}>{message}</div>}
     </div>
   );
 }

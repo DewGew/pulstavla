@@ -1,5 +1,5 @@
+import { apiFetch } from "../api";
 import { useEffect, useState, useMemo } from "react";
-import { API_URL } from "../config";
 import { socket, connectSocket } from "../socket";
 import "./ProductionOrderWidget.css";
 
@@ -25,7 +25,7 @@ export default function ProductionOrderImport() {
   };
 
   const fetchOrders = () => {
-    fetch(`${API_URL}/production-orders`, {
+    apiFetch(`/production-orders`, {
       headers: localStorage.getItem("token")
         ? { Authorization: `Bearer ${localStorage.getItem("token")}` }
         : {},

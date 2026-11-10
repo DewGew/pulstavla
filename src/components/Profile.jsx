@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { apiFetch } from "../api";
 import { API_URL } from "../config";
 import "./Profile.css";
 
@@ -123,7 +124,7 @@ export default function Profile({ user, setUser, setActiveTab }) {
     const loadTasks = async () => {
       try {
         const token = localStorage.getItem("token") || "";
-        const res = await fetch(`${API_URL}/activities`, {
+        const res = await apiFetch(`/activities`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -179,7 +180,7 @@ export default function Profile({ user, setUser, setActiveTab }) {
       const body = { name, email };
       if (password) body.password = password; // uppdatera lösenord endast om angivet
 
-      const res = await fetch(`${API_URL}/users/${user._id}`, {
+      const res = await apiFetch(`/users/${user._id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

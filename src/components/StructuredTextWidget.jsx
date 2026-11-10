@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
-import { API_URL } from "../config";
+import { apiFetch } from "../api";
 import { socket, connectSocket } from "../socket";
 import "./EditableTextWidget.css";
+import InlineMarkdown from "./InlineMarkdown";
+import RichTextEditor from "./RichTextEditor";
 
 
 export default function StructuredTextWidget({
@@ -22,7 +24,7 @@ export default function StructuredTextWidget({
 
   /* ---------------- FETCH / CREATE ---------------- */
   const loadWidget = () => {
-    fetch(`${API_URL}/structured-widgets/${textwidgetid}`, {
+    apiFetch(`/structured-widgets/${textwidgetid}`, {
       headers: localStorage.getItem("token")
         ? { Authorization: `Bearer ${localStorage.getItem("token")}` }
         : {},
@@ -50,7 +52,7 @@ export default function StructuredTextWidget({
         if (!token) return;
 
         try {
-          const res = await fetch(`${API_URL}/structured-widgets`, {
+          const res = await apiFetch(`/structured-widgets`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -104,8 +106,8 @@ export default function StructuredTextWidget({
 
 			const token = localStorage.getItem("token");
 
-			const res = await fetch(
-				`${API_URL}/structured-widgets/${textwidgetid}`,
+			const res = await apiFetch(
+				`/structured-widgets/${textwidgetid}`,
 				{
 					method: "PUT",
 					headers: {
@@ -165,7 +167,7 @@ export default function StructuredTextWidget({
           {sections.map((s, i) => (
             <div key={i} style={{ textAlign: "left" }}>
               <strong>{s.subtitle}</strong>
-              <p>{s.text}</p>
+              <p><InlineMarkdown text={s.text} /></p>
             </div>
           ))}
 					
@@ -222,15 +224,7 @@ export default function StructuredTextWidget({
 									updateSection(i, "subtitle", e.target.value)
 								}
 							/>
-
-							<textarea
-								style={{ marginTop: "7px" }}
-								rows={3}
-								value={s.text}
-								onChange={(e) =>
-									updateSection(i, "text", e.target.value)
-								}
-							/>
+							<RichTextEditor rows={3} value={s.text} onChange={(value) => updateSection(i, "text", value)} />
 
 							<button
 								onClick={() => removeSection(i)}

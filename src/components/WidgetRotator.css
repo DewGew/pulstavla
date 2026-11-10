@@ -87,3 +87,8 @@
 .widget-rotator.rotator-editing .rotator-item:not(.active) {
   display: none;
 }
+/* Widget-kortet har normalt height: 100 %. Under redigering ska det följa innehållets höjd. */
+.widget-rotator.rotator-editing .rotator-item.active > .widget {
+  height: auto;
+  min-height: 0;
+}

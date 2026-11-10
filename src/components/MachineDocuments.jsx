@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { apiFetch } from "../api";
 import "./MachineDocuments.css";
 import { API_URL } from "../config";
 
@@ -30,7 +32,7 @@ export default function MachineDocuments() {
   }, []);
 
   const loadDocuments = () => {
-    fetch(`${API_URL}/documents`, {
+    apiFetch(`/documents`, {
       headers: localStorage.getItem("token")
         ? { Authorization: `Bearer ${localStorage.getItem("token")}` }
         : {},
@@ -42,7 +44,7 @@ export default function MachineDocuments() {
 
   const openDocument = async (doc, download = false) => {
     try {
-      const response = await fetch(`${API_URL}/documents/${encodeURIComponent(doc.name)}`, {
+      const response = await apiFetch(`/documents/${encodeURIComponent(doc.name)}`, {
         headers: { Authorization: `Bearer ${token || localStorage.getItem("token") || ""}` },
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -133,7 +135,7 @@ export default function MachineDocuments() {
 			const formData = new FormData();
 			formData.append("file", selectedFile);
 
-			const response = await fetch(`${API_URL}/documents`, {
+			const response = await apiFetch(`/documents`, {
 				method: "POST",
 				headers: {
 					Authorization: `Bearer ${token}`,
@@ -190,8 +192,8 @@ export default function MachineDocuments() {
 	  if (!confirmed) return;
 
 	  try {
-		const response = await fetch(
-		  `${API_URL}/documents/${encodeURIComponent(doc.name)}`,
+		const response = await apiFetch(
+		  `/documents/${encodeURIComponent(doc.name)}`,
 		  {
 			method: "DELETE",
 			headers: {
@@ -325,9 +327,9 @@ export default function MachineDocuments() {
       {/* =========================
           Förhandsvisningsmodal
          ========================= */}
-      {modalDoc && (
+      {modalDoc && createPortal(
         <div
-          className="modal"
+          className="modal-overlay"
           onClick={closeModal}
         >
           <div
@@ -357,15 +359,16 @@ export default function MachineDocuments() {
               <p>Förhandsvisning ej tillgänglig</p>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* =========================
           Uppladdningsmodal
          ========================= */}
-      {uploadModal && (
+      {uploadModal && createPortal(
         <div
-          className="modal"
+          className="modal-overlay"
           onClick={closeUploadModal}
         >
           <div
@@ -440,7 +443,8 @@ export default function MachineDocuments() {
 
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

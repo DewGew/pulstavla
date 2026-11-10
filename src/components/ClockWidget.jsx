@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
+import { apiFetch } from "../api";
 import { API_URL } from "../config";
 import { socket } from "../socket";
 import "./ClockWidget.css";
@@ -100,7 +101,7 @@ export default function ClockWidget({
 
   const fetchVisitor = useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/widgets/${VISITOR_WIDGET_ID}`);
+      const res = await apiFetch(`/widgets/${VISITOR_WIDGET_ID}`);
 
       if (res.ok) {
         const data = await res.json();
@@ -110,7 +111,7 @@ export default function ClockWidget({
 
       // Widgeten finns inte än — skapa den tom
       if (res.status === 404) {
-        const createRes = await fetch(`${API_URL}/widgets`, {
+        const createRes = await apiFetch(`/widgets`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -171,7 +172,7 @@ export default function ClockWidget({
     setVisitorError(null);
 
     try {
-      const res = await fetch(`${API_URL}/widgets/${VISITOR_WIDGET_ID}`, {
+      const res = await apiFetch(`/widgets/${VISITOR_WIDGET_ID}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

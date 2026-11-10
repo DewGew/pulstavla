@@ -13,7 +13,10 @@ export function SettingsProvider({ children }) {
 	function logout() {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
-  };
+    // App äger användarstate och socket; meddela att sessionen har upphört.
+    window.dispatchEvent(new Event("authExpired"));
+    window.dispatchEvent(new Event("authChanged"));
+  }
 
   const apiFetch = createApi(logout);
 

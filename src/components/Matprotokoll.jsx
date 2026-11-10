@@ -1,5 +1,6 @@
 // Matprotokoll.jsx
 import React, { useState, useEffect, useMemo } from "react";
+import { apiFetch } from "../api";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { useSettings, addPDFHeader, addPDFFooter } from "./SettingsContext";
@@ -252,7 +253,7 @@ export default function Matprotokoll() {
   const [users, setUsers] = useState([]);
 
   useEffect(() => {
-    fetch(`${API_URL}/presence/users`, {
+    apiFetch(`/presence/users`, {
       headers: localStorage.getItem("token")
         ? { Authorization: `Bearer ${localStorage.getItem("token")}` }
         : {},
@@ -326,7 +327,7 @@ export default function Matprotokoll() {
 
     setIsSavingDb(true);
     try {
-      const res = await fetch(`${API_URL}/matprotokoll/${encodeURIComponent(id)}`, {
+      const res = await apiFetch(`/matprotokoll/${encodeURIComponent(id)}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -352,7 +353,7 @@ export default function Matprotokoll() {
   const loadSavedList = async () => {
     setOpenListLoading(true);
     try {
-      const res = await fetch(`${API_URL}/matprotokoll`, {
+      const res = await apiFetch(`/matprotokoll`, {
         headers: localStorage.getItem("token")
           ? { Authorization: `Bearer ${localStorage.getItem("token")}` }
           : {},
@@ -388,7 +389,7 @@ export default function Matprotokoll() {
 
   const openSaved = async (matprotokollId) => {
     try {
-      const res = await fetch(`${API_URL}/matprotokoll/${encodeURIComponent(matprotokollId)}`, {
+      const res = await apiFetch(`/matprotokoll/${encodeURIComponent(matprotokollId)}`, {
         headers: localStorage.getItem("token")
           ? { Authorization: `Bearer ${localStorage.getItem("token")}` }
           : {},
@@ -410,7 +411,7 @@ export default function Matprotokoll() {
 
     setIsDeleting(true);
     try {
-      const res = await fetch(`${API_URL}/matprotokoll/${encodeURIComponent(matprotokollId)}`, {
+      const res = await apiFetch(`/matprotokoll/${encodeURIComponent(matprotokollId)}`, {
         method: "DELETE",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
@@ -632,7 +633,7 @@ export default function Matprotokoll() {
   const [productionOrders, setProductionOrders] = useState([]);
 
   useEffect(() => {
-    fetch(`${API_URL}/production-orders`, {
+    apiFetch(`/production-orders`, {
       headers: localStorage.getItem("token")
         ? { Authorization: `Bearer ${localStorage.getItem("token")}` }
         : {},
