@@ -1111,3 +1111,20 @@ textarea:disabled {
     flex: 1 1 auto;
   }
 }
+
+
+/* Kompaktare navigeringsknappar på Full HD-skärmar (t.ex. 24 tum) */
+@media screen and (min-width: 1600px) and (max-width: 2199px) and (orientation: landscape) {
+  .nav {
+    gap: 7px;
+  }
+
+  .nav button {
+    font-size: .9rem;
+    padding: .54rem .99rem;
+  }
+
+  .nav .nav-dropdown {
+    width: 144px;
+  }
+}
