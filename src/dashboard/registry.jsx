@@ -74,7 +74,7 @@ export const WIDGET_TYPES = {
   },
   quality: {
     group: "Produktion", label: "Grönt kors", icon: "➕", desc: "Dagsstatus per månad (t.ex. Säkerhet, Kvalitet)",
-    size: { w: 3, h: 3 },
+    size: { w: 3, h: 4 },
     fields: [
       { key: "crossId", label: "Id (unik per kors, t.ex. safety)", type: "text", default: "safety" },
       { key: "title", label: "Rubrik", type: "text", default: "Miljö/Säkerhet" },
