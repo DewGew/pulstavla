@@ -118,3 +118,42 @@
   .gc-legend-row { font-size: 1.4rem; }
   .gc-controls select, .gc-controls input { font-size: 1.5rem; }
 }
+
+/* Kompakt GreenCross-layout för 3x4-dashboardwidget */
+.green-cross-widget .gc-controls {
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.green-cross-widget .gc-controls select,
+.green-cross-widget .gc-controls input {
+  min-height: 30px;
+  padding: 4px 8px;
+  font-size: 0.82rem;
+}
+
+.green-cross-widget .gc-row {
+  gap: 3px;
+  margin-bottom: 3px;
+}
+
+.green-cross-widget .gc-cell,
+.green-cross-widget .gc-empty {
+  height: 29px;
+}
+
+.green-cross-widget .gc-cell {
+  font-size: 0.82rem;
+}
+
+.green-cross-widget .gc-legend-row {
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 0.72rem;
+}
+
+.green-cross-widget .gc-counts,
+.green-cross-widget .gc-counts div {
+  gap: 4px;
+}
+
