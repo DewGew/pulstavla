@@ -6,7 +6,17 @@ import { Server } from "socket.io";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { PORT } from "./src/config.js";
+import registerKpis from "./server/kpis.js";
+
+// PORT: miljövariabel först, sedan (bakåtkompatibelt) src/config.local.js, annars 3000.
+let PORT = Number(process.env.PORT) || 0;
+if (!PORT) {
+  try {
+    ({ PORT } = await import("./src/config.local.js"));
+  } catch {
+    PORT = 3000;
+  }
+}
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET || JWT_SECRET.length < 32) {
@@ -64,7 +74,8 @@ function validateUploadedFile(allowedExtensions) {
       docx: header[0] === 0x50 && header[1] === 0x4b,
       xlsx: header[0] === 0x50 && header[1] === 0x4b,
       doc: header.subarray(0,8).equals(Buffer.from([0xd0,0xcf,0x11,0xe0,0xa1,0xb1,0x1a,0xe1])),
-      xls: header.subarray(0,8).equals(Buffer.from([0xd0,0xcf,0x11,0xe0,0xa1,0xb1,0x1a,0xe1]))
+      xls: header.subarray(0,8).equals(Buffer.from([0xd0,0xcf,0x11,0xe0,0xa1,0xb1,0x1a,0xe1])),
+      csv: !header.includes(0)
     };
     if (!allowed || !signatures[ext]) {
       fs.unlink(req.file.path, () => {});
@@ -76,6 +87,7 @@ function validateUploadedFile(allowedExtensions) {
 const imageFileTypes = { png:true, jpg:true, jpeg:true, webp:true, gif:true };
 const documentFileTypes = { pdf:true, doc:true, docx:true, xls:true, xlsx:true, png:true, jpg:true, jpeg:true };
 const spreadsheetFileTypes = { xls:true, xlsx:true };
+const kpiImportFileTypes = { xls:true, xlsx:true, csv:true };
 
 function cleanText(html) {
   return html
@@ -1971,6 +1983,13 @@ app.get("/production-orders", requireAuth, (req, res) => {
 
       res.json(docs);
     });
+});
+
+/* ---------------- NYCKELTAL (KPI) ---------------- */
+registerKpis({
+  app, io, Datastore, xlsx, fs,
+  requireAuth, requireAdmin, requireEditor,
+  upload, validateUploadedFile, kpiImportFileTypes,
 });
 
 /* ---------------- SERVE VITE BUILD ---------------- */
