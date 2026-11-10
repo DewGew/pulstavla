@@ -90,24 +90,28 @@ export default function DashboardView({ user }) {
 
   const cfg = editing ? draft : config;
   const items = cfg.items;
-  const active = items.find((d) => d.id === activeId) || items[0];
+  // I normalt läge visas bara dashboards för aktuell skärmtyp samt dashboards
+  // utan valt format (som då gäller på alla skärmar). I redigeringsläget visas alla.
+  const visibleItems = editing || forcedId
+    ? items
+    : items.filter((d) => !d.format || d.format === screenFormat);
+  const active = visibleItems.find((d) => d.id === activeId) || visibleItems[0] || null;
 
   // Välj automatiskt den dashboard som är avsedd för aktuell skärm.
   // Äldre dashboards utan format används som reserv om ingen exakt matchning finns.
   useEffect(() => {
-    if (editing || forcedId || !items.length) return;
-    const matching = items.find((d) => d.format === screenFormat);
-    const fallback = items.find((d) => !d.format) || items[0];
-    const target = matching || fallback;
+    if (editing || forcedId) return;
+    const target = visibleItems.find((d) => d.id === activeId) || visibleItems[0];
     if (target) setActiveId((current) => current === target.id ? current : target.id);
-  }, [screenFormat, items, editing, forcedId]);
+    else setActiveId(null);
+  }, [screenFormat, visibleItems, activeId, editing, forcedId]);
 
   useEffect(() => {
     if (active && !forcedId) localStorage.setItem("activeDashboard", active.id);
   }, [active, forcedId]);
 
   /* ---------- Rotation mellan dashboards ---------- */
-  const rotating = items.filter((d) => d.inRotation !== false);
+  const rotating = visibleItems.filter((d) => d.inRotation !== false);
   useEffect(() => {
     const secs = Number(cfg.rotateSeconds) || 0;
     if (editing || paused || forcedId || secs <= 0 || rotating.length < 2) return;
@@ -123,10 +127,10 @@ export default function DashboardView({ user }) {
   /* ---------- Swipe byter dashboard (touchskärm) ---------- */
   const touch = useRef(null);
   const go = useCallback((dir) => {
-    const i = items.findIndex((d) => d.id === active.id);
-    const n = items[clamp(i + dir, 0, items.length - 1)];
+    const i = visibleItems.findIndex((d) => d.id === active.id);
+    const n = visibleItems[clamp(i + dir, 0, visibleItems.length - 1)];
     if (n) setActiveId(n.id);
-  }, [items, active]);
+  }, [visibleItems, active]);
   const onTouchStart = (e) => {
     touch.current = editing || e.target.closest("[data-no-swipe]") ? null : { x: e.touches[0].clientX, y: e.touches[0].clientY };
   };
@@ -182,9 +186,9 @@ export default function DashboardView({ user }) {
   };
 
   const ctx = useMemo(() => ({ user, canEdit, settings, setPause: setPaused }), [user, canEdit, settings]);
-  const rows = countRows(active.widgets);
-  const fit = active.fit !== false;
-  const selected = active.widgets.find((w) => w.id === selectedId);
+  const rows = active ? countRows(active.widgets) : 1;
+  const fit = active?.fit !== false;
+  const selected = active?.widgets.find((w) => w.id === selectedId);
 
   return (
     <div className="dash" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
@@ -192,7 +196,7 @@ export default function DashboardView({ user }) {
       {!forcedId && (items.length > 1 || canEdit) && (
         <div className="dash-toolbar">
           <div className="dash-tabs" role="tablist">
-            {items.map((d) => (
+            {visibleItems.map((d) => (
               <button key={d.id} role="tab" aria-selected={d.id === active.id} className={d.id === active.id ? "active" : ""} onClick={() => setActiveId(d.id)}>
                 {d.name}
               </button>
@@ -217,9 +221,10 @@ export default function DashboardView({ user }) {
           <label>Namn <input value={active.name} onChange={(e) => updateActive((d) => ({ ...d, name: e.target.value }))} /></label>
           <label>Visningsformat
             <select
-              value={active.format || screenFormat}
+              value={active.format || ""}
               onChange={(e) => updateActive((d) => ({ ...d, format: e.target.value }))}
             >
+              <option value="">Alla skärmar</option>
               {SCREEN_FORMATS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
           </label>
@@ -231,23 +236,29 @@ export default function DashboardView({ user }) {
       )}
 
       {/* Rutnät */}
-      <Grid
-        key={active.id}
-        widgets={active.widgets}
-        rows={rows}
-        fit={fit}
-        editing={editing}
-        selectedId={selectedId}
-        onSelect={setSelectedId}
-        onResize={(id, w, h) => updateWidget(id, { w, h })}
-        onRemove={removeWidget}
-        onMove={moveWidget}
-        ctx={ctx}
-      />
-      {active.widgets.length === 0 && (
-        <div className="kpi-empty big">
-          {editing ? "Tom dashboard – klicka på ”Lägg till widget”." : "Dashboarden är tom."}
-        </div>
+      {active ? (
+        <>
+          <Grid
+            key={active.id}
+            widgets={active.widgets}
+            rows={rows}
+            fit={fit}
+            editing={editing}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            onResize={(id, w, h) => updateWidget(id, { w, h })}
+            onRemove={removeWidget}
+            onMove={moveWidget}
+            ctx={ctx}
+          />
+          {active.widgets.length === 0 && (
+            <div className="kpi-empty big">
+              {editing ? "Tom dashboard – klicka på ”Lägg till widget”." : "Dashboarden är tom."}
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="kpi-empty big">Ingen dashboard är tilldelad den här skärmtypen.</div>
       )}
 
       {editing && selected && (
