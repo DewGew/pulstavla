@@ -99,7 +99,7 @@ export default function DashboardView({ user }) {
     const matching = items.find((d) => d.format === screenFormat);
     const fallback = items.find((d) => !d.format) || items[0];
     const target = matching || fallback;
-    if (target && target.id !== activeId) setActiveId(target.id);
+    if (target) setActiveId((current) => current === target.id ? current : target.id);
   }, [screenFormat, items, editing, forcedId]);
 
   useEffect(() => {
