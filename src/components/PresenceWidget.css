@@ -42,11 +42,11 @@
 /* Ultra 4K Presence sizing based on master styles */
 @media screen and (min-width: 3200px) {
   .app.ultra4k .presence-name {
-    font-size: 2rem !important;
+    font-size: 1.8rem !important;
   }
 
   .app.ultra4k .presence-status {
-    font-size: 1.5rem !important;
+    font-size: 1.35rem !important;
   }
 
   .app.ultra4k .presence-item {
