@@ -132,12 +132,12 @@
 
 /* Ultra 4K text scale: 20% */
 @media screen and (min-width: 3200px) {
-  .app.ultra4k .content :is(.analog-clock-date) { font-size: 1.26rem !important; }
-  .app.ultra4k .content :is(/* ---------------- VÄDER ---------------- */
-.clock-weather) { font-size: 1.2rem !important; }
-  .app.ultra4k .content :is(.weather-icon) { font-size: 1.68rem !important; }
-  .app.ultra4k .content :is(.weather-range) { font-size: 1.02rem !important; }
-  .app.ultra4k .content :is(.weather-loading) { font-size: 1.02rem !important; }
-  .app.ultra4k .content :is(.weather-error) { font-size: 1.02rem !important; }
-  .app.ultra4k .content :is(.clock-visitor .edit-btn) { font-size: 15.6px !important; }
+  .app.ultra4k .content :is(.analog-clock-date):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.26rem !important; }
+  .app.ultra4k .content :is(.clock-weather):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.2rem !important; }
+  .app.ultra4k .content :is(.weather-icon):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.68rem !important; }
+  .app.ultra4k .content :is(.weather-range):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.02rem !important; }
+  .app.ultra4k .content :is(.weather-loading):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.02rem !important; }
+  .app.ultra4k .content :is(.weather-error):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.02rem !important; }
+  .app.ultra4k .content :is(.clock-visitor .edit-btn):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 15.6px !important; }
+  .app.ultra4k .content :is(.clock-visitor):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 2.64rem !important; }
 }
