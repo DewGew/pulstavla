@@ -149,7 +149,7 @@ h1 span{
 }
 
 .nav button {
-  font-size: 1rem;
+  font-size: .9rem;
   padding: 0.6rem 1.1rem;
   background: var(--panel);
   border: 1px solid var(--panel-border);
@@ -760,56 +760,35 @@ margin-bottom: 1rem;
 }
 
 @media screen and (min-width: 3840px) {
-	.login-box{
-		max-width: 20vw !important;
-		height: 15vw !important;
-	}
-	
-	.widget {
-		min-height: 972px;
-	}
-	
-	.widget h3 {
-	}
-	
-	.dashboard {
-		height: 135px;
-	}
-	.logo {
-	}
-	.logo-icon {
-	}
-	.today-date {
-	}
-	.nav button {
-	}
-	.btn-primary, .btn-danger, .btn-secondary {
-	}
-	.widget-grid {
-	  grid-template-columns: repeat(6, 1fr);
-	}
-	.widget-meta {
-	}
-	.app.side h1,
-	.app.side .logo-icon {
-	}
-	.widget-top {
-	  display: block;
-	}
-	.widget-top h2 {
-	}
-	.pagination-dots .dot {
-	  width: 35px;
-	  height: 35px;
-	}
-	.edit-btn {
-		font-size: 2rem !important;
-	}
-	.app.side .dashboard {
-		width: 370px;
-	}
-	.sortdir {
-	}
+  .login-box {
+    max-width: 20vw !important;
+    height: 15vw !important;
+  }
+
+  .widget {
+    min-height: 972px;
+  }
+
+  .dashboard {
+    height: 135px;
+  }
+
+  .widget-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  .widget-top {
+    display: block;
+  }
+
+  .pagination-dots .dot {
+    width: 35px;
+    height: 35px;
+  }
+
+  .app.side .dashboard {
+    width: 370px;
+  }
 }
 
 /* ================= Portrait Mode (stående skärm) ================= */
