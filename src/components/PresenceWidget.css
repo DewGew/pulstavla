@@ -38,3 +38,19 @@
   .app.ultra4k :is(.presence-status):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 0.864rem !important; }
   .app.ultra4k :is(.presence-widget .gc-legend-row):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 0.84rem !important; }
 }
+
+
+/* Ultra 4K Presence sizing based on master styles */
+@media screen and (min-width: 3200px) {
+  .app.ultra4k .presence-name {
+    font-size: 2rem !important;
+  }
+
+  .app.ultra4k .presence-status {
+    font-size: 1.5rem !important;
+  }
+
+  .app.ultra4k .presence-item {
+    min-height: 80px !important;
+  }
+}
