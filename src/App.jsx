@@ -237,7 +237,7 @@ export default function App() {
 	  window.matchMedia("(orientation: portrait)").matches
 	);
 	const [is4K, setIs4K] = useState(
-	  (!isAndroidLargeScreen && window.matchMedia("(min-width: 3840px)").matches)
+	  (!isAndroidLargeScreen && window.matchMedia("(min-width: 3200px)").matches)
 	);
 
 	const [isDesktop4K, setIsDesktop4K] = useState(
@@ -246,7 +246,7 @@ export default function App() {
 
 	useEffect(() => {
 	  const orientationMedia = window.matchMedia("(orientation: portrait)");
-	  const fourKMedia = window.matchMedia("(min-width: 3840px)");
+	  const fourKMedia = window.matchMedia("(min-width: 3200px)");
 	  const desktop4KMedia = window.matchMedia("(min-width: 2560px)");
 
 	  const handleOrientation = (e) => setIsPortrait(e.matches);
