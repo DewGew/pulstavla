@@ -224,29 +224,10 @@
 
 /* Kompaktare typografi för Full HD och liknande desktopvyer */
 /* Gemensam typografi: Full HD (1920) är bas för alla skärmformat. */
-{
-  .dash {
-    font-size: 90%;
-  }
-
-  .dash .kpi-value {
-    font-size: clamp(1.62rem, 11.7cqi, 4.05rem);
-  }
-
-  .dash .kpi-unit {
-    font-size: clamp(.72rem, 2.7cqi, .99rem);
-  }
-
-  .dash .kpi-sub {
-    font-size: clamp(.675rem, 2.25cqi, .81rem);
-  }
-
-  .dash .kpi-table {
-    font-size: clamp(.72rem, 1.8cqi, .9rem);
-  }
-
-  .dash .kpi-date,
-  .dash .kpi-hint {
-    font-size: 90%;
-  }
-}
+.dash { font-size: 90%; }
+.dash .kpi-value { font-size: clamp(1.62rem, 11.7cqi, 4.05rem); }
+.dash .kpi-unit { font-size: clamp(.72rem, 2.7cqi, .99rem); }
+.dash .kpi-sub { font-size: clamp(.675rem, 2.25cqi, .81rem); }
+.dash .kpi-table { font-size: clamp(.72rem, 1.8cqi, .9rem); }
+.dash .kpi-date,
+.dash .kpi-hint { font-size: 90%; }
