@@ -1146,12 +1146,12 @@ textarea:disabled {
     flex-direction: row;
     flex-wrap: nowrap;
     align-items: center;
-    justify-content: center;
-    gap: 12px;
+    justify-content: flex-start;
+    gap: 18px;
     width: 100%;
-    min-height: 88px;
+    min-height: 104px;
     margin: 0;
-    padding: 12px 24px;
+    padding: 14px 32px;
     background: var(--panel);
     border-top: 1px solid var(--panel-border);
     box-shadow: 0 -3px 12px rgba(0, 0, 0, 0.12);
@@ -1162,6 +1162,13 @@ textarea:disabled {
     width: auto;
     white-space: nowrap;
     text-align: center;
+    font-size: 1.3rem;
+    padding: 16px 24px;
+  }
+
+  .app.ultra4k .nav .nav-dropdown-menu button {
+    font-size: 1.15rem;
+    padding: 14px 18px;
   }
 
   .app.ultra4k .nav .nav-dropdown,
@@ -1181,6 +1188,6 @@ textarea:disabled {
   .app.ultra4k.side .content {
     flex: 1;
     min-width: 0;
-    padding-bottom: 120px;
+    padding-bottom: 136px;
   }
 }
