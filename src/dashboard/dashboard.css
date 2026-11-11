@@ -258,3 +258,11 @@
 .dash .kpi-table { font-size: clamp(.72rem, 1.8cqi, .9rem); }
 .dash .kpi-date,
 .dash .kpi-hint { font-size: 90%; }
+
+
+/* Nyckeltalsadministration – samma kompakta sidtypografi som övriga sidor */
+.kpi-admin { font-size: .9rem; line-height: 1.45; }
+.kpi-admin h2 { font-size: 1.35rem; line-height: 1.25; }
+.kpi-admin h3 { font-size: 1.05rem; line-height: 1.3; }
+.kpi-admin button, .kpi-admin input, .kpi-admin select, .kpi-admin textarea { font-size: .9rem; }
+.kpi-admin table { font-size: .9rem; }
