@@ -111,23 +111,19 @@
   }
 
   .analog-clock-date {
-    font-size: 2.5rem;
-  }
+    }
 
   .clock-weather {
-    font-size: 2.5rem;
-  }
+    }
   .clock-visitor {
 	  font-size: 2.2rem
   }
 
   .weather-icon {
-    font-size: 4.4rem;
-  }
+    }
 
   .weather-range {
-    font-size: 2.5rem;
-  }
+    }
   
   .today-date {
 	display: none;
