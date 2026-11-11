@@ -205,3 +205,15 @@
 .documents h2 { font-size: 1.35rem; line-height: 1.25; }
 .documents button, .documents input, .documents select, .documents textarea { font-size: .9rem; }
 .documents li { line-height: 1.4; }
+
+/* Ultra 4K text scale: 20% */
+@media screen and (min-width: 3200px) {
+  .app.ultra4k .content :is(.close) { font-size: 28.8px !important; }
+  .app.ultra4k .content :is(/* Enhetlig typografi för Dokument */
+.documents) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(.documents h2) { font-size: 1.62rem !important; }
+  .app.ultra4k .content :is(.documents button) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(.documents input) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(.documents select) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(.documents textarea) { font-size: 1.08rem !important; }
+}
