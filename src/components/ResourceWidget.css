@@ -27,6 +27,5 @@
 .resource-widget .gc-legend-row > div { white-space: nowrap; }
 @media (max-width: 480px) { .resource-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (min-width: 3840px) {
-  .resource-item { font-size: 1.25rem; min-height: 54px; }
-  .resource-widget .gc-legend-row { font-size: 1rem; }
+  .resource-item { min-height: 54px; }
 }
