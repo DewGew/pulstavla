@@ -1232,7 +1232,9 @@ textarea:disabled {
 /* Ultra 4K inherited text fallback: scale text without an explicit font-size rule.
    Navigation and dashboard toolbar keep their existing button sizes. */
 @media screen and (min-width: 3200px) {
-  .app.ultra4k { font-size: 1.2rem; }
+  /* Basstorlek för allt innehåll. Komponenternas egna font-size-regler
+     skalas separat i respektive komponent-CSS. */
+  .app.ultra4k .content { font-size: 1.2rem !important; }
   .app.ultra4k .nav,
   .app.ultra4k .dash-toolbar { font-size: 1rem; }
 }
