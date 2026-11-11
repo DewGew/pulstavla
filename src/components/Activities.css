@@ -279,3 +279,10 @@
 	.modal-content select {
 		}
 }
+
+/* Ultra 4K text scale: 20% */
+@media screen and (min-width: 3200px) {
+  .app.ultra4k .content :is(/* Metadata */
+.task-meta) { font-size: 1.02rem !important; }
+  .app.ultra4k .content :is(.locked-note) { font-size: 1.02rem !important; }
+}
