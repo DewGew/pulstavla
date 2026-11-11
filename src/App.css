@@ -1228,3 +1228,11 @@ textarea:disabled {
   .app.ultra4k :is(.profile-box select):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.08rem !important; }
   .app.ultra4k :is(.profile-box textarea):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.08rem !important; }
 }
+
+/* Ultra 4K inherited text fallback: scale text without an explicit font-size rule.
+   Navigation and dashboard toolbar keep their existing button sizes. */
+@media screen and (min-width: 3200px) {
+  .app.ultra4k { font-size: 1.2rem; }
+  .app.ultra4k .nav,
+  .app.ultra4k .dash-toolbar { font-size: 1rem; }
+}
