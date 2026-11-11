@@ -83,15 +83,11 @@
 
 @media screen and (min-width: 3840px) {
 	.orders-box h2 {
-		font-size: 4rem;
-	}
+		}
 	.orders-input{
-		font-size: 2rem;
-	}
+		}
 	.orders-section {
-		font-size: 3rem;
-	}
+		}
 	.orders-table {
-		font-size: 2.5rem;
-	}
+		}
 }
