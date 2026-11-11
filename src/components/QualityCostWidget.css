@@ -181,3 +181,19 @@
 	.qualityCostWidget .delta-badge {
 	  }
 }
+
+/* Ultra 4K text scale: 20% */
+@media screen and (min-width: 3200px) {
+  .app.ultra4k .content :is(.qualityCostWidget .edit-btn) { font-size: 15.6px !important; }
+  .app.ultra4k .content :is(.qualityCostWidget .summary-label) { font-size: 13.2px !important; }
+  .app.ultra4k .content :is(.qualityCostWidget .summary-value) { font-size: 24px !important; }
+  .app.ultra4k .content :is(.qualityCostWidget .delta-badge) { font-size: 16.8px !important; }
+  .app.ultra4k .content :is(.qualityCostWidget .delta-arrow) { font-size: 12px !important; }
+  .app.ultra4k .content :is(.cost-table th) { font-size: 16.8px !important; }
+  .app.ultra4k .content :is(.cost-table td) { font-size: 16.8px !important; }
+  .app.ultra4k .content :is(.cost-table th) { font-size: 16.8px !important; }
+  .app.ultra4k .content :is(.cost) { font-size: 16.8px !important; }
+  .app.ultra4k .content :is(.qualityCostWidget .prev) { font-size: 16.8px !important; }
+  .app.ultra4k .content :is(.qualityCostWidget .total) { font-size: 18px !important; }
+  .app.ultra4k .content :is(.qualityCostWidget .title-input) { font-size: 18px !important; }
+}
