@@ -524,3 +524,39 @@
 .mätprotokoll-table input,
 .mätprotokoll-table select,
 .mätprotokoll-table textarea { font-size: .9rem; }
+
+/* Ultra 4K text scale: 20% */
+@media screen and (min-width: 3200px) {
+  .app.ultra4k .content :is(.mätprotokoll-field label) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(.mätprotokoll-field input) { font-size: 1.2rem !important; }
+  .app.ultra4k .content :is(.mätprotokoll-field select) { font-size: 1.2rem !important; }
+  .app.ultra4k .content :is(.mätprotokoll-field input) { font-size: 1.2rem !important; }
+  .app.ultra4k .content :is(.mätprotokoll-table input) { font-size: 1.14rem !important; }
+  .app.ultra4k .content :is(.mätprotokoll-table select) { font-size: 1.14rem !important; }
+  .app.ultra4k .content :is(/* ===================== REMOVE BUTTON ===================== */
+
+.mätprotokoll-remove) { font-size: 1.32rem !important; }
+  .app.ultra4k .content :is(/* ===================== EMPTY / HELP ===================== */
+
+.mätprotokoll-hint) { font-size: 1.02rem !important; }
+  .app.ultra4k .content :is(.mätprotokoll-openpanel-filter input[type="text"]) { font-size: 1.14rem !important; }
+  .app.ultra4k .content :is(.mätprotokoll-openpanel-sort) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(.mätprotokoll-openpanel-sort select) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(.mätprotokoll-openpanel-sort input) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(.mätprotokoll-openpanel-sortdir) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(.mätprotokoll-openpanel-empty) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(/* Enhetlig) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(kompakt typografi för Mätprotokoll även på 4K */
+.mätprotokoll-container) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(.mätprotokoll-container h2) { font-size: 1.62rem !important; }
+  .app.ultra4k .content :is(.mätprotokoll-container h3) { font-size: 1.26rem !important; }
+  .app.ultra4k .content :is(.mätprotokoll-container label) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(.mätprotokoll-container input) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(.mätprotokoll-container select) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(.mätprotokoll-container textarea) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(.mätprotokoll-container button) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(.mätprotokoll-table) { font-size: 1.02rem !important; }
+  .app.ultra4k .content :is(.mätprotokoll-table input) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(.mätprotokoll-table select) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(.mätprotokoll-table textarea) { font-size: 1.08rem !important; }
+}
