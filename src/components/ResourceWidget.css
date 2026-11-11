@@ -32,7 +32,7 @@
 
 /* Ultra 4K text scale: 20% */
 @media screen and (min-width: 3200px) {
-  .app.ultra4k .content :is(.resource-item) { font-size: 0.936rem !important; }
-  .app.ultra4k .content :is(.resource-item small) { font-size: 1.08em !important; }
-  .app.ultra4k .content :is(.resource-widget .gc-legend-row) { font-size: 0.84rem !important; }
+  .app.ultra4k .content :is(.resource-item):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 0.936rem !important; }
+  .app.ultra4k .content :is(.resource-item small):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.08em !important; }
+  .app.ultra4k .content :is(.resource-widget .gc-legend-row):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 0.84rem !important; }
 }
