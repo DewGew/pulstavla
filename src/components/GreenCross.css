@@ -158,10 +158,10 @@
 
 /* Ultra 4K text scale: 20% */
 @media screen and (min-width: 3200px) {
-  .app.ultra4k .content :is(.gc-flag) { font-size: 21.6px !important; }
-  .app.ultra4k .content :is(.gc-legend-row) { font-size: 1.02rem !important; }
-  .app.ultra4k .content :is(.green-cross-widget .gc-controls select) { font-size: 0.984rem !important; }
-  .app.ultra4k .content :is(.green-cross-widget .gc-controls input) { font-size: 0.984rem !important; }
-  .app.ultra4k .content :is(.green-cross-widget .gc-cell) { font-size: 0.984rem !important; }
-  .app.ultra4k .content :is(.green-cross-widget .gc-legend-row) { font-size: 0.864rem !important; }
+  .app.ultra4k .content :is(.gc-flag):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 21.6px !important; }
+  .app.ultra4k .content :is(.gc-legend-row):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.02rem !important; }
+  .app.ultra4k .content :is(.green-cross-widget .gc-controls select):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 0.984rem !important; }
+  .app.ultra4k .content :is(.green-cross-widget .gc-controls input):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 0.984rem !important; }
+  .app.ultra4k .content :is(.green-cross-widget .gc-cell):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 0.984rem !important; }
+  .app.ultra4k .content :is(.green-cross-widget .gc-legend-row):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 0.864rem !important; }
 }
