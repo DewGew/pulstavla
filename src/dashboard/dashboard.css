@@ -202,9 +202,36 @@
 .kpi-admin { max-width: 1100px; margin: 0 auto; display: grid; gap: 1.25rem; min-width: 0; }
 .kpi-admin section { background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--card-radius, 12px); padding: 1rem 1.25rem; min-width: 0; box-sizing: border-box; }
 .kpi-admin h2, .kpi-admin h3 { margin-top: 0; }
-.kpi-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); gap: .75rem; align-items: end; }
-.kpi-form label { display: flex; flex-direction: column; gap: .25rem; font-size: .85rem; min-width: 0; }
-.kpi-form input, .kpi-form select { min-width: 0; max-width: 100%; box-sizing: border-box; padding: .45rem .55rem; border: 1px solid var(--panel-border); border-radius: 6px; background: transparent; color: inherit; font: inherit; }
+.kpi-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr));
+  gap: 1rem;
+  align-items: end;
+  min-width: 0;
+}
+.kpi-form label {
+  display: flex;
+  flex-direction: column;
+  gap: .45rem;
+  font-size: .95rem;
+  line-height: 1.4;
+  min-width: 0;
+}
+.kpi-form input, .kpi-form select {
+  min-width: 0;
+  max-width: 100%;
+  min-height: 42px;
+  box-sizing: border-box;
+  padding: .55rem .7rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: 1.35;
+}
+.kpi-form .kpi-row-actions { align-self: end; padding-bottom: 1px; }
+.kpi-admin > section > p { line-height: 1.55; margin-bottom: .85rem; }
 .kpi-rowlist { display: grid; gap: .5rem; min-width: 0; }
 .kpi-row { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr) auto; gap: .75rem; align-items: center; padding: .6rem .75rem; border: 1px solid var(--panel-border); border-radius: 10px; min-width: 0; }
 .kpi-row.open { border-color: var(--accent); }
