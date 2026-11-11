@@ -102,17 +102,16 @@
 
 /* Ultra 4K text scale: 20% */
 @media screen and (min-width: 3200px) {
-  .app.ultra4k .content :is(/* Enhetlig typografi för Inställningar */
-.settings-box) { font-size: 1.08rem !important; }
-  .app.ultra4k .content :is(.settings-box h2) { font-size: 1.62rem !important; }
-  .app.ultra4k .content :is(.settings-box h3) { font-size: 1.26rem !important; }
-  .app.ultra4k .content :is(.settings-box label) { font-size: 1.08rem !important; }
-  .app.ultra4k .content :is(.settings-box button) { font-size: 1.08rem !important; }
-  .app.ultra4k .content :is(.settings-box input) { font-size: 1.08rem !important; }
-  .app.ultra4k .content :is(.settings-box select) { font-size: 1.08rem !important; }
-  .app.ultra4k .content :is(.settings-box textarea) { font-size: 1.08rem !important; }
-  .app.ultra4k .content :is(.settings-box td) { font-size: 1.08rem !important; }
-  .app.ultra4k .content :is(.settings-box th) { font-size: 1.08rem !important; }
-  .app.ultra4k .content :is(.settings-box small) { font-size: 0.96rem !important; }
-  .app.ultra4k .content :is(.settings-tabs button) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(.settings-box):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(.settings-box h2):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.62rem !important; }
+  .app.ultra4k .content :is(.settings-box h3):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.26rem !important; }
+  .app.ultra4k .content :is(.settings-box label):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(.settings-box button):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(.settings-box input):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(.settings-box select):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(.settings-box textarea):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(.settings-box td):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(.settings-box th):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(.settings-box small):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 0.96rem !important; }
+  .app.ultra4k .content :is(.settings-tabs button):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.08rem !important; }
 }
