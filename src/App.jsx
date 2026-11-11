@@ -433,7 +433,7 @@ return (
 			</button>
 		)}
         {/* NY: växla nav-läge */}
-		{!isPortrait && (
+		{!isPortrait && !is4K && (
 			<button className="theme-toggle" onClick={toggleNavPosition}>
 			  {navPosition === "top" ? "⬅️ Sidomeny" : "⬆️ Toppmeny"}
 			</button>
