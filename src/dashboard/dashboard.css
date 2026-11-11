@@ -266,3 +266,15 @@
 .kpi-admin h3 { font-size: 1.05rem; line-height: 1.3; }
 .kpi-admin button, .kpi-admin input, .kpi-admin select, .kpi-admin textarea { font-size: .9rem; }
 .kpi-admin table { font-size: .9rem; }
+
+/* Ultra 4K: dashboardens verktygsknappar matchar huvudmenyns storlek. */
+@media screen and (min-width: 3200px) {
+  .app.ultra4k .dash-toolbar .dash-tabs button,
+  .app.ultra4k .dash-toolbar .dash-btn,
+  .app.ultra4k.side .dash-toolbar .dash-tabs button,
+  .app.ultra4k.side .dash-toolbar .dash-btn {
+    font-size: 1.3rem;
+    padding: 16px 24px;
+    white-space: nowrap;
+  }
+}
