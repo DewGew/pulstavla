@@ -240,19 +240,27 @@ export default function App() {
 	  (!isAndroidLargeScreen && window.matchMedia("(min-width: 3840px)").matches)
 	);
 
+	const [isDesktop4K, setIsDesktop4K] = useState(
+	  (!isAndroidLargeScreen && window.matchMedia("(min-width: 2560px)").matches)
+	);
+
 	useEffect(() => {
 	  const orientationMedia = window.matchMedia("(orientation: portrait)");
 	  const fourKMedia = window.matchMedia("(min-width: 3840px)");
+	  const desktop4KMedia = window.matchMedia("(min-width: 2560px)");
 
 	  const handleOrientation = (e) => setIsPortrait(e.matches);
 	  const handle4K = (e) => setIs4K(!isAndroidLargeScreen && e.matches);
+	  const handleDesktop4K = (e) => setIsDesktop4K(!isAndroidLargeScreen && e.matches);
 
 	  orientationMedia.addEventListener("change", handleOrientation);
 	  fourKMedia.addEventListener("change", handle4K);
+	  desktop4KMedia.addEventListener("change", handleDesktop4K);
 
 	  return () => {
 		orientationMedia.removeEventListener("change", handleOrientation);
 		fourKMedia.removeEventListener("change", handle4K);
+		desktop4KMedia.removeEventListener("change", handleDesktop4K);
 	  };
 	}, []);
 
@@ -419,7 +427,7 @@ return (
         <button className="theme-toggle" onClick={toggleTheme}>
           {theme === "light" ? "🌙 Mörkt läge" : "☀️ Ljust läge"}
         </button>
-		{is4K && (
+		{isDesktop4K && (
 			<button className="theme-toggle" onClick={toggleFullscreen}>
 			  {isFullscreen ? "🡼 Avsluta helskärm" : "⛶ Helskärm"}
 			</button>
