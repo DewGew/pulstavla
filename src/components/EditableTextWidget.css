@@ -226,29 +226,22 @@
 
 /* Ultra 4K text scale: 20% */
 @media screen and (min-width: 3200px) {
-  .app.ultra4k .content :is(/* Titel (visningsläge) */
-
-
-/* Titel input (edit-läge) */
-.EditableTextWidget .title-input) { font-size: 18px !important; }
-  .app.ultra4k .content :is(.structuredTextWidget .title-input) { font-size: 18px !important; }
-  .app.ultra4k .content :is(/* Text */
-.EditableTextWidget p) { font-size: 16.8px !important; }
-  .app.ultra4k .content :is(.structuredTextWidget p) { font-size: 16.8px !important; }
-  .app.ultra4k .content :is(.structuredTextWidget .edit-btn) { font-size: 15.6px !important; }
-  .app.ultra4k .content :is(.EditableTextWidget .edit-btn) { font-size: 15.6px !important; }
-  .app.ultra4k .content :is(/* Textarea */
-.EditableTextWidget textarea) { font-size: 16.8px !important; }
-  .app.ultra4k .content :is(.structuredTextWidget textarea) { font-size: 16.8px !important; }
-  .app.ultra4k .content :is(/* Error */
-.structuredTextWidget .error) { font-size: 15.6px !important; }
-  .app.ultra4k .content :is(.EditableTextWidget .error) { font-size: 15.6px !important; }
-  .app.ultra4k .content :is(.EditableTextWidget textarea) { font-size: 2.4rem !important; }
-  .app.ultra4k .content :is(.structuredTextWidget textarea) { font-size: 2.4rem !important; }
-  .app.ultra4k .content :is(.EditableTextWidget input) { font-size: 2.4rem !important; }
-  .app.ultra4k .content :is(.structuredTextWidget input) { font-size: 2.4rem !important; }
-  .app.ultra4k .content :is(.rich-text-toolbar button) { font-size: 15.6px !important; }
-  .app.ultra4k .content :is(.rich-text-preview-toggle button) { font-size: 15.6px !important; }
-  .app.ultra4k .content :is(.rich-text-help) { font-size: 14.4px !important; }
-  .app.ultra4k .content :is(.rich-text-preview-label) { font-size: 14.4px !important; }
+  .app.ultra4k .content :is(.EditableTextWidget .title-input):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 18px !important; }
+  .app.ultra4k .content :is(.structuredTextWidget .title-input):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 18px !important; }
+  .app.ultra4k .content :is(.EditableTextWidget p):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 16.8px !important; }
+  .app.ultra4k .content :is(.structuredTextWidget p):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 16.8px !important; }
+  .app.ultra4k .content :is(.structuredTextWidget .edit-btn):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 15.6px !important; }
+  .app.ultra4k .content :is(.EditableTextWidget .edit-btn):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 15.6px !important; }
+  .app.ultra4k .content :is(.EditableTextWidget textarea):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 16.8px !important; }
+  .app.ultra4k .content :is(.structuredTextWidget textarea):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 16.8px !important; }
+  .app.ultra4k .content :is(.structuredTextWidget .error):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 15.6px !important; }
+  .app.ultra4k .content :is(.EditableTextWidget .error):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 15.6px !important; }
+  .app.ultra4k .content :is(.EditableTextWidget textarea):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 2.4rem !important; }
+  .app.ultra4k .content :is(.structuredTextWidget textarea):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 2.4rem !important; }
+  .app.ultra4k .content :is(.EditableTextWidget input):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 2.4rem !important; }
+  .app.ultra4k .content :is(.structuredTextWidget input):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 2.4rem !important; }
+  .app.ultra4k .content :is(.rich-text-toolbar button):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 15.6px !important; }
+  .app.ultra4k .content :is(.rich-text-preview-toggle button):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 15.6px !important; }
+  .app.ultra4k .content :is(.rich-text-help):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 14.4px !important; }
+  .app.ultra4k .content :is(.rich-text-preview-label):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 14.4px !important; }
 }
