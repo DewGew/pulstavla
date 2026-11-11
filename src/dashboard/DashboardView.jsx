@@ -21,7 +21,7 @@ class WidgetBoundary extends Component {
 }
 
 /* Samma placering som CSS Grid ("row dense") – används för att passa tavlan till skärmhöjden. */
-function countRows(widgets, columns = COLS, ultraColumns = false) {
+function countRows(widgets) {
   const occ = [];
   const free = (r, c, w, h) => {
     for (let i = r; i < r + h; i++) for (let j = c; j < c + w; j++) if (occ[i]?.[j]) return false;
@@ -29,7 +29,7 @@ function countRows(widgets, columns = COLS, ultraColumns = false) {
   };
   let rows = 0;
   for (const wd of widgets) {
-    const w = ultraColumns ? clamp(Math.round(((wd.ultraW ?? wd.w) || 3) / 3), 1, columns) : Math.min(COLS, wd.w), h = wd.h;
+    const w = Math.min(COLS, wd.w), h = wd.h;
     let placed = false;
     for (let r = 0; !placed; r++) {
       for (let c = 0; c + w <= COLS && !placed; c++) {
@@ -186,10 +186,8 @@ export default function DashboardView({ user }) {
   };
 
   const ctx = useMemo(() => ({ user, canEdit, settings, setPause: setPaused }), [user, canEdit, settings]);
+  const rows = active ? countRows(active.widgets) : 1;
   const fit = active?.fit !== false;
-  const ultraColumnsEnabled = screenFormat === "ultra-3840" && (!active?.format || active.format === "ultra-3840");
-  const columns = ultraColumnsEnabled ? (active?.columns === 6 ? 6 : 5) : COLS;
-  const rows = active ? countRows(active.widgets, columns, ultraColumnsEnabled) : 1;
   const selected = active?.widgets.find((w) => w.id === selectedId);
 
   return (
@@ -232,15 +230,7 @@ export default function DashboardView({ user }) {
           </label>
           <label className="chk"><input type="checkbox" checked={active.inRotation !== false} onChange={(e) => updateActive((d) => ({ ...d, inRotation: e.target.checked }))} /> Med i automatisk rotation</label>
           <label className="chk"><input type="checkbox" checked={fit} onChange={(e) => updateActive((d) => ({ ...d, fit: e.target.checked }))} /> Anpassa till skärmhöjd</label>
-          {ultraColumnsEnabled && (
-            <label>Kolumner på Ultra 4K
-              <select value={columns} onChange={(e) => updateActive((d) => ({ ...d, columns: Number(e.target.value) }))}>
-                <option value={5}>5 kolumner</option>
-                <option value={6}>6 kolumner</option>
-              </select>
-            </label>
-          )}
-          <label>Byt dashboard var <input type="number" min="0" value={draft.rotateSeconds || 0} onChange={(e) => setDraft((x) => ({ ...x, rotateSeconds: clamp(Number(e.target.value) || 0, 0, 3600) }))} /> sek (0 = av)</label>
+           <label>Byt dashboard var <input type="number" min="0" value={draft.rotateSeconds || 0} onChange={(e) => setDraft((x) => ({ ...x, rotateSeconds: clamp(Number(e.target.value) || 0, 0, 3600) }))} /> sek (0 = av)</label>
           <button className="dash-btn danger" onClick={removeDashboard} disabled={draft.items.length < 2}>Ta bort dashboard</button>
         </div>
       )}
@@ -260,9 +250,7 @@ export default function DashboardView({ user }) {
             onRemove={removeWidget}
             onMove={moveWidget}
             ctx={ctx}
-            columns={columns}
-            ultraColumns={ultraColumnsEnabled}
-          />
+           />
           {active.widgets.length === 0 && (
             <div className="kpi-empty big">
               {editing ? "Tom dashboard – klicka på ”Lägg till widget”." : "Dashboarden är tom."}
@@ -290,7 +278,7 @@ export default function DashboardView({ user }) {
 }
 
 /* ================= Rutnät ================= */
-function Grid({ widgets, rows, fit, editing, selectedId, onSelect, onResize, onRemove, onMove, ctx, columns = COLS, ultraColumns = false }) {
+function Grid({ widgets, rows, fit, editing, selectedId, onSelect, onResize, onRemove, onMove, ctx }) {
   const ref = useRef(null);
   const [dragId, setDragId] = useState(null);
   const [overId, setOverId] = useState(null);
@@ -299,22 +287,13 @@ function Grid({ widgets, rows, fit, editing, selectedId, onSelect, onResize, onR
     e.preventDefault(); e.stopPropagation();
     const grid = ref.current.getBoundingClientRect();
     const gap = parseFloat(getComputedStyle(ref.current).columnGap) || 0;
-    const colW = (grid.width + gap) / columns;
+    const colW = (grid.width + gap) / COLS;
     const rowH = (parseFloat(getComputedStyle(ref.current).gridAutoRows) || 100) + gap;
-    const widthStep = ultraColumns ? 3 : 1;
-    const minWidth = ultraColumns ? 3 : 1;
-    const maxWidth = ultraColumns ? columns * 3 : COLS;
-    const s = { x: e.clientX, y: e.clientY, w: ultraColumns ? (wd.ultraW ?? wd.w) : wd.w, h: wd.h };
-    let lastW = s.w;
-    let lastH = s.h;
+    const s = { x: e.clientX, y: e.clientY, w: wd.w, h: wd.h };
     const move = (ev) => {
-      const w = clamp(s.w + Math.round((ev.clientX - s.x) / colW) * widthStep, minWidth, maxWidth);
+      const w = clamp(s.w + Math.round((ev.clientX - s.x) / colW), 1, COLS);
       const h = clamp(s.h + Math.round((ev.clientY - s.y) / rowH), 1, 12);
-      if (w !== lastW || h !== lastH) {
-        onResize(wd.id, w, h);
-        lastW = w;
-        lastH = h;
-      }
+      if (w !== wd.w || h !== wd.h) onResize(wd.id, w, h);
     };
     const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
     window.addEventListener("pointermove", move);
@@ -325,7 +304,7 @@ function Grid({ widgets, rows, fit, editing, selectedId, onSelect, onResize, onR
     <div
       ref={ref}
       className={`dash-grid${fit ? " fit" : ""}${editing ? " editing" : ""}`}
-      style={{ "--rows": rows, gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+      style={{ "--rows": rows }}
     >
       {widgets.map((wd) => {
         const type = WIDGET_TYPES[wd.type];
@@ -333,7 +312,7 @@ function Grid({ widgets, rows, fit, editing, selectedId, onSelect, onResize, onR
           <div
             key={wd.id}
             className={`dash-cell${editing ? " edit" : ""}${selectedId === wd.id ? " selected" : ""}${overId === wd.id && dragId !== wd.id ? " over" : ""}`}
-            style={{ "--w": ultraColumns ? clamp(Math.round(((wd.ultraW ?? wd.w) || 3) / 3), 1, columns) : Math.min(COLS, wd.w), "--h": wd.h }}
+            style={{ "--w": Math.min(COLS, wd.w), "--h": wd.h }}
             draggable={editing}
             onClick={editing ? () => onSelect(wd.id) : undefined}
             onDragStart={editing ? (e) => { setDragId(wd.id); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", wd.id); } : undefined}
@@ -388,7 +367,7 @@ function WidgetPicker({ onPick, onClose }) {
 }
 
 /* ================= Widgetinställningar ================= */
-function WidgetPanel({ widget, onChange, onRemove, onClose, columns = COLS, ultraColumns = false }) {
+function WidgetPanel({ widget, onChange, onRemove, onClose }) {
   const type = WIDGET_TYPES[widget.type];
   const { kpis } = useKpis();
   const setProp = (k, v) => onChange({ props: { ...widget.props, [k]: v } });
@@ -397,10 +376,7 @@ function WidgetPanel({ widget, onChange, onRemove, onClose, columns = COLS, ultr
     <aside className="dash-panel" aria-label="Widgetinställningar">
       <div className="dash-modal-head"><h3>{type?.icon} {type?.label}</h3><button className="dash-x static" onClick={onClose}>✕</button></div>
       <div className="dash-size">
-        <label>Bredd ({ultraColumns ? `1–${columns} kolumner` : "1–12"}) <input type="number" min={ultraColumns ? 1 : 1} max={ultraColumns ? columns : 12} value={ultraColumns ? clamp(Math.round(((widget.ultraW ?? widget.w) || 3) / 3), 1, columns) : widget.w} onChange={(e) => {
-          const value = clamp(Number(e.target.value) || 1, 1, ultraColumns ? columns : 12);
-          onChange(ultraColumns ? { ultraW: value * 3 } : { w: value });
-        }} /></label>
+        <label>Bredd (1–12) <input type="number" min="1" max="12" value={widget.w} onChange={(e) => onChange({ w: clamp(Number(e.target.value) || 1, 1, 12) })} /></label>
         <label>Höjd (rader) <input type="number" min="1" max="12" value={widget.h} onChange={(e) => onChange({ h: clamp(Number(e.target.value) || 1, 1, 12) })} /></label>
       </div>
       {(type?.fields || []).map((f) => {
