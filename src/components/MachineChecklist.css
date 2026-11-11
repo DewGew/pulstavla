@@ -150,13 +150,7 @@
 }
 
 @media screen and (min-width: 3840px) {
-	.checklist-container{
-		max-width: 2160px;
-	}
-	.checklist-header {
-		font-size: 4rem;
-	}
-	.checklist-header label, .checklist-header select, .checklist-header input, .checklist-section, .checked-machines h3, .toplist {
-		font-size: 2rem;
-	}
+  .checklist-container {
+    max-width: 2160px;
+  }
 }
