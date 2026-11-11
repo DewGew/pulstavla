@@ -271,7 +271,7 @@ export default function App() {
 
   /* ------------------- DASHBOARD ------------------- */
 return (
-  <div className={`app ${navPosition}${isAndroidLargeScreen ? " android-large-screen" : ""}`}>
+  <div className={`app ${navPosition}${isAndroidLargeScreen ? " android-large-screen" : ""}${is4K ? " ultra4k" : ""}`}>
     {/* Topbar / Sidebar */}
     <header className="dashboard">
 		<h1 className="logo">
