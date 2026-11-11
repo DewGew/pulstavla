@@ -129,3 +129,15 @@
 	display: none;
   }
 }
+
+/* Ultra 4K text scale: 20% */
+@media screen and (min-width: 3200px) {
+  .app.ultra4k .content :is(.analog-clock-date) { font-size: 1.26rem !important; }
+  .app.ultra4k .content :is(/* ---------------- VÄDER ---------------- */
+.clock-weather) { font-size: 1.2rem !important; }
+  .app.ultra4k .content :is(.weather-icon) { font-size: 1.68rem !important; }
+  .app.ultra4k .content :is(.weather-range) { font-size: 1.02rem !important; }
+  .app.ultra4k .content :is(.weather-loading) { font-size: 1.02rem !important; }
+  .app.ultra4k .content :is(.weather-error) { font-size: 1.02rem !important; }
+  .app.ultra4k .content :is(.clock-visitor .edit-btn) { font-size: 15.6px !important; }
+}
