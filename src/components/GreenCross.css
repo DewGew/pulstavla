@@ -114,9 +114,9 @@
   .legend-box { width: 13px; height: 13px; }
 }
 @media screen and (min-width: 3840px) {
-  .gc-cell, .gc-empty { height: 75px; font-size: 2rem; }
-  .gc-legend-row { font-size: 1.4rem; }
-  .gc-controls select, .gc-controls input { font-size: 1.5rem; }
+  .gc-cell, .gc-empty { height: 75px; }
+  .gc-legend-row { }
+  .gc-controls select, .gc-controls input { }
 }
 
 /* Kompakt GreenCross-layout för 3x4-dashboardwidget */
