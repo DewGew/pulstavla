@@ -126,7 +126,5 @@
 
 /* Ultra 4K text scale: 20% */
 @media screen and (min-width: 3200px) {
-  .app.ultra4k .content :is(/* ===================== USER TABLE ===================== */
-
-.user-table) { font-size: 1.14rem !important; }
+  .app.ultra4k .content :is(.user-table):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.14rem !important; }
 }
