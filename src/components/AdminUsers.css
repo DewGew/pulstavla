@@ -123,3 +123,10 @@
     padding: 15px; /* mindre padding på mobil */
   }
 }
+
+/* Ultra 4K text scale: 20% */
+@media screen and (min-width: 3200px) {
+  .app.ultra4k .content :is(/* ===================== USER TABLE ===================== */
+
+.user-table) { font-size: 1.14rem !important; }
+}
