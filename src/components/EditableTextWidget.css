@@ -109,8 +109,7 @@
 	.EditableTextWidget strong,
 	.EditableTextWidget p,
 	.structuredTextWidget p {
-		font-size: 1.9rem;
-	}
+		}
 	.EditableTextWidget textarea,
 	.structuredTextWidget textarea,
 	.EditableTextWidget input,
