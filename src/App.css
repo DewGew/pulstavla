@@ -1119,6 +1119,12 @@ textarea:disabled {
 }
 
 
+/* Ultra 4K: större grundtypografi för läsbarhet på stora skärmar.
+   Meny- och verktygsradsknappar låses separat till sina nuvarande storlekar. */
+@media screen and (min-width: 3200px) {
+  html { font-size: 20px; }
+}
+
 /* Ultra 4K från 3200 CSS-px: flytta huvudmenyn till en fast rad längst ned */
 @media screen and (min-width: 3200px) {
   .app.ultra4k,
@@ -1162,12 +1168,12 @@ textarea:disabled {
     width: auto;
     white-space: nowrap;
     text-align: center;
-    font-size: 1.3rem;
+    font-size: 20.8px;
     padding: 16px 24px;
   }
 
   .app.ultra4k .nav .nav-dropdown-menu button {
-    font-size: 1.15rem;
+    font-size: 18.4px;
     padding: 14px 18px;
   }
 
