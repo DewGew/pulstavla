@@ -165,3 +165,38 @@
   .app.ultra4k :is(.green-cross-widget .gc-cell):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 0.984rem !important; }
   .app.ultra4k :is(.green-cross-widget .gc-legend-row):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 0.864rem !important; }
 }
+
+/* Ultra 4K GreenCross sizing based on master styles */
+@media screen and (min-width: 3200px) {
+  .app.ultra4k .gc-cell,
+  .app.ultra4k .gc-empty {
+    height: 75px;
+    font-size: 2rem;
+  }
+
+  .app.ultra4k .gc-legend-row {
+    font-size: 1.4rem;
+  }
+
+  .app.ultra4k .gc-controls select,
+  .app.ultra4k .gc-controls input {
+    font-size: 1.5rem;
+  }
+
+  /* Överstyr det kompakta 3x4-widgetformatet på Ultra 4K. */
+  .app.ultra4k .green-cross-widget .gc-cell,
+  .app.ultra4k .green-cross-widget .gc-empty {
+    height: 75px;
+    font-size: 2rem;
+  }
+
+  .app.ultra4k .green-cross-widget .gc-legend-row {
+    font-size: 1.4rem;
+  }
+
+  .app.ultra4k .green-cross-widget .gc-controls select,
+  .app.ultra4k .green-cross-widget .gc-controls input {
+    font-size: 1.5rem;
+  }
+}
+
