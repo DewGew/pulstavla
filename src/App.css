@@ -104,7 +104,6 @@ code {
 }
 
 .logo {
-  font-size: 2rem;
   font-weight: 600;
   display: flex;
   flex-direction: column;   /* 👈 viktigt */
@@ -349,7 +348,6 @@ h1 span{
   }
 
 .widget-value {
-  font-size: 2rem;
   font-weight: 700;
   color: var(--accent);
 }
@@ -703,31 +701,17 @@ margin-bottom: 1rem;
 }
 
 @media (max-width: 480px) {
-  .logo {
-    font-size: 1.6rem;
-  }
+  
 
-  .logo-icon {
-    font-size: 1.8rem;
-  }
+  
 
-  .today-date {
-    font-size: 0.9rem;
-  }
+  
 
-  .nav button,
-  .theme-toggle {
-    font-size: 0.9rem;
-    padding: 0.5rem 0.8rem;
-  }
+  
 
-  .widget-value {
-    font-size: 1.5rem;
-  }
+  
 
-  .widget h3 {
-    font-size: 1rem;
-  }
+  
 
   .modal-content {
     padding: 1rem;
@@ -753,13 +737,9 @@ margin-bottom: 1rem;
     padding: 0.8rem;
   }
 
-  .widget h3 {
-    font-size: 1rem;
-  }
+  
 
-  .widget-value {
-    font-size: 1.5rem;
-  }
+  
 }
 
 @media screen and (min-width: 2560px) {
@@ -769,10 +749,8 @@ margin-bottom: 1rem;
 		height: 10vw !important;
 	}
 	.login-box h2{
-		font-size: 60px;
 	}
 	.login-box input, .login-box select, .login-button {
-		font-size: 17px;
 	}
 	.widget-grid {
 	  grid-template-columns: repeat(5, 1fr);
@@ -792,42 +770,33 @@ margin-bottom: 1rem;
 	}
 	
 	.widget h3 {
-		font-size: 2.5rem;
 	}
 	
 	.dashboard {
 		height: 135px;
 	}
 	.logo {
-		font-size: 4rem;
 	}
 	.logo-icon {
-		font-size: 4.4rem;
 	}
 	.today-date {
-		font-size: 2rem;
 	}
 	.nav button {
-		font-size: 2rem;
 	}
 	.btn-primary, .btn-danger, .btn-secondary {
-		font-size: 28px;
 	}
 	.widget-grid {
 	  grid-template-columns: repeat(6, 1fr);
 	}
 	.widget-meta {
-		font-size: 1.9rem;
 	}
 	.app.side h1,
 	.app.side .logo-icon {
-		font-size: 2rem;
 	}
 	.widget-top {
 	  display: block;
 	}
 	.widget-top h2 {
-		font-size: 2.5rem;
 	}
 	.pagination-dots .dot {
 	  width: 35px;
@@ -840,7 +809,6 @@ margin-bottom: 1rem;
 		width: 370px;
 	}
 	.sortdir {
-		font-size: 1.7rem
 	}
 }
 
@@ -855,7 +823,6 @@ margin-bottom: 1rem;
   }
 
   .logo {
-    font-size: 1.8rem;
   }
 
   .nav {
@@ -877,12 +844,9 @@ margin-bottom: 1rem;
     padding: 0.8rem;
   }
 
-  .widget h3 {
-    font-size: 1rem;
-  }
+  
 
   .widget-value {
-    font-size: 1.6rem;
   }
 
 	.nav {
@@ -895,7 +859,6 @@ margin-bottom: 1rem;
 	}
 
   html {
-    font-size: 20px;
   }
 
 }
@@ -1120,7 +1083,6 @@ textarea:disabled {
   }
 
   .nav button {
-    font-size: .9rem;
     padding: .54rem .99rem;
   }
 
