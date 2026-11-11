@@ -29,7 +29,7 @@ function countRows(widgets, columns = COLS, ultraColumns = false) {
   };
   let rows = 0;
   for (const wd of widgets) {
-    const w = ultraColumns ? clamp(Math.round((wd.w || 3) / 3), 1, columns) : Math.min(COLS, wd.w), h = wd.h;
+    const w = ultraColumns ? clamp(Math.round(((wd.ultraW ?? wd.w) || 3) / 3), 1, columns) : Math.min(COLS, wd.w), h = wd.h;
     let placed = false;
     for (let r = 0; !placed; r++) {
       for (let c = 0; c + w <= COLS && !placed; c++) {
@@ -256,7 +256,7 @@ export default function DashboardView({ user }) {
             editing={editing}
             selectedId={selectedId}
             onSelect={setSelectedId}
-            onResize={(id, w, h) => updateWidget(id, { w, h })}
+            onResize={(id, w, h) => updateWidget(id, ultraColumnsEnabled ? { ultraW: w, h } : { w, h })}
             onRemove={removeWidget}
             onMove={moveWidget}
             ctx={ctx}
@@ -304,7 +304,7 @@ function Grid({ widgets, rows, fit, editing, selectedId, onSelect, onResize, onR
     const widthStep = ultraColumns ? 3 : 1;
     const minWidth = ultraColumns ? 3 : 1;
     const maxWidth = ultraColumns ? columns * 3 : COLS;
-    const s = { x: e.clientX, y: e.clientY, w: wd.w, h: wd.h };
+    const s = { x: e.clientX, y: e.clientY, w: ultraColumns ? (wd.ultraW ?? wd.w) : wd.w, h: wd.h };
     const move = (ev) => {
       const w = clamp(s.w + Math.round((ev.clientX - s.x) / colW) * widthStep, minWidth, maxWidth);
       const h = clamp(s.h + Math.round((ev.clientY - s.y) / rowH), 1, 12);
@@ -327,7 +327,7 @@ function Grid({ widgets, rows, fit, editing, selectedId, onSelect, onResize, onR
           <div
             key={wd.id}
             className={`dash-cell${editing ? " edit" : ""}${selectedId === wd.id ? " selected" : ""}${overId === wd.id && dragId !== wd.id ? " over" : ""}`}
-            style={{ "--w": ultraColumns ? clamp(Math.round((wd.w || 3) / 3), 1, columns) : Math.min(COLS, wd.w), "--h": wd.h }}
+            style={{ "--w": ultraColumns ? clamp(Math.round(((wd.ultraW ?? wd.w) || 3) / 3), 1, columns) : Math.min(COLS, wd.w), "--h": wd.h }}
             draggable={editing}
             onClick={editing ? () => onSelect(wd.id) : undefined}
             onDragStart={editing ? (e) => { setDragId(wd.id); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", wd.id); } : undefined}
@@ -391,9 +391,9 @@ function WidgetPanel({ widget, onChange, onRemove, onClose, columns = COLS, ultr
     <aside className="dash-panel" aria-label="Widgetinställningar">
       <div className="dash-modal-head"><h3>{type?.icon} {type?.label}</h3><button className="dash-x static" onClick={onClose}>✕</button></div>
       <div className="dash-size">
-        <label>Bredd ({ultraColumns ? `1–${columns} kolumner` : "1–12"}) <input type="number" min={ultraColumns ? 1 : 1} max={ultraColumns ? columns : 12} value={ultraColumns ? clamp(Math.round((widget.w || 3) / 3), 1, columns) : widget.w} onChange={(e) => {
+        <label>Bredd ({ultraColumns ? `1–${columns} kolumner` : "1–12"}) <input type="number" min={ultraColumns ? 1 : 1} max={ultraColumns ? columns : 12} value={ultraColumns ? clamp(Math.round(((widget.ultraW ?? widget.w) || 3) / 3), 1, columns) : widget.w} onChange={(e) => {
           const value = clamp(Number(e.target.value) || 1, 1, ultraColumns ? columns : 12);
-          onChange({ w: ultraColumns ? value * 3 : value });
+          onChange(ultraColumns ? { ultraW: value * 3 } : { w: value });
         }} /></label>
         <label>Höjd (rader) <input type="number" min="1" max="12" value={widget.h} onChange={(e) => onChange({ h: clamp(Number(e.target.value) || 1, 1, 12) })} /></label>
       </div>
