@@ -44,8 +44,3 @@
   color: var(--status-green-text);
 }
 
-@media screen and (min-width: 3840px) {
-	.stat span {
-		font-size: 36px;
-	}
-}
