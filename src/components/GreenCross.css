@@ -108,9 +108,8 @@
 }
 @media (max-width: 414px) {
   .gc-row { gap: 3px; }
-  .gc-cell, .gc-empty { height: 35px; font-size: 0.75rem; }
-  .gc-controls select, .gc-controls input { font-size: 0.85rem; }
-  .gc-legend-row { gap: 8px; font-size: 0.78rem; }
+  .gc-cell, .gc-empty { height: 35px; }
+  .gc-legend-row { gap: 8px; }
   .legend-box { width: 13px; height: 13px; }
 }
 @media screen and (min-width: 3840px) {
