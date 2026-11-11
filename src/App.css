@@ -1069,3 +1069,51 @@ textarea:disabled {
     width: 144px;
   }
 }
+
+
+/* Gemensam typografi för vanliga innehållssidor */
+.activities-container,
+.checklist-wrapper,
+.profile-box {
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.activities-container h2,
+.checklist-container .checklist-header h2,
+.profile-box h2 {
+  font-size: 1.35rem;
+  line-height: 1.25;
+  margin-bottom: 1rem;
+}
+
+.activities-container h3,
+.checklist-container h3,
+.checked-machines h3,
+.profile-box h3 {
+  font-size: 1.05rem;
+  line-height: 1.3;
+}
+
+.activities-container button,
+.activities-container input,
+.activities-container select,
+.activities-container textarea,
+.checklist-wrapper button,
+.checklist-wrapper input,
+.checklist-wrapper select,
+.checklist-wrapper textarea,
+.profile-box button,
+.profile-box input,
+.profile-box select,
+.profile-box textarea {
+  font-size: 0.9rem;
+}
+
+.activities-container p,
+.checklist-wrapper p,
+.profile-box p,
+.checklist-section li,
+.my-task-item {
+  line-height: 1.45;
+}
