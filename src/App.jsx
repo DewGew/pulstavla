@@ -371,15 +371,17 @@ return (
                     Tillverkningsordrar
                   </button>
                 )}
-                <button
-                  className={activeTab === "kpis" ? "active" : ""}
-                  onClick={() => {
-                    setActiveTab("kpis");
-                    setOpenMenu(false);
-                  }}
-                >
-                  Nyckeltal
-                </button>
+                {(user?.role === "admin" || user?.role === "suAdmin") && (
+                  <button
+                    className={activeTab === "kpis" ? "active" : ""}
+                    onClick={() => {
+                      setActiveTab("kpis");
+                      setOpenMenu(false);
+                    }}
+                  >
+                    Nyckeltal
+                  </button>
+                )}
                 <button
                   className={activeTab === "matprotokoll" ? "active" : ""}
                   onClick={() => {
