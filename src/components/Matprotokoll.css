@@ -510,3 +510,17 @@
     padding: 14px;
   }
 }
+
+/* Enhetlig, kompakt typografi för Mätprotokoll även på 4K */
+.mätprotokoll-container { font-size: .9rem; line-height: 1.45; }
+.mätprotokoll-container h2 { font-size: 1.35rem; line-height: 1.25; }
+.mätprotokoll-container h3 { font-size: 1.05rem; line-height: 1.3; }
+.mätprotokoll-container label,
+.mätprotokoll-container input,
+.mätprotokoll-container select,
+.mätprotokoll-container textarea,
+.mätprotokoll-container button { font-size: .9rem; }
+.mätprotokoll-table { font-size: .85rem; }
+.mätprotokoll-table input,
+.mätprotokoll-table select,
+.mätprotokoll-table textarea { font-size: .9rem; }
