@@ -198,3 +198,10 @@
 	.documents input	{
 		}
 }
+
+
+/* Enhetlig typografi för Dokument */
+.documents { font-size: .9rem; line-height: 1.45; }
+.documents h2 { font-size: 1.35rem; line-height: 1.25; }
+.documents button, .documents input, .documents select, .documents textarea { font-size: .9rem; }
+.documents li { line-height: 1.4; }
