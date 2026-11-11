@@ -85,3 +85,9 @@
     height: 1800px;
   }
 }
+
+/* Ultra 4K text scale: 20% */
+@media screen and (min-width: 3200px) {
+  .app.ultra4k .content :is(/* ---------------- CANVAS ---------------- */
+.drawing-canvas) { font-size: 14.4px !important; }
+}
