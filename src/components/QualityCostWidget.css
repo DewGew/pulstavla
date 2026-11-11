@@ -175,12 +175,9 @@
 	.cost-table td,
 	.qualityCostWidget .total,
 	.qualityCostWidget .prev {
-	  font-size: 1.9rem;
-	}
+	  }
 	.qualityCostWidget .summary-value {
-	  font-size: 30px;
-	}
+	  }
 	.qualityCostWidget .delta-badge {
-	  font-size: 18px;
-	}
+	  }
 }
