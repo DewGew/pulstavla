@@ -273,7 +273,7 @@
   .app.ultra4k .dash-toolbar .dash-btn,
   .app.ultra4k.side .dash-toolbar .dash-tabs button,
   .app.ultra4k.side .dash-toolbar .dash-btn {
-    font-size: 20.8px;
+    font-size: 1.3rem;
     padding: 16px 24px;
     white-space: nowrap;
   }
