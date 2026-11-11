@@ -327,13 +327,11 @@
 @media screen and (min-width: 3840px) {
   .mätprotokoll-container {
 	max-width: 2700px;
-	font-size: 2rem;
-    padding: 3rem;
+	padding: 3rem;
   }
 
   .mätprotokoll-container h2 {
-    font-size: 4rem;
-  }
+    }
 
   .mätprotokoll-info {
     padding: 25px;
@@ -341,18 +339,15 @@
   }
 
   .mätprotokoll-field label {
-    font-size: 2rem;
-  }
+    }
 
   .mätprotokoll-field input,
   .mätprotokoll-field select  {
-    font-size: 2rem;
     padding: 14px;
   }
 
   .mätprotokoll-table {
-    font-size: 1.7rem;
-  }
+    }
 
   .mätprotokoll-table th {
     padding: 16px 12px;
@@ -364,13 +359,11 @@
 
   .mätprotokoll-table input,
   .mätprotokoll-table select  {
-    font-size: 1.7rem;
     padding: 12px;
   }
 
   .mätprotokoll-add-button,
   .mätprotokoll-pdf-button {
-    font-size: 1.7rem;
     padding: 14px 20px;
   }
 }
@@ -514,7 +507,6 @@
   .mätprotokoll-openpanel-filter input[type="text"],
   .mätprotokoll-openpanel-sort,
   .mätprotokoll-openpanel-sort select {
-    font-size: 1.7rem;
     padding: 14px;
   }
 }
