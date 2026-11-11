@@ -100,3 +100,18 @@
 .orders-table { font-size: .9rem; }
 .orders-table th, .orders-table td { line-height: 1.4; }
 .orders-input { font-size: .9rem; }
+
+/* Ultra 4K text scale: 20% */
+@media screen and (min-width: 3200px) {
+  .app.ultra4k .content :is(.orders-table) { font-size: 1.14rem !important; }
+  .app.ultra4k .content :is(/* Gemensam typografi för Kundordrar och Tillverkningsordrar */
+.orders-box) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(.orders-box h2) { font-size: 1.62rem !important; }
+  .app.ultra4k .content :is(.orders-box h3) { font-size: 1.26rem !important; }
+  .app.ultra4k .content :is(.orders-box button) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(.orders-box input) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(.orders-box select) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(.orders-box textarea) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(.orders-table) { font-size: 1.08rem !important; }
+  .app.ultra4k .content :is(.orders-input) { font-size: 1.08rem !important; }
+}
