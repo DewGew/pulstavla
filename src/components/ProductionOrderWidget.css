@@ -47,6 +47,6 @@
 
 /* Ultra 4K text scale: 20% */
 @media screen and (min-width: 3200px) {
-  .app.ultra4k .content :is(.plan-total):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 16.8px !important; }
-  .app.ultra4k .content :is(.plan-resource-row):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 16.8px !important; }
+  .app.ultra4k :is(.plan-total):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 16.8px !important; }
+  .app.ultra4k :is(.plan-resource-row):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 16.8px !important; }
 }
