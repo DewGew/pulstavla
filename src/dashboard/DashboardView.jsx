@@ -246,11 +246,11 @@ export default function DashboardView({ user }) {
             editing={editing}
             selectedId={selectedId}
             onSelect={setSelectedId}
-            onResize={(id, w, h) => updateWidget(id, ultraColumnsEnabled ? { ultraW: w, h } : { w, h })}
+            onResize={(id, w, h) => updateWidget(id, { w, h })}
             onRemove={removeWidget}
             onMove={moveWidget}
             ctx={ctx}
-           />
+          />
           {active.widgets.length === 0 && (
             <div className="kpi-empty big">
               {editing ? "Tom dashboard – klicka på ”Lägg till widget”." : "Dashboarden är tom."}
@@ -268,8 +268,6 @@ export default function DashboardView({ user }) {
           onChange={(patch) => updateWidget(selected.id, patch)}
           onRemove={() => removeWidget(selected.id)}
           onClose={() => setSelectedId(null)}
-          columns={columns}
-          ultraColumns={ultraColumnsEnabled}
         />
       )}
       {picker && <WidgetPicker onPick={addWidget} onClose={() => setPicker(false)} />}
