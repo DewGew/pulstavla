@@ -36,3 +36,12 @@
   .app.ultra4k :is(.resource-item small):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.08em !important; }
   .app.ultra4k :is(.resource-widget .gc-legend-row):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 0.84rem !important; }
 }
+
+
+/* Ultra 4K Resource sizing based on master styles */
+@media screen and (min-width: 3200px) {
+  .app.ultra4k .resource-item {
+    min-height: 80px !important;
+    font-size: 1.5rem !important;
+  }
+}
