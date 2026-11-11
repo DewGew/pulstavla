@@ -305,10 +305,16 @@ function Grid({ widgets, rows, fit, editing, selectedId, onSelect, onResize, onR
     const minWidth = ultraColumns ? 3 : 1;
     const maxWidth = ultraColumns ? columns * 3 : COLS;
     const s = { x: e.clientX, y: e.clientY, w: ultraColumns ? (wd.ultraW ?? wd.w) : wd.w, h: wd.h };
+    let lastW = s.w;
+    let lastH = s.h;
     const move = (ev) => {
       const w = clamp(s.w + Math.round((ev.clientX - s.x) / colW) * widthStep, minWidth, maxWidth);
       const h = clamp(s.h + Math.round((ev.clientY - s.y) / rowH), 1, 12);
-      if (w !== wd.w || h !== wd.h) onResize(wd.id, w, h);
+      if (w !== lastW || h !== lastH) {
+        onResize(wd.id, w, h);
+        lastW = w;
+        lastH = h;
+      }
     };
     const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
     window.addEventListener("pointermove", move);
