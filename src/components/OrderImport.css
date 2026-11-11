@@ -91,3 +91,12 @@
 	.orders-table {
 		}
 }
+
+/* Gemensam typografi för Kundordrar och Tillverkningsordrar */
+.orders-box { font-size: .9rem; line-height: 1.45; }
+.orders-box h2 { font-size: 1.35rem; line-height: 1.25; }
+.orders-box h3 { font-size: 1.05rem; line-height: 1.3; }
+.orders-box button, .orders-box input, .orders-box select, .orders-box textarea { font-size: .9rem; }
+.orders-table { font-size: .9rem; }
+.orders-table th, .orders-table td { line-height: 1.4; }
+.orders-input { font-size: .9rem; }
