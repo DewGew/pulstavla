@@ -30,3 +30,11 @@
 @media (max-width: 480px) {
   .presence-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Ultra 4K text scale: 20% */
+@media screen and (min-width: 3200px) {
+  .app.ultra4k .content :is(.presence-widget h4) { font-size: 0.984rem !important; }
+  .app.ultra4k .content :is(.presence-name) { font-size: 0.912rem !important; }
+  .app.ultra4k .content :is(.presence-status) { font-size: 0.864rem !important; }
+  .app.ultra4k .content :is(.presence-widget .gc-legend-row) { font-size: 0.84rem !important; }
+}
