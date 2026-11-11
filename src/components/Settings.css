@@ -85,3 +85,17 @@
 	.settings-box th{
 		}
 }
+
+/* Enhetlig typografi för Inställningar */
+.settings-box { font-size: .9rem; line-height: 1.45; }
+.settings-box h2 { font-size: 1.35rem; line-height: 1.25; }
+.settings-box h3 { font-size: 1.05rem; line-height: 1.3; }
+.settings-box label,
+.settings-box button,
+.settings-box input,
+.settings-box select,
+.settings-box textarea,
+.settings-box td,
+.settings-box th { font-size: .9rem; }
+.settings-box small { font-size: .8rem; line-height: 1.4; }
+.settings-tabs button { font-size: .9rem; }
