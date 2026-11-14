@@ -53,3 +53,34 @@
     min-height: 80px !important;
   }
 }
+
+
+/* Ultra 4K: gemensamma widgetmått och luftigare närvaroceller */
+@media screen and (min-width: 3200px) {
+  .app.ultra4k .presence-widget {
+    padding: var(--u4k-widget-padding);
+    gap: var(--u4k-widget-gap);
+  }
+
+  .app.ultra4k .presence-list {
+    gap: var(--u4k-cell-gap);
+  }
+
+  .app.ultra4k .presence-item {
+    min-height: 80px !important;
+    padding: var(--u4k-cell-padding);
+    gap: var(--u4k-cell-gap);
+  }
+
+  .app.ultra4k .presence-name {
+    font-size: var(--u4k-widget-text) !important;
+  }
+
+  .app.ultra4k .presence-status {
+    font-size: var(--u4k-widget-compact-text) !important;
+  }
+
+  .app.ultra4k .presence-widget .gc-legend-row {
+    font-size: var(--u4k-widget-meta) !important;
+  }
+}
