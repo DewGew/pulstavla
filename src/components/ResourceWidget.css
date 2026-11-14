@@ -44,3 +44,26 @@
     font-size: 1.5rem !important;
   }
 }
+
+
+/* Ultra 4K: gemensamma widgetmått och luftigare resursceller */
+@media screen and (min-width: 3200px) {
+  .app.ultra4k .resource-widget {
+    padding: var(--u4k-widget-padding);
+    gap: var(--u4k-widget-gap);
+  }
+
+  .app.ultra4k .resource-list {
+    gap: var(--u4k-cell-gap);
+  }
+
+  .app.ultra4k .resource-item {
+    padding: var(--u4k-cell-padding);
+    min-height: 80px !important;
+    font-size: var(--u4k-widget-cell-text) !important;
+  }
+
+  .app.ultra4k .resource-widget .gc-legend-row {
+    font-size: var(--u4k-widget-meta) !important;
+  }
+}
