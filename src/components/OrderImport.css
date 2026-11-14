@@ -81,16 +81,6 @@
 	margin-bottom: 10px;
 }
 
-@media screen and (min-width: 3840px) {
-	.orders-box h2 {
-		}
-	.orders-input{
-		}
-	.orders-section {
-		}
-	.orders-table {
-		}
-}
 
 /* Gemensam typografi för Kundordrar och Tillverkningsordrar */
 .orders-box { font-size: .9rem; line-height: 1.45; }
