@@ -197,3 +197,26 @@
   }
 }
 
+
+/* Ultra 4K: enhetliga mellanrum i GreenCross-celler och kontroller */
+@media screen and (min-width: 3200px) {
+  .app.ultra4k .green-cross-widget .gc-row {
+    gap: var(--u4k-cell-gap);
+    margin-bottom: var(--u4k-cell-gap);
+  }
+
+  .app.ultra4k .green-cross-widget .gc-controls {
+    gap: var(--u4k-cell-gap);
+    margin-bottom: var(--u4k-widget-gap);
+  }
+
+  .app.ultra4k .green-cross-widget .gc-controls select,
+  .app.ultra4k .green-cross-widget .gc-controls input {
+    padding: var(--u4k-cell-padding);
+  }
+
+  .app.ultra4k .green-cross-widget .gc-legend-row {
+    gap: var(--u4k-cell-gap);
+    margin-top: var(--u4k-widget-gap);
+  }
+}
