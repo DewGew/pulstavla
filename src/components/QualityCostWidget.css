@@ -170,17 +170,6 @@
   gap: 8px;
 }
 
-@media screen and (min-width: 3840px) {
-	.cost-table th,
-	.cost-table td,
-	.qualityCostWidget .total,
-	.qualityCostWidget .prev {
-	  }
-	.qualityCostWidget .summary-value {
-	  }
-	.qualityCostWidget .delta-badge {
-	  }
-}
 
 /* Ultra 4K text scale: 20% */
 @media screen and (min-width: 3200px) {
