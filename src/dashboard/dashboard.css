@@ -322,3 +322,27 @@
     font-size: 135% !important;
   }
 }
+
+
+/* Gemensam Ultra 4K-skala och grundmått för dashboard-widgets */
+@media screen and (min-width: 3200px) {
+  .app.ultra4k {
+    --u4k-widget-text: 1.8rem;
+    --u4k-widget-heading: 1.44rem;
+    --u4k-widget-cell-text: 1.5rem;
+    --u4k-widget-compact-text: 1.35rem;
+    --u4k-widget-meta: 1.05rem;
+    --u4k-cell-gap: 8px;
+    --u4k-cell-padding: 8px 10px;
+    --u4k-widget-padding: .8rem;
+    --u4k-widget-gap: .5rem;
+  }
+
+  .app.ultra4k .dash-content .widget {
+    font-size: var(--u4k-widget-text);
+  }
+
+  .app.ultra4k .dash-content .widget h3 {
+    font-size: var(--u4k-widget-heading) !important;
+  }
+}
