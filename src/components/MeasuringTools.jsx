@@ -52,7 +52,7 @@ export default function MeasuringTools({ currentUser }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => { load(); }, [load]);
 
