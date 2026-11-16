@@ -99,7 +99,7 @@ export default function MeasuringTools({ currentUser }) {
   }), [tools]);
 
   const filteredTools = useMemo(() => tools.filter((tool) => {
-    const haystack = [tool.toolNumber, tool.type, tool.description, tool.range, tool.location, tool.activeLoan?.borrowerName]
+    const haystack = [tool.toolNumber, tool.type, tool.description, tool.range, tool.location, tool.activeLoan?.borrowerName, tool.reservation?.userName]
       .join(" ").toLocaleLowerCase("sv");
     const matchesStatus = statusFilter === "Alla" ||
       (statusFilter === "Lediga" && tool.status === "Disponibel" && !isToolBlocked(tool)) ||
@@ -124,6 +124,36 @@ export default function MeasuringTools({ currentUser }) {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Utlåningen misslyckades.");
       setMessage(`${tool.toolNumber} har lånats ut.`);
+      await load();
+    } catch (err) { setMessage(err.message); }
+  };
+
+  const reserveTool = async (tool) => {
+    try {
+      const body = {};
+      if (isAdmin && borrowerId) body.userId = borrowerId;
+      const response = await apiFetch(`/measuring-tools/${tool._id}/reserve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
+        body: JSON.stringify(body),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Reservationen misslyckades.");
+      setMessage(`${tool.toolNumber} är reserverat för ${data.reservation?.userName || "användaren"} tills vidare.`);
+      await load();
+    } catch (err) { setMessage(err.message); }
+  };
+
+  const releaseReservation = async (tool) => {
+    if (!window.confirm(`Häva reservationen för ${tool.toolNumber}?`)) return;
+    try {
+      const response = await apiFetch(`/measuring-tools/${tool._id}/reserve`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Kunde inte häva reservationen.");
+      setMessage(`Reservationen för ${tool.toolNumber} har hävts.`);
       await load();
     } catch (err) { setMessage(err.message); }
   };
@@ -340,7 +370,7 @@ export default function MeasuringTools({ currentUser }) {
           ))}
         </div>
         <div className="measuring-extra-controls">
-          {isAdmin && <label>Utlåning till<select aria-label="Välj låntagare" value={borrowerId} onChange={(e) => setBorrowerId(e.target.value)}><option value={currentUser?._id}>Mig själv</option>{users.filter((item) => item._id !== currentUser?._id).map((item) => <option key={item._id} value={item._id}>{item.name || item.username}</option>)}</select></label>}
+          {isAdmin && <label>Utlåning/reservation till<select aria-label="Välj låntagare" value={borrowerId} onChange={(e) => setBorrowerId(e.target.value)}><option value={currentUser?._id}>Mig själv</option>{users.filter((item) => item._id !== currentUser?._id).map((item) => <option key={item._id} value={item._id}>{item.name || item.username}</option>)}</select></label>}
           <label>Planerat återlämningsdatum<input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></label>
           <span className="measuring-result-count">Visar {filteredTools.length} av {tools.length} verktyg</span>
         </div>
@@ -386,6 +416,12 @@ export default function MeasuringTools({ currentUser }) {
                     <div><span>Mätområde</span><strong>{tool.range || "Ej angivet"}</strong></div>
                     <div><span>Placering</span><strong>{tool.location || "Ej angiven"}</strong></div>
                   </div>
+                  {tool.reservation && (
+                    <div className="measuring-card-reservation">
+                      <span>Reserverat tills vidare för</span>
+                      <strong>{tool.reservation.userName}</strong>
+                    </div>
+                  )}
                   <div className="measuring-card-control">
                     <div><span>Nästa kontroll</span><strong className={overdue ? "measuring-overdue" : ""}>{next ? dateLabel(next.toISOString().slice(0, 10)) : "Ej registrerad"}</strong></div>
                     {blocked && <p className="measuring-card-warning">{overdue ? "Kontrolldatumet har passerat – verktyget får inte lånas." : "Verktyget är spärrat efter underkänd kontroll."}</p>}
@@ -399,6 +435,8 @@ export default function MeasuringTools({ currentUser }) {
                   )}
                   <div className="measuring-card-actions">
                     {canCheckout && <button className="btn-primary" onClick={() => checkout(tool)}>Låna verktyg</button>}
+                    {!tool.reservation && tool.status === "Disponibel" && !blocked && currentUser?.role !== "view" && <button className="btn-secondary" onClick={() => reserveTool(tool)}>Reservera tills vidare</button>}
+                    {tool.reservation && (isAdmin || tool.reservation.userId === currentUser?._id) && <button className="btn-secondary" onClick={() => releaseReservation(tool)}>Häv reservation</button>}
                     {canReturn && <button className="btn-primary" onClick={() => returnTool(tool)}>Återlämna</button>}
                     {(canControl || isAdmin) && <details className="measuring-more-actions">
                       <summary>Fler åtgärder</summary>
@@ -444,11 +482,14 @@ export default function MeasuringTools({ currentUser }) {
                 <td>
                   <span className={`measuring-status ${statusClass}`}>{statusLabel}</span>
                   {tool.status === "Utlånad" && <small>{tool.activeLoan?.borrowerName}</small>}
+                  {tool.reservation && <small className="measuring-reservation-note">Reserverat för {tool.reservation.userName}</small>}
                   {tool.status === "Utlånad" && tool.activeLoan?.dueDate && <small>Åter: {dateLabel(tool.activeLoan.dueDate)}</small>}
                   {blocked && tool.status === "Utlånad" && <small className="measuring-overdue">{overdue ? "Kontroll förfallen" : "Spärrat efter kontroll"}</small>}
                 </td>
                 <td className="measuring-actions">
                   {tool.status === "Disponibel" && !blocked && currentUser?.role !== "view" && <button className="btn-primary" onClick={() => checkout(tool)}>Låna</button>}
+                  {!tool.reservation && tool.status === "Disponibel" && !blocked && currentUser?.role !== "view" && <button className="btn-secondary" onClick={() => reserveTool(tool)}>Reservera</button>}
+                  {tool.reservation && (isAdmin || tool.reservation.userId === currentUser?._id) && <button className="btn-secondary" onClick={() => releaseReservation(tool)}>Häv reservation</button>}
                   {canReturn && <button className="btn-secondary" onClick={() => returnTool(tool)}>Återlämna</button>}
                   {(canControl || isAdmin) && <details className="measuring-table-more"><summary>•••</summary><div className="measuring-more-menu">
                     {canControl && <button onClick={() => { setControlTool(tool); setControlForm({ type: "Kontroll", date: new Date().toLocaleDateString("sv-SE"), result: "Godkänd", comment: "" }); }}>Registrera kontroll</button>}
@@ -462,7 +503,7 @@ export default function MeasuringTools({ currentUser }) {
         )
       ) : <div className="measuring-empty-state"><strong>Inga verktyg hittades</strong><span>Prova att ändra sökningen eller välj ett annat filter.</span><button className="btn-secondary" onClick={() => { setSearch(""); setStatusFilter("Alla"); }}>Rensa sökning och filter</button></div>}
 
-      {history && <div className="measuring-modal-backdrop" onClick={() => setHistory(null)}><section className="measuring-history" onClick={(e) => e.stopPropagation()}><button className="measuring-close" onClick={() => setHistory(null)}>×</button><h3>Historik – {history.tool.toolNumber}</h3>{history.entries.length ? <ol>{history.entries.slice().reverse().map((entry, index) => <li key={index}>{entry.action === "control" ? <><strong>{entry.type}</strong> – {entry.result} · {dateLabel(entry.date)}<small>Utförd av {entry.performedByName || "—"}</small>{entry.comment && <small>Kommentar: {entry.comment}</small>}</> : <><strong>{entry.action === "checkout" ? "Utlånad" : "Återlämnad"}</strong> – {entry.borrowerName} · {new Date(entry.action === "checkout" ? entry.checkedOutAt : entry.returnedAt).toLocaleString("sv-SE")}<small>{entry.action === "return" ? `Registrerad av ${entry.returnedByName || "—"}` : `Planerad åter: ${dateLabel(entry.dueDate)}`}</small>{entry.returnNote && <small>Kommentar: {entry.returnNote}</small>}</>}</li>)}</ol> : <p>Ingen historik ännu.</p>}</section></div>}
+      {history && <div className="measuring-modal-backdrop" onClick={() => setHistory(null)}><section className="measuring-history" onClick={(e) => e.stopPropagation()}><button className="measuring-close" onClick={() => setHistory(null)}>×</button><h3>Historik – {history.tool.toolNumber}</h3>{history.entries.length ? <ol>{history.entries.slice().reverse().map((entry, index) => <li key={index}>{entry.action === "control" ? <><strong>{entry.type}</strong> – {entry.result} · {dateLabel(entry.date)}<small>Utförd av {entry.performedByName || "—"}</small>{entry.comment && <small>Kommentar: {entry.comment}</small>}</> : <><strong>{entry.action === "checkout" ? "Utlånad" : entry.action === "return" ? "Återlämnad" : entry.action === "reserve" ? "Reserverad" : "Reservation hävd"}</strong> – {entry.borrowerName || entry.userName} · {new Date(entry.checkedOutAt || entry.returnedAt || entry.reservedAt || entry.releasedAt).toLocaleString("sv-SE")}<small>{entry.action === "return" ? `Registrerad av ${entry.returnedByName || "—"}` : `Planerad åter: ${dateLabel(entry.dueDate)}`}</small>{entry.returnNote && <small>Kommentar: {entry.returnNote}</small>}</>}</li>)}</ol> : <p>Ingen historik ännu.</p>}</section></div>}
       {controlTool && <div className="measuring-modal-backdrop" onClick={() => setControlTool(null)}>
         <form className="measuring-history measuring-control-form" onSubmit={submitControl} onClick={(event) => event.stopPropagation()}>
           <button type="button" className="measuring-close" onClick={() => setControlTool(null)}>×</button>
