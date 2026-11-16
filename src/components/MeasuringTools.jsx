@@ -78,7 +78,7 @@ export default function MeasuringTools({ currentUser }) {
     const haystack = [tool.toolNumber, tool.type, tool.description, tool.range, tool.location, tool.activeLoan?.borrowerName]
       .join(" ").toLocaleLowerCase("sv");
     return haystack.includes(search.toLocaleLowerCase("sv")) &&
-      (statusFilter === "Alla" || tool.status === statusFilter);
+      (statusFilter === "Alla" || (statusFilter === "Spärrad" ? tool.controlBlocked : tool.status === statusFilter));
   }), [tools, search, statusFilter]);
 
   const checkout = async (tool) => {
@@ -286,7 +286,7 @@ export default function MeasuringTools({ currentUser }) {
             <div className="measuring-preview">
               <p>{preview.total} rader hittades, {preview.validCount} möjliga att importera.</p>
               {preview.errors?.length > 0 && <ul className="measuring-errors">{preview.errors.map((error, index) => <li key={index}>Rad {error.row}: {error.error}</li>)}</ul>}
-              <div className="measuring-table-wrap"><table><thead><tr><th>Verktygsnr</th><th>Typ</th><th>Benämning</th><th>Mätområde</th><th>Plats</th></tr></thead><tbody>{preview.items.slice(0, 12).map((item) => <tr key={item.toolNumber}><td>{item.toolNumber}</td><td>{item.type}</td><td>{item.description}</td><td>{item.range || "—"}</td><td>{item.location || "—"}</td></tr>)}</tbody></table></div>
+              <div className="measuring-table-wrap"><table><thead><tr><th>Verktygsnr</th><th>Typ</th><th>Benämning</th><th>Mätområde</th><th>Plats</th><th>Senaste kontroll</th></tr></thead><tbody>{preview.items.slice(0, 12).map((item) => <tr key={item.toolNumber}><td>{item.toolNumber}</td><td>{item.type}</td><td>{item.description}</td><td>{item.range || "—"}</td><td>{item.location || "—"}</td><td>{dateLabel(item.lastControlDate)}</td></tr>)}</tbody></table></div>
               {preview.items.length > 12 && <small>Visar de första 12 raderna.</small>}
               <button className="btn-primary" disabled={importBusy || preview.validCount !== preview.total || preview.errors?.length > 0} onClick={commitImport}>Godkänn och importera {preview.validCount} verktyg</button>
             </div>
@@ -297,7 +297,7 @@ export default function MeasuringTools({ currentUser }) {
       <div className="measuring-controls">
         <input aria-label="Sök mätverktyg" placeholder="Sök verktygsnr, typ, benämning…" value={search} onChange={(e) => setSearch(e.target.value)} />
         <select aria-label="Filtrera status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-          <option>Alla</option><option>Disponibel</option><option>Utlånad</option>
+          <option>Alla</option><option>Disponibel</option><option>Utlånad</option><option>Spärrad</option>
         </select>
         {isAdmin && <select aria-label="Välj låntagare" value={borrowerId} onChange={(e) => setBorrowerId(e.target.value)}><option value={currentUser?._id}>Låna själv</option>{users.filter((item) => item._id !== currentUser?._id).map((item) => <option key={item._id} value={item._id}>{item.name || item.username}</option>)}</select>}
         <label className="measuring-due-date">Planerat återlämningsdatum<input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></label>
@@ -305,7 +305,8 @@ export default function MeasuringTools({ currentUser }) {
 
       <div className="measuring-summary">
         <span><strong>{tools.length}</strong> totalt</span>
-        <span><strong>{tools.filter((tool) => tool.status === "Disponibel").length}</strong> disponibla</span>
+        <span><strong>{tools.filter((tool) => tool.status === "Disponibel" && !tool.controlBlocked).length}</strong> disponibla</span>
+        <span><strong>{tools.filter((tool) => tool.controlBlocked).length}</strong> spärrade</span>
         <span><strong>{tools.filter((tool) => tool.status === "Utlånad").length}</strong> utlånade</span>
       </div>
 
@@ -323,9 +324,9 @@ export default function MeasuringTools({ currentUser }) {
               <td>{tool.range || "—"}</td><td>{tool.location || "—"}</td>
               <td>{dateLabel(tool.lastControlDate)}</td>
               <td><span className={overdue ? "measuring-overdue" : ""}>{next ? dateLabel(next.toISOString().slice(0, 10)) : "—"}</span></td>
-              <td>{tool.status === "Utlånad" ? <><span className="measuring-status borrowed">Utlånad</span><small>{tool.activeLoan?.borrowerName}</small>{tool.activeLoan?.dueDate && <small>Åter: {dateLabel(tool.activeLoan.dueDate)}</small>}</> : <span className="measuring-status available">Disponibel</span>}</td>
+              <td>{tool.status === "Utlånad" ? <><span className="measuring-status borrowed">Utlånad</span><small>{tool.activeLoan?.borrowerName}</small>{tool.activeLoan?.dueDate && <small>Åter: {dateLabel(tool.activeLoan.dueDate)}</small></> : tool.controlBlocked ? <span className="measuring-status blocked">Spärrad</span> : <span className="measuring-status available">Disponibel</span>}{tool.controlBlocked && tool.status === "Utlånad" && <small className="measuring-overdue">Spärrat efter underkänd kontroll</small>}</td>
               <td className="measuring-actions">
-                {tool.status === "Disponibel" && currentUser?.role !== "view" && <button className="btn-primary" onClick={() => checkout(tool)}>Låna</button>}
+                {tool.status === "Disponibel" && !tool.controlBlocked && currentUser?.role !== "view" && <button className="btn-primary" onClick={() => checkout(tool)}>Låna</button>}
                 {canReturn && <button className="btn-secondary" onClick={() => returnTool(tool)}>Återlämna</button>}
                 {canControl && <button className="btn-secondary" onClick={() => { setControlTool(tool); setControlForm({ type: "Kontroll", date: new Date().toLocaleDateString("sv-SE"), result: "Godkänd", comment: "" }); }}>Registrera kontroll</button>}
                 {isAdmin && <button className="btn-secondary" onClick={() => editTool(tool)}>Redigera</button>}
