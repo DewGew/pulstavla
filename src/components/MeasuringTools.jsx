@@ -75,10 +75,13 @@ export default function MeasuringTools({ currentUser }) {
   }, [load]);
 
   const filteredTools = useMemo(() => tools.filter((tool) => {
+    const next = nextControlDate(tool);
+    const overdue = next && next < new Date(new Date().setHours(0, 0, 0, 0));
+    const blocked = tool.controlBlocked || overdue;
     const haystack = [tool.toolNumber, tool.type, tool.description, tool.range, tool.location, tool.activeLoan?.borrowerName]
       .join(" ").toLocaleLowerCase("sv");
     return haystack.includes(search.toLocaleLowerCase("sv")) &&
-      (statusFilter === "Alla" || (statusFilter === "Spärrad" ? tool.controlBlocked : statusFilter === "Disponibel" ? tool.status === "Disponibel" && !tool.controlBlocked : tool.status === statusFilter));
+      (statusFilter === "Alla" || (statusFilter === "Spärrad" ? blocked : statusFilter === "Disponibel" ? tool.status === "Disponibel" && !blocked : tool.status === statusFilter));
   }), [tools, search, statusFilter]);
 
   const checkout = async (tool) => {
@@ -316,6 +319,7 @@ export default function MeasuringTools({ currentUser }) {
           <tbody>{filteredTools.map((tool) => {
             const next = nextControlDate(tool);
             const overdue = next && next < new Date(new Date().setHours(0, 0, 0, 0));
+            const blocked = tool.controlBlocked || overdue;
             const canReturn = tool.activeLoan && (isAdmin || tool.activeLoan.borrowerId === currentUser?._id);
             const canControl = isAdmin || controlUserIds.includes(currentUser?._id);
             return <tr key={tool._id}>
@@ -332,18 +336,18 @@ export default function MeasuringTools({ currentUser }) {
                     {tool.activeLoan?.dueDate && <small>Åter: {dateLabel(tool.activeLoan.dueDate)}</small>}
                   </>
                 )}
-                {tool.status !== "Utlånad" && tool.controlBlocked && (
+                {tool.status !== "Utlånad" && blocked && (
                   <span className="measuring-status blocked">Spärrad</span>
                 )}
-                {tool.status !== "Utlånad" && !tool.controlBlocked && (
+                {tool.status !== "Utlånad" && !blocked && (
                   <span className="measuring-status available">Disponibel</span>
                 )}
-                {tool.controlBlocked && tool.status === "Utlånad" && (
-                  <small className="measuring-overdue">Spärrat efter underkänd kontroll</small>
+                {blocked && tool.status === "Utlånad" && (
+                  <small className="measuring-overdue">{overdue ? "Spärrat – nästa kontroll har passerat" : "Spärrat efter underkänd kontroll"}</small>
                 )}
               </td>
               <td className="measuring-actions">
-                {tool.status === "Disponibel" && !tool.controlBlocked && currentUser?.role !== "view" && <button className="btn-primary" onClick={() => checkout(tool)}>Låna</button>}
+                {tool.status === "Disponibel" && !blocked && currentUser?.role !== "view" && <button className="btn-primary" onClick={() => checkout(tool)}>Låna</button>}
                 {canReturn && <button className="btn-secondary" onClick={() => returnTool(tool)}>Återlämna</button>}
                 {canControl && <button className="btn-secondary" onClick={() => { setControlTool(tool); setControlForm({ type: "Kontroll", date: new Date().toLocaleDateString("sv-SE"), result: "Godkänd", comment: "" }); }}>Registrera kontroll</button>}
                 {isAdmin && <button className="btn-secondary" onClick={() => editTool(tool)}>Redigera</button>}
