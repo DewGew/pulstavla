@@ -405,20 +405,7 @@ export default function MeasuringTools({ currentUser }) {
       {isAdmin && (
         <section className="measuring-import">
           <h3>Importera verktyg från Excel</h3>
-          <div className="measuring-import-row">
-            <input type="file" accept=".xlsx,.xls" onChange={(e) => { setSelectedFile(e.target.files?.[0] || null); setPreview(null); }} />
-            <button className="btn-secondary" disabled={!selectedFile || importBusy} onClick={previewImport}>{importBusy ? "Läser…" : "Förhandsgranska"}</button>
-          </div>
-          <small>Importen läser första kalkylbladet och skriver inte något förrän du godkänner förhandsgranskningen.</small>
-          {preview && (
-            <div className="measuring-preview">
-              <p>{preview.total} rader hittades, {preview.validCount} möjliga att importera.</p>
-              {preview.errors?.length > 0 && <ul className="measuring-errors">{preview.errors.map((error, index) => <li key={index}>Rad {error.row}: {error.error}</li>)}</ul>}
-              <div className="measuring-table-wrap"><table><thead><tr><th>Verktygsnr</th><th>Typ</th><th>Benämning</th><th>Tillverkare</th><th>Mätområde</th><th>Plats</th><th>Senaste kontroll</th></tr></thead><tbody>{preview.items.slice(0, 12).map((item) => <tr key={item.toolNumber}><td>{item.toolNumber}</td><td>{item.type}</td><td>{item.description}</td><td>{item.manufacturer || "—"}</td><td>{item.range || "—"}</td><td>{item.location || "—"}</td><td>{dateLabel(item.lastControlDate)}</td></tr>)}</tbody></table></div>
-              {preview.items.length > 12 && <small>Visar de första 12 raderna.</small>}
-              <button className="btn-primary" disabled={importBusy || preview.validCount !== preview.total || preview.errors?.length > 0} onClick={commitImport}>Godkänn och importera {preview.validCount} verktyg</button>
-            </div>
-          )}
+          <small>Funktionen är tillfälligt inaktiverad.</small>
         </section>
       )}
 
