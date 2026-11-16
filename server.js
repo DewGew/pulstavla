@@ -821,7 +821,7 @@ measuringToolsDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 270000);
 // Beräkna om nästa kontroll passerat. Datum hanteras som kalenderdatum i UTC.
 function isMeasuringToolControlOverdue(tool) {
   if (!tool?.lastControlDate || !Number(tool.controlInterval)) return false;
-  const match = String(tool.lastControlDate).match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
+  const match = String(tool.lastControlDate).match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!match) return false;
   const nextDate = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]) + Number(tool.controlInterval)));
   const today = new Date();
