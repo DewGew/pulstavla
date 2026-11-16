@@ -178,3 +178,132 @@
 
 
 .measuring-export-actions { display:flex; justify-content:flex-end; margin:0 0 10px; }
+
+
+/* Harmoniserad grundstil med övriga innehållssidor */
+.measuring-tools {
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--text);
+}
+.measuring-tools h2 {
+  font-size: 1.35rem;
+  line-height: 1.25;
+}
+.measuring-tools h3 {
+  font-size: 1.05rem;
+  line-height: 1.3;
+}
+.measuring-tools p { line-height: 1.45; }
+.measuring-tools button,
+.measuring-tools input,
+.measuring-tools select,
+.measuring-tools textarea {
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+.measuring-header {
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--panel-border);
+}
+.measuring-header h2 { margin-bottom: 0; }
+.measuring-form,
+.measuring-list-toolbar,
+.measuring-summary-card,
+.measuring-tool-card,
+.measuring-table-wrap,
+.measuring-history {
+  border-radius: var(--card-radius);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.045);
+}
+.measuring-form,
+.measuring-list-toolbar { padding: 14px; }
+.measuring-tool-card { border-radius: var(--card-radius); }
+.measuring-table th,
+.measuring-table td { font-size: 0.88rem; }
+.measuring-table th { font-weight: 600; }
+.measuring-status { font-size: 0.8rem; }
+.measuring-tool-number,
+.measuring-card-type,
+.measuring-card-facts span,
+.measuring-card-control span,
+.measuring-card-loan > span,
+.measuring-card-warning,
+.measuring-result-count,
+.measuring-extra-controls label { font-size: 0.82rem; }
+.measuring-summary-card strong { font-size: 1.55rem; }
+.measuring-summary-card span { font-size: 0.85rem; }
+.measuring-tool-card h3 { font-size: 1.05rem; }
+.measuring-card-facts strong,
+.measuring-card-control strong,
+.measuring-card-loan strong { font-size: 0.88rem; }
+.measuring-search-row > input,
+.measuring-extra-controls input,
+.measuring-extra-controls select,
+.measuring-form input,
+.measuring-control-form input,
+.measuring-control-form select,
+.measuring-control-form textarea,
+.measuring-action-form input,
+.measuring-action-form select {
+  min-height: 36px;
+  padding: 8px 10px;
+  border-radius: var(--cell-radius);
+  font: inherit;
+}
+.measuring-view-toggle button,
+.measuring-filter-chips button,
+.measuring-more-actions > summary,
+.measuring-table-more > summary {
+  border-radius: var(--cell-radius);
+  font-size: 0.85rem;
+}
+.measuring-card-actions button,
+.measuring-header-actions button,
+.measuring-action-form button,
+.measuring-control-form button {
+  font-size: 0.88rem;
+}
+.measuring-history {
+  border: 1px solid var(--panel-border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--panel-shadow);
+}
+.measuring-card-reservation {
+  border-color: var(--status-yellow-border);
+  background: var(--status-yellow-bg);
+  color: var(--status-yellow-text);
+}
+.measuring-status.available {
+  color: var(--status-green-text);
+  background: var(--status-green-bg);
+}
+.measuring-status.borrowed,
+.measuring-status.reserved {
+  color: var(--status-yellow-text);
+  background: var(--status-yellow-bg);
+}
+.measuring-status.blocked {
+  color: var(--status-red-text);
+  background: var(--status-red-bg);
+}
+.measuring-overdue,
+.measuring-card-warning { color: var(--status-red-text); }
+
+@media screen and (min-width: 3200px) {
+  .app.ultra4k .measuring-tools { font-size: 1.08rem !important; }
+  .app.ultra4k .measuring-tools h2 { font-size: 1.62rem !important; }
+  .app.ultra4k .measuring-tools h3 { font-size: 1.26rem !important; }
+  .app.ultra4k .measuring-tools button,
+  .app.ultra4k .measuring-tools input,
+  .app.ultra4k .measuring-tools select,
+  .app.ultra4k .measuring-tools textarea { font-size: 1.08rem !important; }
+  .app.ultra4k .measuring-tool-card h3 { font-size: 1.26rem !important; }
+  .app.ultra4k .measuring-summary-card strong { font-size: 1.86rem !important; }
+}
+@media (max-width: 700px) {
+  .measuring-header { gap: 10px; }
+  .measuring-form,
+  .measuring-list-toolbar { padding: 12px; }
+  .measuring-history { padding: 20px 16px; }
+}
