@@ -1718,196 +1718,261 @@ app.delete("/checklist/:machine", requireAuth, requireAdmin, (req, res) => {
   });
 });
 
-function parseImportDate(value) {
-  if (value instanceof Date && !Number.isNaN(value.getTime())) {
-    return new Date(Date.UTC(value.getFullYear(), value.getMonth(), value.getDate())).toISOString().slice(0, 10);
-  }
-  if (typeof value === "number" && Number.isFinite(value)) {
-    const date = new Date(Date.UTC(1899, 11, 30) + value * 86400000);
-    return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10);
-  }
-  if (typeof value !== "string" || !value.trim()) return null;
-  const text = value.trim();
-  let parts;
-  let match = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-  if (match) parts = [Number(match[1]), Number(match[2]), Number(match[3])];
-  else {
-    match = text.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
-    if (!match) return null;
-    parts = [Number(match[3]), Number(match[2]), Number(match[1])];
-  }
-  const [year, month, day] = parts;
-  const date = new Date(Date.UTC(year, month - 1, day));
-  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
-  return date.toISOString().slice(0, 10);
-}
-
-function parseImportNumber(value) {
-  if (value === "" || value === null || value === undefined) return null;
-  if (typeof value === "number") return Number.isFinite(value) ? value : null;
-  const normalized = String(value).trim().replace(/\s/g, "").replace(",", ".");
-  if (!normalized) return null;
-  const number = Number(normalized);
-  return Number.isFinite(number) ? number : null;
-}
-
-function replaceOrderCollection(db, rows, callback) {
-  db.find({}, (findErr, previousRows) => {
-    if (findErr) return callback(findErr);
-    db.remove({}, { multi: true }, (removeErr) => {
-      if (removeErr) return callback(removeErr);
-      db.insert(rows, (insertErr, insertedRows) => {
-        if (!insertErr) return callback(null, insertedRows);
-        db.remove({ _importBatchId: rows[0]?._importBatchId }, { multi: true }, () => {
-          if (!previousRows.length) return callback(insertErr);
-          db.insert(previousRows, (restoreErr) => callback(restoreErr || insertErr));
-        });
-      });
-    });
-  });
-}
-
 app.post("/orders/import", requireAuth, requireAdmin, upload.single("file"), validateUploadedFile(spreadsheetFileTypes), (req, res) => {
-  const filePath = req.file?.path;
+  if (!req.file) {
+    return res.status(400).json({ error: "Ingen fil uppladdad" });
+  }
+
   try {
-    if (!filePath) return res.status(400).json({ error: "Ingen fil uppladdad" });
-    const workbook = xlsx.readFile(filePath, { cellDates: true });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    if (!sheet) return res.status(400).json({ error: "Excel-filen saknar ett kalkylblad." });
-    const headers = ["A", "SKPL", "C", "Artikelnr", "E", "Benämning", "G", "H", "Ordernr", "J", "Kundnr", "Kundnamn", "Kundref", "N", "0", "Leveransdatum", "Q", "Lovad", "S", "T", "KundOrder", "V", "W", "Antal"];
-    const rawRows = xlsx.utils.sheet_to_json(sheet, {
-      range: 7, header: headers, defval: "", raw: true, cellDates: true
-    }).filter((row) => Object.values(row).some((value) => value !== "" && value !== null));
-    if (!rawRows.length) return res.status(400).json({ error: "Filen innehåller inga orderrader. Befintliga kundorder har inte ändrats." });
+    const workbook = xlsx.readFile(req.file.path);
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
 
-    const rows = [];
-    const errors = [];
-    rawRows.forEach((row, index) => {
-      const line = index + 9;
-      const ordernr = String(row.Ordernr ?? "").trim();
-      const artikelnr = String(row.Artikelnr ?? "").trim();
-      const benamning = String(row.Benämning ?? "").trim();
-      const quantity = parseImportNumber(row.Antal);
-      const dateText = row.Leveransdatum;
-      const date = dateText === "" || dateText === null ? null : parseImportDate(dateText);
-      if (!ordernr || !artikelnr || !benamning) errors.push("Rad " + line + ": Ordernr, Artikelnr eller Benämning saknas.");
-      if (quantity === null || quantity < 0) errors.push("Rad " + line + ": Antal saknas eller är ogiltigt.");
-      if (dateText !== "" && dateText !== null && !date) errors.push("Rad " + line + ": Leveransdatum är ogiltigt.");
-      if (!errors.some((message) => message.startsWith("Rad " + line + ":"))) {
-        rows.push({ Artikelnr: artikelnr, Benämning: benamning, Ordernr: ordernr, Kundnamn: String(row.Kundnamn ?? "").trim(), Leveransdatum: date, Antal: quantity });
-      }
-    });
-    if (errors.length) return res.status(400).json({
-      error: "Importen avbröts. " + errors.length + " fel hittades; befintliga kundorder är oförändrade.",
-      details: errors.slice(0, 10), errorCount: errors.length
-    });
-    if (!rows.length) return res.status(400).json({ error: "Inga giltiga kundorder hittades. Befintliga kundorder har inte ändrats." });
+		const rawData = xlsx.utils.sheet_to_json(sheet, {
+			range: 7,
+			header: [
+				"A",
+				"SKPL",
+				"C",
+				"Artikelnr",
+				"E",
+				"Benämning",
+				"G",
+				"H",
+				"Ordernr",
+				"J",
+				"Kundnr",
+				"Kundnamn",
+				"Kundref",
+				"N",
+				"0",
+				"Leveransdatum",
+				"Q",
+				"Lovad",
+				"S",
+				"T",
+				"KundOrder",
+				"V",
+				"W",
+				"Antal",				
+			],
+			defval: "",
+			raw: false,          // 🔥 Viktig!
+			cellDates: true,     // 🔥 Gör Excel-datum till Date
+		});
 
-    const importedAt = Date.now();
-    const batchId = importedAt + "-" + Math.random().toString(36).slice(2);
-    const documents = rows.map((row) => ({ ...row, importedAt, importedBy: req.user.name || req.user.username, _importBatchId: batchId }));
-    replaceOrderCollection(ordersDB, documents, (err) => {
-      if (err) return res.status(500).json({ error: "Kunde inte spara importen. Den tidigare kundorderlistan har återställts om möjligt." });
-      io.emit("ordersUpdated");
-      res.json({ success: true, rowsImported: documents.length });
-    });
+		// 1️⃣ Ta bort helt tomma rader
+		let filteredRows = rawData.filter(row =>
+			Object.values(row).some(value => value !== "")
+		);
+		
+		const allowedColumns = [
+			"Artikelnr",
+			"Benämning",
+			"Ordernr",
+			"Kundnamn",
+			"Leveransdatum",
+			"Antal"
+		];
+
+		filteredRows = filteredRows.map(row => {
+			const newRow = {};
+			allowedColumns.forEach(col => {
+				newRow[col] = row[col];
+			});
+			return newRow;
+		});
+
+		// 2️⃣ Ta bort kolumner som är tomma i ALLA rader
+		const keys = Object.keys(filteredRows[0] || {});
+		const nonEmptyKeys = keys.filter(key =>
+			filteredRows.some(row => row[key] !== "")
+		);
+
+		// 3️⃣ Bygg nya objekt utan tomma kolumner
+		const cleanedData = filteredRows.map(row => {
+			const newRow = {};
+			nonEmptyKeys.forEach(key => {
+				newRow[key] = row[key];
+			});
+			return newRow;
+		});
+		
+		function excelDateToJSDate(serial) {
+			const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+			return new Date(excelEpoch.getTime() + serial * 86400000);
+		}
+
+		cleanedData.forEach(row => {
+			if (typeof row.Leveransdatum === "number") {
+				row.Leveransdatum = excelDateToJSDate(row.Leveransdatum);
+			}
+
+			if (row.Leveransdatum instanceof Date) {
+				row.Leveransdatum = new Date(row.Leveransdatum);
+			}
+
+			if (!row.Leveransdatum) {
+				row.Leveransdatum = null;
+			}
+		});
+
+    // Rensa gamla poster (valfritt)
+		ordersDB.remove({}, { multi: true }, () => {
+			ordersDB.insert(
+				cleanedData.map(row => ({
+					...row,
+					importedAt: Date.now(),
+					importedBy: req.user.name,
+				})),
+				(err) => {
+					if (err) {
+						return res.status(500).json({ error: "Kunde inte spara data" });
+					}
+
+					io.emit("ordersUpdated");
+
+					res.json({
+						success: true,
+						rowsImported: cleanedData.length,
+					});
+				}
+			);
+		});
+
   } catch (err) {
-    console.error("Kundorderimport:", err);
-    res.status(400).json({ error: "Kunde inte läsa Excel-filen. Befintliga kundorder har inte ändrats." });
-  } finally {
-    if (filePath) fs.unlink(filePath, () => {});
+    console.error(err);
+    res.status(500).json({ error: "Fel vid läsning av Excel" });
   }
 });
 
 app.get("/orders", requireAuth, (req, res) => {
   ordersDB.find({ Leveransdatum: { $ne: null } })
-    .sort({ Leveransdatum: 1 })
+    .sort({ Leveransdatum: 1 }) // 1 = stigande (äldst först)
     .exec((err, docs) => {
-      if (err) return res.status(500).json({ error: "Kunde inte läsa ordrar" });
+      if (err)
+        return res.status(500).json({ error: "Kunde inte läsa ordrar" });
+
       res.json(docs);
     });
 });
 
-app.post("/production-orders/import", requireAuth, requireAdmin, upload.single("file"), validateUploadedFile(spreadsheetFileTypes), (req, res) => {
-  const filePath = req.file?.path;
-  try {
-    if (!filePath) return res.status(400).json({ error: "Ingen fil uppladdad" });
-    const workbook = xlsx.readFile(filePath, { cellDates: true });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    if (!sheet) return res.status(400).json({ error: "Excel-filen saknar ett kalkylblad." });
-    const rawRows = xlsx.utils.sheet_to_json(sheet, { defval: "", raw: true, cellDates: true })
-      .filter((row) => Object.values(row).some((value) => value !== "" && value !== null));
-    if (!rawRows.length) return res.status(400).json({ error: "Filen innehåller inga tillverkningsorder. Befintliga order har inte ändrats." });
+app.post(
+  "/production-orders/import",
+  requireAuth,
+  requireAdmin,
+  upload.single("file"),
+  validateUploadedFile(spreadsheetFileTypes),
+  (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: "Ingen fil uppladdad" });
+    }
 
-    const requiredHeaders = ["TO nr", "Artikel", "Benämning", "Ord kv", "Lev. datum"];
-    const availableHeaders = Object.keys(rawRows[0] || {});
-    const missingHeaders = requiredHeaders.filter((header) => !availableHeaders.includes(header));
-    if (missingHeaders.length) return res.status(400).json({
-      error: "Följande kolumner saknas: " + missingHeaders.join(", ") + ". Befintliga tillverkningsorder har inte ändrats."
-    });
+    try {
+      const workbook = xlsx.readFile(req.file.path);
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
 
-    ordersDB.find({}, (ordersErr, customerOrders) => {
-      if (ordersErr) return res.status(500).json({ error: "Kunde inte läsa kundordrar. Importen avbröts." });
-      const customerByOrder = new Map();
-      customerOrders.forEach((order) => {
-        const key = String(order.Ordernr || "").trim();
-        if (key && !customerByOrder.has(key)) customerByOrder.set(key, order.Kundnamn || order.Kund || "");
+      const rawData = xlsx.utils.sheet_to_json(sheet, {
+        defval: "",
+        raw: false,
+        cellDates: true
       });
-      const rows = [];
-      const errors = [];
-      const numericColumns = ["Ord kv", "3&4a", "5ax", "Stor", "stor", "Svar", "svar", "Man", "man", "Div.", "div", "Res.tid"];
-      rawRows.forEach((row, index) => {
-        const line = index + 2;
-        const ordernr = String(row["TO nr"] ?? "").trim();
-        const artikel = String(row.Artikel ?? "").trim();
-        const benamning = String(row.Benämning ?? "").trim();
-        const date = parseImportDate(row["Lev. datum"]);
-        if (!ordernr || !artikel || !benamning) errors.push("Rad " + line + ": TO nr, Artikel eller Benämning saknas.");
-        if (!date) errors.push("Rad " + line + ": Leveransdatum saknas eller är ogiltigt.");
-        const numbers = {};
-        numericColumns.forEach((column) => {
-          if (row[column] !== undefined && row[column] !== "") {
-            const value = parseImportNumber(row[column]);
-            if (value === null || value < 0) errors.push("Rad " + line + ": " + column + " är ogiltigt.");
-            else numbers[column] = value;
+
+      // 🔹 Ta bort helt tomma rader
+      let filteredRows = rawData.filter(row =>
+        Object.values(row).some(value => value !== "")
+      );
+
+      function excelDateToJSDate(serial) {
+        const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+        return new Date(excelEpoch.getTime() + serial * 86400000);
+      }
+
+      // FIX: hämta kundordrar (ordersDB) FÖRST, så vi kan slå upp rätt
+      // kundnamn per Ordernr innan tillverkningsorder-raderna sparas.
+      // Om kundordern inte importerats än (eller Ordernr saknar match)
+      // faller vi tillbaka på Excel-filens eget "Kund namn"-fält.
+      ordersDB.find({}, (err, customerOrders) => {
+        if (err) {
+          return res.status(500).json({ error: "Kunde inte läsa kundordrar" });
+        }
+
+        const kundByOrdernr = new Map();
+        customerOrders.forEach((o) => {
+          const key = String(o.Ordernr || "").trim();
+          if (key && !kundByOrdernr.has(key)) {
+            kundByOrdernr.set(key, o.Kundnamn || o.Kund || "");
           }
         });
-        const quantity = parseImportNumber(row["Ord kv"]);
-        if (quantity === null || quantity < 0) errors.push("Rad " + line + ": Ord kv saknas eller är ogiltigt.");
-        if (!errors.some((message) => message.startsWith("Rad " + line + ":"))) {
-          rows.push({
+
+        // 🔹 Normalisera data
+        filteredRows = filteredRows.map(row => {
+          let levDatum = row["Lev. datum"];
+
+          if (typeof levDatum === "number") {
+            levDatum = excelDateToJSDate(levDatum);
+          }
+
+          if (levDatum instanceof Date) {
+            levDatum.setHours(0, 0, 0, 0);
+          } else {
+            levDatum = null;
+          }
+
+          const ordernr = row["TO nr"];
+          const matchedKund = kundByOrdernr.get(String(ordernr || "").trim());
+
+          return {
             Ordernr: ordernr,
-            Kundnamn: customerByOrder.get(ordernr) || String(row["Kund namn"] || row.Kundnamn || "").trim(),
-            Artikelnr: artikel, Benämning: benamning, Antal: quantity,
-            Vecka: row.Vecka ?? "", Leveransdatum: date,
-            Fras3axl: numbers["3&4a"] ?? 0, Fras5axl: numbers["5ax"] ?? 0,
-            FrasStor: numbers.Stor ?? numbers.stor ?? 0, Svarv: numbers.Svar ?? numbers.svar ?? 0,
-            Man: numbers.Man ?? numbers.man ?? 0, Div: numbers["Div."] ?? numbers.div ?? 0,
-            ResTid: numbers["Res.tid"] ?? 0
+            // FIX: kundnamn från ordersDB (kundordrar) prioriteras;
+            // Excel-filens "Kund namn" används bara som fallback.
+            Kundnamn: matchedKund || "",
+            Artikelnr: row["Artikel"],
+            Benämning: row["Benämning"],
+            Antal: Number(row["Ord kv"]) || 0,
+            Vecka: row["Vecka"],
+            Leveransdatum: row["Lev. datum"],
+            Fras3axl: Number(row["3&4a"]) || 0,
+            Fras5axl: Number(row["5ax"]) || 0,
+            FrasStor: Number(row["Stor"] ?? row["stor"]) || 0,
+            Svarv: Number(row["Svar"] ?? row["svar"]) || 0,
+            Man: Number(row["Man"] ?? row["man"]) || 0,
+            Div: Number(row["Div."] ?? row["div"]) || 0,
+            ResTid: Number(row["Res.tid"]) || 0,
+            importedAt: Date.now(),
+            importedBy: req.user.name
+          };
+        });
+
+        // 🔥 Ta bort rader med ogiltigt datum
+        filteredRows = filteredRows.filter(row => {
+          if (!row.Leveransdatum) return false;
+          return !isNaN(new Date(row.Leveransdatum).getTime());
+        });
+
+        // 🔥 Töm och ersätt
+        productionOrdersDB.remove({}, { multi: true }, () => {
+          productionOrdersDB.insert(filteredRows, err => {
+            if (err)
+              return res.status(500).json({ error: "Kunde inte spara" });
+
+            io.emit("productionOrdersUpdated");
+
+            res.json({
+              success: true,
+              rowsImported: filteredRows.length
+            });
           });
-        }
+        });
       });
-      if (errors.length) return res.status(400).json({
-        error: "Importen avbröts. " + errors.length + " fel hittades; befintliga tillverkningsorder är oförändrade.",
-        details: errors.slice(0, 10), errorCount: errors.length
-      });
-      if (!rows.length) return res.status(400).json({ error: "Inga giltiga tillverkningsorder hittades. Befintliga order har inte ändrats." });
-      const importedAt = Date.now();
-      const batchId = importedAt + "-" + Math.random().toString(36).slice(2);
-      const documents = rows.map((row) => ({ ...row, importedAt, importedBy: req.user.name || req.user.username, _importBatchId: batchId }));
-      replaceOrderCollection(productionOrdersDB, documents, (err) => {
-        if (err) return res.status(500).json({ error: "Kunde inte spara importen. Den tidigare tillverkningsorderlistan har återställts om möjligt." });
-        io.emit("productionOrdersUpdated");
-        res.json({ success: true, rowsImported: documents.length });
-      });
-    });
-  } catch (err) {
-    console.error("Tillverkningsorderimport:", err);
-    res.status(400).json({ error: "Kunde inte läsa Excel-filen. Befintliga tillverkningsorder har inte ändrats." });
-  } finally {
-    if (filePath) fs.unlink(filePath, () => {});
+
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Fel vid läsning av Excel" });
+    }
   }
-});
+);
 
 app.get("/production-orders", requireAuth, (req, res) => {
   productionOrdersDB.find({ Leveransdatum: { $ne: null } })
