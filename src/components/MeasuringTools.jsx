@@ -36,7 +36,6 @@ function isToolBlocked(tool) {
 
 export default function MeasuringTools({ currentUser }) {
   const isAdmin = ["admin", "suAdmin"].includes(currentUser?.role);
-  const canReserve = isAdmin || currentUser?.role === "user";
   const [tools, setTools] = useState([]);
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
@@ -50,10 +49,12 @@ export default function MeasuringTools({ currentUser }) {
   const [preview, setPreview] = useState(null);
   const [importBusy, setImportBusy] = useState(false);
   const [borrowerId, setBorrowerId] = useState(currentUser?._id || "");
+  const [reservationUserId, setReservationUserId] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [history, setHistory] = useState(null);
   const [controlUserIds, setControlUserIds] = useState([]);
   const [canRegisterControl, setCanRegisterControl] = useState(false);
+  const canReserve = isAdmin || canRegisterControl;
   const [showAccess, setShowAccess] = useState(false);
   const [editingToolId, setEditingToolId] = useState(null);
   const [controlTool, setControlTool] = useState(null);
@@ -62,20 +63,26 @@ export default function MeasuringTools({ currentUser }) {
   const load = useCallback(async () => {
     try {
       const headers = { Authorization: `Bearer ${localStorage.getItem("token") || ""}` };
-      const requests = [
+      const [toolsResponse, accessResponse] = await Promise.all([
         apiFetch("/measuring-tools", { headers }),
         apiFetch("/measuring-tools/control-access", { headers }),
-      ];
-      if (canReserve) requests.push(apiFetch("/measuring-tools/users", { headers }));
-      const responses = await Promise.all(requests);
-      if (!responses[0].ok) throw new Error("Kunde inte läsa verktygsregistret.");
-      setTools(await responses[0].json());
-      if (responses[1]?.ok) {
-        const access = await responses[1].json();
-        setCanRegisterControl(Boolean(access.canRegister));
+      ]);
+      if (!toolsResponse.ok) throw new Error("Kunde inte läsa verktygsregistret.");
+      setTools(await toolsResponse.json());
+      let hasReservationAccess = isAdmin;
+      if (accessResponse.ok) {
+        const access = await accessResponse.json();
+        hasReservationAccess = Boolean(access.canRegister);
+        setCanRegisterControl(hasReservationAccess);
         if (isAdmin) setControlUserIds(access.userIds || []);
       }
-      if (canReserve && responses[2]?.ok) setUsers(await responses[2].json());
+      if (hasReservationAccess) {
+        const usersResponse = await apiFetch("/measuring-tools/users", { headers });
+        if (usersResponse.ok) setUsers(await usersResponse.json());
+      } else {
+        setUsers([]);
+        setReservationUserId("");
+      }
     } catch (err) {
       setMessage(err.message || "Kunde inte hämta mätverktyg.");
     } finally {
@@ -134,9 +141,12 @@ export default function MeasuringTools({ currentUser }) {
   };
 
   const reserveTool = async (tool) => {
+    if (!reservationUserId) {
+      setMessage("Välj en användare som reservationen ska tilldelas.");
+      return;
+    }
     try {
-      const body = {};
-      if (borrowerId) body.userId = borrowerId;
+      const body = { userId: reservationUserId };
       const response = await apiFetch(`/measuring-tools/${tool._id}/reserve`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
@@ -375,7 +385,8 @@ export default function MeasuringTools({ currentUser }) {
           ))}
         </div>
         <div className="measuring-extra-controls">
-          {canReserve && <label>Utlåning/reservation till<select aria-label="Välj användare" value={borrowerId} onChange={(e) => setBorrowerId(e.target.value)}><option value={currentUser?._id}>Mig själv</option>{users.filter((item) => item._id !== currentUser?._id).map((item) => <option key={item._id} value={item._id}>{item.name || item.username}</option>)}</select></label>}
+          {isAdmin && <label>Utlåning till<select aria-label="Välj låntagare" value={borrowerId} onChange={(e) => setBorrowerId(e.target.value)}>{users.map((item) => <option key={item._id} value={item._id}>{item.name || item.username}</option>)}</select></label>}
+          {canReserve && <label>Reservera till användare<select aria-label="Välj användare för reservation" value={reservationUserId} onChange={(e) => setReservationUserId(e.target.value)}><option value="">Välj användare…</option>{users.map((item) => <option key={item._id} value={item._id}>{item.name || item.username}</option>)}</select></label>}
           <label>Planerat återlämningsdatum<input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></label>
           <span className="measuring-result-count">Visar {filteredTools.length} av {tools.length} verktyg</span>
         </div>
@@ -440,7 +451,7 @@ export default function MeasuringTools({ currentUser }) {
                   )}
                   <div className="measuring-card-actions">
                     {canCheckout && <button className="btn-primary" onClick={() => checkout(tool)}>Låna verktyg</button>}
-                    {!tool.reservation && tool.status === "Disponibel" && !blocked && canReserve && <button className="btn-secondary" onClick={() => reserveTool(tool)}>Reservera tills vidare</button>}
+                    {!tool.reservation && tool.status === "Disponibel" && !blocked && canReserve && <button className="btn-secondary" disabled={!reservationUserId} onClick={() => reserveTool(tool)}>Reservera tills vidare</button>}
                     {tool.reservation && (isAdmin || tool.reservation.userId === currentUser?._id) && <button className="btn-secondary" onClick={() => releaseReservation(tool)}>Häv reservation</button>}
                     {canReturn && <button className="btn-primary" onClick={() => returnTool(tool)}>Återlämna</button>}
                     {(canControl || isAdmin) && <details className="measuring-more-actions">
@@ -497,7 +508,7 @@ export default function MeasuringTools({ currentUser }) {
                 </td>
                 <td className="measuring-actions">
                   {tool.status === "Disponibel" && !blocked && currentUser?.role !== "view" && (!tool.reservation || tool.reservation.userId === currentUser?._id || (isAdmin && tool.reservation.userId === borrowerId)) && <button className="btn-primary" onClick={() => checkout(tool)}>Låna</button>}
-                  {!tool.reservation && tool.status === "Disponibel" && !blocked && canReserve && <button className="btn-secondary" onClick={() => reserveTool(tool)}>Reservera</button>}
+                  {!tool.reservation && tool.status === "Disponibel" && !blocked && canReserve && <button className="btn-secondary" disabled={!reservationUserId} onClick={() => reserveTool(tool)}>Reservera</button>}
                   {tool.reservation && (isAdmin || tool.reservation.userId === currentUser?._id) && <button className="btn-secondary" onClick={() => releaseReservation(tool)}>Häv reservation</button>}
                   {canReturn && <button className="btn-secondary" onClick={() => returnTool(tool)}>Återlämna</button>}
                   {(canControl || isAdmin) && <details className="measuring-table-more"><summary>•••</summary><div className="measuring-more-menu">
