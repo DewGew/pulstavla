@@ -86,9 +86,11 @@ export default function MeasuringTools({ currentUser }) {
 
   const statusCounts = useMemo(() => ({
     Alla: tools.length,
-    Disponibla: tools.filter((tool) => tool.status === "Disponibel" && !isToolBlocked(tool)).length,
+    Lediga: tools.filter((tool) => tool.status === "Disponibel" && !isToolBlocked(tool)).length,
     Utlånade: tools.filter((tool) => tool.status === "Utlånad").length,
     Spärrade: tools.filter((tool) => isToolBlocked(tool)).length,
+    Skrotade: tools.filter((tool) => tool.status === "Skrotad").length,
+    Saknade: tools.filter((tool) => tool.status === "Saknad").length,
     "Kontroll förfallen": tools.filter((tool) => isControlOverdue(tool)).length,
   }), [tools]);
 
@@ -96,9 +98,11 @@ export default function MeasuringTools({ currentUser }) {
     const haystack = [tool.toolNumber, tool.type, tool.description, tool.range, tool.location, tool.activeLoan?.borrowerName]
       .join(" ").toLocaleLowerCase("sv");
     const matchesStatus = statusFilter === "Alla" ||
-      (statusFilter === "Disponibla" && tool.status === "Disponibel" && !isToolBlocked(tool)) ||
+      (statusFilter === "Lediga" && tool.status === "Disponibel" && !isToolBlocked(tool)) ||
       (statusFilter === "Utlånade" && tool.status === "Utlånad") ||
       (statusFilter === "Spärrade" && isToolBlocked(tool)) ||
+      (statusFilter === "Skrotade" && tool.status === "Skrotad") ||
+      (statusFilter === "Saknade" && tool.status === "Saknad") ||
       (statusFilter === "Kontroll förfallen" && isControlOverdue(tool));
     return haystack.includes(search.toLocaleLowerCase("sv")) && matchesStatus;
   }), [tools, search, statusFilter]);
@@ -325,7 +329,7 @@ export default function MeasuringTools({ currentUser }) {
           </div>
         </div>
         <div className="measuring-filter-chips" role="group" aria-label="Filtrera mätverktyg">
-          {["Alla", "Disponibla", "Utlånade", "Spärrade", "Kontroll förfallen"].map((filter) => (
+          {["Alla", "Lediga", "Utlånade", "Spärrade", "Skrotade", "Saknade", "Kontroll förfallen"].map((filter) => (
             <button type="button" key={filter} className={statusFilter === filter ? "active" : ""} onClick={() => setStatusFilter(filter)} aria-pressed={statusFilter === filter}>
               {filter}<span>{statusCounts[filter]}</span>
             </button>
@@ -343,7 +347,7 @@ export default function MeasuringTools({ currentUser }) {
           <strong>{tools.length}</strong><span>Totalt antal verktyg</span>
         </div>
         <div className="measuring-summary-card available">
-          <strong>{tools.filter((tool) => tool.status === "Disponibel" && !tool.controlBlocked).length}</strong><span>Disponibla – kan lånas</span>
+          <strong>{tools.filter((tool) => tool.status === "Disponibel" && !tool.controlBlocked).length}</strong><span>Lediga – kan lånas</span>
         </div>
         <div className="measuring-summary-card blocked">
           <strong>{tools.filter((tool) => tool.controlBlocked).length}</strong><span>Spärrade – får inte lånas</span>
@@ -368,7 +372,7 @@ export default function MeasuringTools({ currentUser }) {
                   <div className="measuring-card-top">
                     <span className="measuring-tool-number">{tool.toolNumber}</span>
                     <span className={`measuring-status ${tool.status === "Utlånad" ? "borrowed" : blocked ? "blocked" : "available"}`}>
-                      {tool.status === "Utlånad" ? "Utlånad" : blocked ? "Spärrad" : "Disponibel"}
+                      {tool.status === "Utlånad" ? "Utlånad" : blocked ? "Spärrad" : "Ledig"}
                     </span>
                   </div>
                   <h3>{tool.description || tool.type}</h3>
@@ -421,7 +425,7 @@ export default function MeasuringTools({ currentUser }) {
                 <td><span className={overdue ? "measuring-overdue" : ""}>{next ? dateLabel(next.toISOString().slice(0, 10)) : "—"}</span></td>
                 <td>
                   {tool.status === "Utlånad" ? <><span className="measuring-status borrowed">Utlånad</span><small>{tool.activeLoan?.borrowerName}</small>{tool.activeLoan?.dueDate && <small>Åter: {dateLabel(tool.activeLoan.dueDate)}</small>}</> :
-                    blocked ? <span className="measuring-status blocked">Spärrad</span> : <span className="measuring-status available">Disponibel</span>}
+                    blocked ? <span className="measuring-status blocked">Spärrad</span> : <span className="measuring-status available">Ledig</span>}
                   {blocked && tool.status === "Utlånad" && <small className="measuring-overdue">{overdue ? "Kontroll förfallen" : "Spärrat efter kontroll"}</small>}
                 </td>
                 <td className="measuring-actions">
@@ -446,7 +450,7 @@ export default function MeasuringTools({ currentUser }) {
           <h3>Registrera kalibrering / kontroll – {controlTool.toolNumber}</h3>
           <label>Typ<select value={controlForm.type} onChange={(event) => setControlForm({ ...controlForm, type: event.target.value })}><option>Kontroll</option><option>Kalibrering</option></select></label>
           <label>Datum<input type="date" required value={controlForm.date} onChange={(event) => setControlForm({ ...controlForm, date: event.target.value })} /></label>
-          <label>Resultat<select value={controlForm.result} onChange={(event) => setControlForm({ ...controlForm, result: event.target.value })}><option>Godkänd</option><option>Underkänd</option><option>Justerad</option></select></label>
+          <label>Resultat<select value={controlForm.result} onChange={(event) => setControlForm({ ...controlForm, result: event.target.value })}><option>Godkänd</option><option>Underkänd</option><option>Justerad</option><option>Skrotad</option><option>Saknad</option></select></label>
           <label>Kommentar<textarea rows="3" value={controlForm.comment} onChange={(event) => setControlForm({ ...controlForm, comment: event.target.value })} /></label>
           <button className="btn-primary" type="submit">Spara kontroll</button>
           <button className="btn-secondary" type="button" onClick={() => setControlTool(null)}>Avbryt</button>
