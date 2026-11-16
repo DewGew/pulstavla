@@ -1235,7 +1235,7 @@ app.get("/measuring-tools/:id/history", requireAuth, requireAdmin, (req, res) =>
     if (err) return res.status(500).json({ error: "Kunde inte läsa historiken." });
     if (!tool) return res.status(404).json({ error: "Verktyget hittades inte." });
     const entries = [...(tool.loanHistory || []), ...(tool.controlHistory || []), ...(tool.reservationHistory || [])]
-      .sort((a, b) => (a.recordedAt || a.checkedOutAt || a.returnedAt || 0) - (b.recordedAt || b.checkedOutAt || b.returnedAt || 0));
+      .sort((a, b) => (a.recordedAt || a.checkedOutAt || a.returnedAt || a.reservedAt || a.releasedAt || 0) - (b.recordedAt || b.checkedOutAt || b.returnedAt || b.reservedAt || b.releasedAt || 0));
     res.json(entries);
   });
 });
