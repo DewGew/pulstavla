@@ -448,7 +448,7 @@ export default function MeasuringTools({ currentUser }) {
                       <div className="measuring-more-menu">
                         {canControl && <button onClick={() => { setControlTool(tool); setControlForm({ type: "Kontroll", date: new Date().toLocaleDateString("sv-SE"), result: "Godkänd", comment: "" }); }}>Registrera kontroll</button>}
                         {canRegisterControl && <button onClick={() => editTool(tool)}>Redigera verktyg</button>}
-                        {isAdmin && <button onClick={() => showHistory(tool)}>Visa historik</button>}
+                        {(isAdmin || canRegisterControl) && <button onClick={() => showHistory(tool)}>Visa historik</button>}
                       </div>
                     </details>}
                   </div>
@@ -503,7 +503,7 @@ export default function MeasuringTools({ currentUser }) {
                   {(canControl || isAdmin) && <details className="measuring-table-more"><summary>•••</summary><div className="measuring-more-menu">
                     {canControl && <button onClick={() => { setControlTool(tool); setControlForm({ type: "Kontroll", date: new Date().toLocaleDateString("sv-SE"), result: "Godkänd", comment: "" }); }}>Registrera kontroll</button>}
                     {canRegisterControl && <button onClick={() => editTool(tool)}>Redigera</button>}
-                    {isAdmin && <button onClick={() => showHistory(tool)}>Historik</button>}
+                    {(isAdmin || canRegisterControl) && <button onClick={() => showHistory(tool)}>Historik</button>}
                   </div></details>}
                 </td>
               </tr>;
