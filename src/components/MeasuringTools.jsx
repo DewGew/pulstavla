@@ -405,7 +405,7 @@ export default function MeasuringTools({ currentUser }) {
               const canControl = isAdmin || controlUserIds.includes(currentUser?._id);
               const canCheckout = tool.status === "Disponibel" && !blocked && currentUser?.role !== "view" && (!tool.reservation || tool.reservation.userId === currentUser?._id || (isAdmin && tool.reservation.userId === borrowerId));
               return (
-                <article className={`measuring-tool-card ${blocked || terminalStatus ? "is-blocked" : tool.status === "Utlånad" ? "is-borrowed" : "is-available"}`} key={tool._id}>
+                <article className={`measuring-tool-card ${blocked || terminalStatus ? "is-blocked" : tool.status === "Utlånad" ? "is-borrowed" : tool.reservation ? "is-reserved" : "is-available"}`} key={tool._id}>
                   <div className="measuring-card-top">
                     <span className="measuring-tool-number">{tool.toolNumber}</span>
                     <span className={`measuring-status ${tool.status === "Utlånad" ? "borrowed" : blocked || terminalStatus ? "blocked" : tool.reservation ? "reserved" : "available"}`}>
