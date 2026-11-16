@@ -929,7 +929,8 @@ app.post("/measuring-tools/import-preview", requireAuth, requireAdmin, upload.si
           parsed.forEach((item) => {
             if (existingNumbers.has(item.toolNumber)) errors.push({ row: item.row, error: `Verktygsnumret ${item.toolNumber} finns redan.` });
           });
-          res.json({ items: parsed, errors, validCount: parsed.length - errors.length, total: parsed.length });
+          const invalidRows = new Set(errors.map((item) => item.row));
+          res.json({ items: parsed, errors, validCount: parsed.length - invalidRows.size, total: parsed.length });
         });
       } catch (err) {
         console.error("Fel vid förhandsgranskning av mätverktyg:", err);
