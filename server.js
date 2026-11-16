@@ -901,7 +901,6 @@ app.post("/measuring-tools", requireAuth, requireMeasuringControlAccess, (req, r
     location: String(input.location || "").trim(),
     controlInterval: Math.max(0, Number(input.controlInterval) || 0),
     lastControlDate: input.lastControlDate || "",
-    responsible: String(input.responsible || "Gemensam").trim(),
     status: "Disponibel",
     activeLoan: null,
     loanHistory: [],
@@ -933,7 +932,6 @@ app.patch("/measuring-tools/:id", requireAuth, requireMeasuringControlAccess, (r
     range: String(input.range || "").trim(),
     location: String(input.location || "").trim(),
     controlInterval: Math.max(0, Number(input.controlInterval) || 0),
-    responsible: String(input.responsible || "Gemensam").trim(),
     updatedAt: Date.now(),
   };
   if (input.lastControlDate !== undefined) fields.lastControlDate = String(input.lastControlDate || "");
@@ -1009,7 +1007,7 @@ app.post("/measuring-tools/import-preview", requireAuth, requireAdmin, upload.si
           location: ["plats"],
           controlInterval: ["kontroll intervall", "kontrollintervall"],
           lastControlDate: ["senaste kontroll datum", "senaste kontrolldatum"],
-          responsible: ["ansvarig"],
+          manufacturer: ["tillverkare"],
           status: ["status"],
         };
         const headers = Object.keys(rows[0] || {}).reduce((map, key) => {
@@ -1048,7 +1046,7 @@ app.post("/measuring-tools/import-preview", requireAuth, requireAdmin, upload.si
             location: String(get(row, "location") || "").trim(),
             controlInterval: Number.isFinite(controlInterval) ? controlInterval : 0,
             lastControlDate,
-            responsible: String(get(row, "responsible") || "Gemensam").trim(),
+            manufacturer: String(get(row, "manufacturer") || "").trim(),
             status: String(get(row, "status") || "Disponibel").trim(),
           };
         }).filter((item) => item.toolNumber || item.type || item.description);
@@ -1098,7 +1096,7 @@ app.post("/measuring-tools/import", requireAuth, requireAdmin, (req, res) => {
       location: String(item.location || "").trim(),
       controlInterval: Math.max(0, Number(item.controlInterval) || 0),
       lastControlDate: String(item.lastControlDate || ""),
-      responsible: String(item.responsible || "Gemensam").trim(),
+      manufacturer: String(item.manufacturer || "").trim(),
       status: "Disponibel", activeLoan: null, loanHistory: [],
       createdAt: Date.now(), updatedAt: Date.now(),
     });
