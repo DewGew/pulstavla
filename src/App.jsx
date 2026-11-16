@@ -323,6 +323,16 @@ return (
           Aktiviteter
         </button>
 
+        <button
+          className={activeTab === "measuringTools" ? "active" : ""}
+          onClick={() => {
+            setActiveTab("measuringTools");
+            setOpenMenu(false);
+          }}
+        >
+          Mätverktyg
+        </button>
+
         {user?.role !== "view" && (
           <button
             className={activeTab === "checklist" ? "active" : ""}
@@ -391,15 +401,6 @@ return (
                     Nyckeltal
                   </button>
                 )}
-                <button
-                  className={activeTab === "measuringTools" ? "active" : ""}
-                  onClick={() => {
-                    setActiveTab("measuringTools");
-                    setOpenMenu(false);
-                  }}
-                >
-                  Mätverktyg
-                </button>
                 <button
                   className={activeTab === "matprotokoll" ? "active" : ""}
                   onClick={() => {
