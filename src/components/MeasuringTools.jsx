@@ -324,7 +324,24 @@ export default function MeasuringTools({ currentUser }) {
               <td>{tool.range || "—"}</td><td>{tool.location || "—"}</td>
               <td>{dateLabel(tool.lastControlDate)}</td>
               <td><span className={overdue ? "measuring-overdue" : ""}>{next ? dateLabel(next.toISOString().slice(0, 10)) : "—"}</span></td>
-              <td>{tool.status === "Utlånad" ? <><span className="measuring-status borrowed">Utlånad</span><small>{tool.activeLoan?.borrowerName}</small>{tool.activeLoan?.dueDate && <small>Åter: {dateLabel(tool.activeLoan.dueDate)}</small></> : tool.controlBlocked ? <span className="measuring-status blocked">Spärrad</span> : <span className="measuring-status available">Disponibel</span>}{tool.controlBlocked && tool.status === "Utlånad" && <small className="measuring-overdue">Spärrat efter underkänd kontroll</small>}</td>
+              <td>
+                {tool.status === "Utlånad" && (
+                  <>
+                    <span className="measuring-status borrowed">Utlånad</span>
+                    <small>{tool.activeLoan?.borrowerName}</small>
+                    {tool.activeLoan?.dueDate && <small>Åter: {dateLabel(tool.activeLoan.dueDate)}</small>}
+                  </>
+                )}
+                {tool.status !== "Utlånad" && tool.controlBlocked && (
+                  <span className="measuring-status blocked">Spärrad</span>
+                )}
+                {tool.status !== "Utlånad" && !tool.controlBlocked && (
+                  <span className="measuring-status available">Disponibel</span>
+                )}
+                {tool.controlBlocked && tool.status === "Utlånad" && (
+                  <small className="measuring-overdue">Spärrat efter underkänd kontroll</small>
+                )}
+              </td>
               <td className="measuring-actions">
                 {tool.status === "Disponibel" && !tool.controlBlocked && currentUser?.role !== "view" && <button className="btn-primary" onClick={() => checkout(tool)}>Låna</button>}
                 {canReturn && <button className="btn-secondary" onClick={() => returnTool(tool)}>Återlämna</button>}
