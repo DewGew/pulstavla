@@ -1242,7 +1242,7 @@ app.post("/measuring-tools/:id/return", requireAuth, requireEditor, (req, res) =
 });
 
 // Administratörer kan se fullständig utlåningshistorik.
-app.get("/measuring-tools/:id/history", requireAuth, requireAdmin, (req, res) => {
+app.get("/measuring-tools/:id/history", requireAuth, requireMeasuringControlAccess, (req, res) => {
   measuringToolsDB.findOne({ _id: req.params.id }, (err, tool) => {
     if (err) return res.status(500).json({ error: "Kunde inte läsa historiken." });
     if (!tool) return res.status(404).json({ error: "Verktyget hittades inte." });
