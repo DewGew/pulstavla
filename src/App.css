@@ -1348,3 +1348,52 @@ textarea:disabled {
     padding: 0.55rem 0.35rem;
   }
 }
+
+
+/* Mobilanpassad inloggning – förhindra automatisk zoom i iOS */
+@media (max-width: 600px) {
+  .login-wrapper {
+    box-sizing: border-box;
+    min-height: 100vh;
+    min-height: 100dvh;
+    height: auto;
+    padding: 20px 16px;
+    align-items: center;
+  }
+
+  .login-box {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 420px;
+    padding: 24px 20px;
+    gap: 14px;
+  }
+
+  .login-box input,
+  .login-box select {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 48px;
+    padding: 12px;
+    font-size: 16px;
+    line-height: 1.4;
+    border-radius: var(--control-radius, 8px);
+  }
+
+  .login-box h2 {
+    font-size: 1.35rem;
+    margin: 0 0 6px;
+  }
+
+  .login-button {
+    min-height: 48px;
+    padding: 12px;
+    font-size: 16px;
+    border-radius: var(--control-radius, 8px);
+  }
+
+  .login-error {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+}
