@@ -45,9 +45,6 @@ export default function MeasuringTools({ currentUser }) {
   const [message, setMessage] = useState("");
   const [form, setForm] = useState(emptyTool);
   const [showAdd, setShowAdd] = useState(false);
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [preview, setPreview] = useState(null);
-  const [importBusy, setImportBusy] = useState(false);
   const [borrowerId, setBorrowerId] = useState(currentUser?._id || "");
   const [reservationUserId, setReservationUserId] = useState("");
   const [dueDate, setDueDate] = useState("");
@@ -304,45 +301,6 @@ export default function MeasuringTools({ currentUser }) {
     } catch (err) { setMessage(err.message); }
   };
 
-  const previewImport = async () => {
-    if (!selectedFile) return setMessage("Välj en Excel-fil först.");
-    setImportBusy(true);
-    setMessage("");
-    setPreview(null);
-    try {
-      const formData = new FormData();
-      formData.append("file", selectedFile);
-      const response = await apiFetch("/measuring-tools/import-preview", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
-        body: formData,
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Kunde inte läsa Excel-filen.");
-      setPreview(data);
-    } catch (err) { setMessage(err.message); }
-    finally { setImportBusy(false); }
-  };
-
-  const commitImport = async () => {
-    if (!preview?.items?.length || preview.errors?.length) return;
-    setImportBusy(true);
-    try {
-      const response = await apiFetch("/measuring-tools/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
-        body: JSON.stringify({ items: preview.items }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Importen misslyckades.");
-      setMessage(`${data.imported} verktyg importerades.`);
-      setPreview(null);
-      setSelectedFile(null);
-      await load();
-    } catch (err) { setMessage(err.message); }
-    finally { setImportBusy(false); }
-  };
-
   const showHistory = async (tool) => {
     try {
       const response = await apiFetch(`/measuring-tools/${tool._id}/history`, {
@@ -402,12 +360,6 @@ export default function MeasuringTools({ currentUser }) {
         </section>
       )}
 
-      {isAdmin && (
-        <section className="measuring-import">
-          <h3>Importera verktyg från Excel</h3>
-          <small>Funktionen är tillfälligt inaktiverad.</small>
-        </section>
-      )}
 
       {(isAdmin || canRegisterControl) && <div className="measuring-export-actions">
         <button type="button" className="btn-secondary" onClick={exportFilteredCsv} disabled={!filteredTools.length}>Exportera filtrerad lista till CSV</button>
