@@ -849,11 +849,16 @@ app.get("/measuring-tools/users", requireAuth, requireAdmin, (req, res) => {
   });
 });
 
-// Administratörer väljer vilka användare som får registrera kalibrering och kontroll.
-app.get("/measuring-tools/control-access", requireAuth, requireAdmin, (req, res) => {
+// Returnera den inloggade användarens kontrollbehörighet. Endast admin får se hela listan.
+app.get("/measuring-tools/control-access", requireAuth, (req, res) => {
   settingsDB.findOne({ key: "measuringToolsControlUsers" }, (err, setting) => {
     if (err) return res.status(500).json({ error: "Kunde inte läsa behörigheterna." });
-    res.json({ userIds: Array.isArray(setting?.value) ? setting.value : [] });
+    const userIds = Array.isArray(setting?.value) ? setting.value : [];
+    const isAdmin = ["admin", "suAdmin"].includes(req.user.role);
+    res.json({
+      userIds: isAdmin ? userIds : [],
+      canRegister: isAdmin || userIds.includes(req.user.id),
+    });
   });
 });
 
@@ -1152,6 +1157,7 @@ app.post("/measuring-tools/:id/reserve", requireAuth, requireEditor, (req, res) 
   const userId = isAdmin && req.body?.userId ? String(req.body.userId) : req.user.id;
   usersDB.findOne({ _id: userId }, (userErr, user) => {
     if (userErr || !user) return res.status(400).json({ error: "Användaren hittades inte." });
+    if (user.role === "view") return res.status(403).json({ error: "Reservation kan endast göras för en behörig användare." });
     measuringToolsDB.findOne({ _id: req.params.id }, (toolErr, tool) => {
       if (toolErr) return res.status(500).json({ error: "Kunde inte läsa verktyget." });
       if (!tool) return res.status(404).json({ error: "Verktyget hittades inte." });
