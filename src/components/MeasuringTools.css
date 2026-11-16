@@ -168,3 +168,10 @@
 
 .measuring-status.reserved { color:#704b08; background:#fff0c2; }
 .measuring-tool-card.is-reserved { border-top-color:#c59a32; }
+
+
+.measuring-action-form { display:flex; flex-direction:column; gap:12px; }
+.measuring-action-form > p { margin:0; color:var(--muted-text); }
+.measuring-action-form label { display:flex; flex-direction:column; gap:6px; font-weight:650; }
+.measuring-action-form input, .measuring-action-form select { box-sizing:border-box; width:100%; padding:10px 11px; border:1px solid var(--panel-border); border-radius:var(--control-radius); background:var(--bg-cell); color:var(--text); font:inherit; }
+.measuring-action-form button { align-self:flex-start; }
