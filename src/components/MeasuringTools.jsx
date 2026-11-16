@@ -36,6 +36,7 @@ function isToolBlocked(tool) {
 
 export default function MeasuringTools({ currentUser }) {
   const isAdmin = ["admin", "suAdmin"].includes(currentUser?.role);
+  const canReserve = isAdmin || currentUser?.role === "user";
   const [tools, setTools] = useState([]);
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
@@ -52,6 +53,7 @@ export default function MeasuringTools({ currentUser }) {
   const [dueDate, setDueDate] = useState("");
   const [history, setHistory] = useState(null);
   const [controlUserIds, setControlUserIds] = useState([]);
+  const [canRegisterControl, setCanRegisterControl] = useState(false);
   const [showAccess, setShowAccess] = useState(false);
   const [editingToolId, setEditingToolId] = useState(null);
   const [controlTool, setControlTool] = useState(null);
@@ -60,19 +62,20 @@ export default function MeasuringTools({ currentUser }) {
   const load = useCallback(async () => {
     try {
       const headers = { Authorization: `Bearer ${localStorage.getItem("token") || ""}` };
-      const requests = [apiFetch("/measuring-tools", { headers })];
-      if (isAdmin) {
-        requests.push(apiFetch("/measuring-tools/users", { headers }));
-        requests.push(apiFetch("/measuring-tools/control-access", { headers }));
-      }
+      const requests = [
+        apiFetch("/measuring-tools", { headers }),
+        apiFetch("/measuring-tools/control-access", { headers }),
+      ];
+      if (isAdmin) requests.push(apiFetch("/measuring-tools/users", { headers }));
       const responses = await Promise.all(requests);
       if (!responses[0].ok) throw new Error("Kunde inte läsa verktygsregistret.");
       setTools(await responses[0].json());
-      if (isAdmin && responses[1]?.ok) setUsers(await responses[1].json());
-      if (isAdmin && responses[2]?.ok) {
-        const access = await responses[2].json();
-        setControlUserIds(access.userIds || []);
+      if (responses[1]?.ok) {
+        const access = await responses[1].json();
+        setCanRegisterControl(Boolean(access.canRegister));
+        if (isAdmin) setControlUserIds(access.userIds || []);
       }
+      if (isAdmin && responses[2]?.ok) setUsers(await responses[2].json());
     } catch (err) {
       setMessage(err.message || "Kunde inte hämta mätverktyg.");
     } finally {
@@ -372,7 +375,7 @@ export default function MeasuringTools({ currentUser }) {
           ))}
         </div>
         <div className="measuring-extra-controls">
-          {isAdmin && <label>Utlåning/reservation till<select aria-label="Välj låntagare" value={borrowerId} onChange={(e) => setBorrowerId(e.target.value)}><option value={currentUser?._id}>Mig själv</option>{users.filter((item) => item._id !== currentUser?._id).map((item) => <option key={item._id} value={item._id}>{item.name || item.username}</option>)}</select></label>}
+          {isAdmin && <label>Utlåning/reservation till<select aria-label="Välj låntagare" value={borrowerId} onChange={(e) => setBorrowerId(e.target.value)}><option value={currentUser?._id}>Mig själv</option>{users.filter((item) => item._id !== currentUser?._id && item.role !== "view").map((item) => <option key={item._id} value={item._id}>{item.name || item.username}</option>)}</select></label>}
           <label>Planerat återlämningsdatum<input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></label>
           <span className="measuring-result-count">Visar {filteredTools.length} av {tools.length} verktyg</span>
         </div>
@@ -402,7 +405,7 @@ export default function MeasuringTools({ currentUser }) {
               const blocked = isToolBlocked(tool);
               const terminalStatus = isTerminalTool(tool);
               const canReturn = tool.activeLoan && (isAdmin || tool.activeLoan.borrowerId === currentUser?._id);
-              const canControl = isAdmin || controlUserIds.includes(currentUser?._id);
+              const canControl = canRegisterControl;
               const canCheckout = tool.status === "Disponibel" && !blocked && currentUser?.role !== "view" && (!tool.reservation || tool.reservation.userId === currentUser?._id || (isAdmin && tool.reservation.userId === borrowerId));
               return (
                 <article className={`measuring-tool-card ${blocked || terminalStatus ? "is-blocked" : tool.status === "Utlånad" ? "is-borrowed" : tool.reservation ? "is-reserved" : "is-available"}`} key={tool._id}>
@@ -437,7 +440,7 @@ export default function MeasuringTools({ currentUser }) {
                   )}
                   <div className="measuring-card-actions">
                     {canCheckout && <button className="btn-primary" onClick={() => checkout(tool)}>Låna verktyg</button>}
-                    {!tool.reservation && tool.status === "Disponibel" && !blocked && currentUser?.role !== "view" && <button className="btn-secondary" onClick={() => reserveTool(tool)}>Reservera tills vidare</button>}
+                    {!tool.reservation && tool.status === "Disponibel" && !blocked && canReserve && <button className="btn-secondary" onClick={() => reserveTool(tool)}>Reservera tills vidare</button>}
                     {tool.reservation && (isAdmin || tool.reservation.userId === currentUser?._id) && <button className="btn-secondary" onClick={() => releaseReservation(tool)}>Häv reservation</button>}
                     {canReturn && <button className="btn-primary" onClick={() => returnTool(tool)}>Återlämna</button>}
                     {(canControl || isAdmin) && <details className="measuring-more-actions">
@@ -494,7 +497,7 @@ export default function MeasuringTools({ currentUser }) {
                 </td>
                 <td className="measuring-actions">
                   {tool.status === "Disponibel" && !blocked && currentUser?.role !== "view" && (!tool.reservation || tool.reservation.userId === currentUser?._id || (isAdmin && tool.reservation.userId === borrowerId)) && <button className="btn-primary" onClick={() => checkout(tool)}>Låna</button>}
-                  {!tool.reservation && tool.status === "Disponibel" && !blocked && currentUser?.role !== "view" && <button className="btn-secondary" onClick={() => reserveTool(tool)}>Reservera</button>}
+                  {!tool.reservation && tool.status === "Disponibel" && !blocked && canReserve && <button className="btn-secondary" onClick={() => reserveTool(tool)}>Reservera</button>}
                   {tool.reservation && (isAdmin || tool.reservation.userId === currentUser?._id) && <button className="btn-secondary" onClick={() => releaseReservation(tool)}>Häv reservation</button>}
                   {canReturn && <button className="btn-secondary" onClick={() => returnTool(tool)}>Återlämna</button>}
                   {(canControl || isAdmin) && <details className="measuring-table-more"><summary>•••</summary><div className="measuring-more-menu">
