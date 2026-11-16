@@ -841,11 +841,11 @@ app.get("/measuring-tools", requireAuth, (req, res) => {
   });
 });
 
-// Lista konton utan känsliga uppgifter för val vid utlåning.
-app.get("/measuring-tools/users", requireAuth, requireAdmin, (req, res) => {
+// Lista aktiva användarkonton utan känsliga uppgifter för val vid utlåning och reservation.
+app.get("/measuring-tools/users", requireAuth, requireEditor, (req, res) => {
   usersDB.find({}, (err, docs) => {
     if (err) return res.status(500).json({ error: "Kunde inte läsa användare." });
-    res.json(docs.map(({ _id, username, name, role }) => ({ _id, username, name, role })));
+    res.json(docs.filter(({ role }) => role !== "view").map(({ _id, username, name, role }) => ({ _id, username, name, role })));
   });
 });
 
@@ -1151,10 +1151,9 @@ app.post("/measuring-tools/:id/checkout", requireAuth, requireEditor, (req, res)
   });
 });
 
-// Reservera ett ledigt mätverktyg tills vidare. Vanliga användare reserverar åt sig själva; admin kan välja konto.
+// Reservera ett ledigt mätverktyg tills vidare. Alla användare med redigeringsbehörighet kan välja valfritt användarkonto.
 app.post("/measuring-tools/:id/reserve", requireAuth, requireEditor, (req, res) => {
-  const isAdmin = ["admin", "suAdmin"].includes(req.user.role);
-  const userId = isAdmin && req.body?.userId ? String(req.body.userId) : req.user.id;
+  const userId = req.body?.userId ? String(req.body.userId) : req.user.id;
   usersDB.findOne({ _id: userId }, (userErr, user) => {
     if (userErr || !user) return res.status(400).json({ error: "Användaren hittades inte." });
     if (user.role === "view") return res.status(403).json({ error: "Reservation kan endast göras för en behörig användare." });
