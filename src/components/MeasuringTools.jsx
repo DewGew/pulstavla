@@ -391,7 +391,7 @@ export default function MeasuringTools({ currentUser }) {
                   <div className="measuring-card-actions">
                     {canCheckout && <button className="btn-primary" onClick={() => checkout(tool)}>Låna verktyg</button>}
                     {canReturn && <button className="btn-primary" onClick={() => returnTool(tool)}>Återlämna</button>}
-                    <details className="measuring-more-actions">
+                    {(canControl || isAdmin) && <details className="measuring-more-actions">
                       <summary>Fler åtgärder</summary>
                       <div className="measuring-more-menu">
                         {canControl && <button onClick={() => { setControlTool(tool); setControlForm({ type: "Kontroll", date: new Date().toLocaleDateString("sv-SE"), result: "Godkänd", comment: "" }); }}>Registrera kontroll</button>}
@@ -427,7 +427,7 @@ export default function MeasuringTools({ currentUser }) {
                 <td className="measuring-actions">
                   {tool.status === "Disponibel" && !blocked && currentUser?.role !== "view" && <button className="btn-primary" onClick={() => checkout(tool)}>Låna</button>}
                   {canReturn && <button className="btn-secondary" onClick={() => returnTool(tool)}>Återlämna</button>}
-                  <details className="measuring-table-more"><summary>•••</summary><div className="measuring-more-menu">
+                  {(canControl || isAdmin) && <details className="measuring-table-more"><summary>•••</summary><div className="measuring-more-menu">
                     {canControl && <button onClick={() => { setControlTool(tool); setControlForm({ type: "Kontroll", date: new Date().toLocaleDateString("sv-SE"), result: "Godkänd", comment: "" }); }}>Registrera kontroll</button>}
                     {isAdmin && <button onClick={() => editTool(tool)}>Redigera</button>}
                     {isAdmin && <button onClick={() => showHistory(tool)}>Historik</button>}
