@@ -190,7 +190,7 @@ export default function OrderImport() {
   // FIX: headers derived from all orders (not just first row) to handle
   // edge cases where different rows have different keys after re-import.
   const tableHeaders = useMemo(() => {
-    const excluded = new Set(["_id", "importedAt", "importedBy"]);
+    const excluded = new Set(["_id", "_importBatchId", "importedAt", "importedBy"]);
     const keySet = new Set();
     orders.forEach(o => Object.keys(o).forEach(k => { if (!excluded.has(k)) keySet.add(k); }));
     return [...keySet];
