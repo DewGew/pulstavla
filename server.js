@@ -49,6 +49,22 @@ const upload = multer({
 });
 
 // Kontrollera filsignatur efter uppladdning, inte bara filändelsen.
+// Radera tillfälliga uppladdningar när importens HTTP-svar är färdigt.
+// Då hinner Excel-filen användas under hela importen, men blir inte kvar på servern.
+function cleanupUploadAfterResponse(req, res, next) {
+  const uploadedPath = req.file?.path;
+  if (uploadedPath) {
+    res.once("finish", () => {
+      fs.unlink(uploadedPath, (err) => {
+        if (err && err.code !== "ENOENT") {
+          console.error("Kunde inte radera tillfällig importfil:", err);
+        }
+      });
+    });
+  }
+  next();
+}
+
 function validateUploadedFile(allowedExtensions) {
   return (req, res, next) => {
     if (!req.file) return res.status(400).json({ error: "Ingen fil skickades." });
@@ -1718,7 +1734,7 @@ app.delete("/checklist/:machine", requireAuth, requireAdmin, (req, res) => {
   });
 });
 
-app.post("/orders/import", requireAuth, requireAdmin, upload.single("file"), validateUploadedFile(spreadsheetFileTypes), (req, res) => {
+app.post("/orders/import", requireAuth, requireAdmin, upload.single("file"), validateUploadedFile(spreadsheetFileTypes), cleanupUploadAfterResponse, (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "Ingen fil uppladdad" });
   }
@@ -1863,6 +1879,7 @@ app.post(
   requireAdmin,
   upload.single("file"),
   validateUploadedFile(spreadsheetFileTypes),
+  cleanupUploadAfterResponse,
   (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: "Ingen fil uppladdad" });
