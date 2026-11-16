@@ -40,13 +40,13 @@ export default function MeasuringTools({ currentUser }) {
 
   const load = useCallback(async () => {
     try {
-      const [toolRes, userRes] = await Promise.all([
-        apiFetch("/measuring-tools", { headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` } }),
-        apiFetch("/measuring-tools/users", { headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` } }),
-      ]);
-      if (!toolRes.ok) throw new Error("Kunde inte läsa verktygsregistret.");
-      setTools(await toolRes.json());
-      if (userRes.ok) setUsers(await userRes.json());
+      const headers = { Authorization: `Bearer ${localStorage.getItem("token") || ""}` };
+      const requests = [apiFetch("/measuring-tools", { headers })];
+      if (isAdmin) requests.push(apiFetch("/measuring-tools/users", { headers }));
+      const responses = await Promise.all(requests);
+      if (!responses[0].ok) throw new Error("Kunde inte läsa verktygsregistret.");
+      setTools(await responses[0].json());
+      if (isAdmin && responses[1]?.ok) setUsers(await responses[1].json());
     } catch (err) {
       setMessage(err.message || "Kunde inte hämta mätverktyg.");
     } finally {
