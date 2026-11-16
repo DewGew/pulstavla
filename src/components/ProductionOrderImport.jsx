@@ -112,12 +112,16 @@ export default function ProductionOrderImport() {
 
       const data = await res.json();
 
-      if (data.success) {
+      if (res.ok && data.success) {
         setUploadMsg({ type: "success", text: `Importerade ${data.rowsImported} rader` });
         setFile(null);
         fetchOrders();
       } else {
-        setUploadMsg({ type: "error", text: data.error || "Import misslyckades" });
+        const details = Array.isArray(data.details) ? data.details.join(" ") : "";
+        setUploadMsg({
+          type: "error",
+          text: [data.error || "Import misslyckades", details].filter(Boolean).join(" ")
+        });
       }
     } catch {
       setUploadMsg({ type: "error", text: "Nätverksfel – kunde inte importera" });
