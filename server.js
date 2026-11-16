@@ -812,12 +812,12 @@ measuringToolLoansDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 28000
 app.get("/measuring-tools", requireAuth, (req, res) => {
   measuringToolsDB.find({}).sort({ toolNumber: 1 }).exec((err, tools) => {
     if (err) return res.status(500).json({ error: "Kunde inte läsa verktygsregistret." });
-    res.json(tools);
+    res.json(tools.map(({ loanHistory, ...tool }) => tool));
   });
 });
 
 // Lista konton utan känsliga uppgifter för val vid utlåning.
-app.get("/measuring-tools/users", requireAuth, (req, res) => {
+app.get("/measuring-tools/users", requireAuth, requireAdmin, (req, res) => {
   usersDB.find({}, (err, docs) => {
     if (err) return res.status(500).json({ error: "Kunde inte läsa användare." });
     res.json(docs.map(({ _id, username, name, role }) => ({ _id, username, name, role })));
