@@ -118,7 +118,7 @@ export default function MeasuringTools({ currentUser }) {
     Utlånade: tools.filter((tool) => tool.status === "Utlånad").length,
     Spärrade: tools.filter((tool) => isToolBlocked(tool)).length,
     Skrotade: tools.filter((tool) => tool.status === "Skrotad").length,
-    Saknade: tools.filter((tool) => tool.status === "Saknad").length,
+    Saknas: tools.filter((tool) => tool.status === "Saknad").length,
     "Kontroll förfallen": tools.filter((tool) => isControlOverdue(tool)).length,
   }), [tools]);
 
@@ -131,7 +131,7 @@ export default function MeasuringTools({ currentUser }) {
       (statusFilter === "Utlånade" && tool.status === "Utlånad") ||
       (statusFilter === "Spärrade" && isToolBlocked(tool)) ||
       (statusFilter === "Skrotade" && tool.status === "Skrotad") ||
-      (statusFilter === "Saknade" && tool.status === "Saknad") ||
+      (statusFilter === "Saknas" && tool.status === "Saknad") ||
       (statusFilter === "Kontroll förfallen" && isControlOverdue(tool));
     return haystack.includes(search.toLocaleLowerCase("sv")) && matchesStatus;
   }), [tools, search, statusFilter]);
@@ -140,7 +140,7 @@ export default function MeasuringTools({ currentUser }) {
     const headers = ["Verktygsnr", "Typ", "Benämning", "Tillverkare", "Mätområde/Dimensioner", "Plats", "Kontrollintervall (dagar)", "Senaste kontroll", "Nästa kontroll", "Status", "Låntagare / Reservation"];
     const rows = filteredTools.map((tool) => {
       const next = nextControlDate(tool);
-      const status = tool.status === "Utlånad" ? "Utlånad" : isTerminalTool(tool) ? tool.status : isToolBlocked(tool) ? "Spärrad" : tool.reservation ? "Reserverad" : "Ledig";
+      const status = tool.status === "Utlånad" ? "Utlånad" : isTerminalTool(tool) ? (tool.status === "Saknad" ? "Saknas" : tool.status) : isToolBlocked(tool) ? "Spärrad" : tool.reservation ? "Reserverad" : "Ledig";
       return [
         tool.toolNumber, tool.type, tool.description, tool.manufacturer, tool.range, tool.location,
         tool.controlInterval, dateLabel(tool.lastControlDate), next ? dateLabel(next.toISOString().slice(0, 10)) : "",
@@ -435,7 +435,7 @@ export default function MeasuringTools({ currentUser }) {
           </div>
         </div>
         <div className="measuring-filter-chips" role="group" aria-label="Filtrera mätverktyg">
-          {["Alla", "Lediga", "Reserverade", "Utlånade", "Spärrade", "Skrotade", "Saknade", "Kontroll förfallen"].map((filter) => (
+          {["Alla", "Lediga", "Reserverade", "Utlånade", "Spärrade", "Skrotade", "Saknas", "Kontroll förfallen"].map((filter) => (
             <button type="button" key={filter} className={statusFilter === filter ? "active" : ""} onClick={() => setStatusFilter(filter)} aria-pressed={statusFilter === filter}>
               {filter}<span>{statusCounts[filter]}</span>
             </button>
@@ -608,7 +608,7 @@ export default function MeasuringTools({ currentUser }) {
           <h3>Registrera kalibrering / kontroll – {controlTool.toolNumber}</h3>
           <label>Typ<select value={controlForm.type} onChange={(event) => setControlForm({ ...controlForm, type: event.target.value })}><option>Kontroll</option><option>Kalibrering</option></select></label>
           <label>Datum<input type="date" required value={controlForm.date} onChange={(event) => setControlForm({ ...controlForm, date: event.target.value })} /></label>
-          <label>Resultat<select value={controlForm.result} onChange={(event) => setControlForm({ ...controlForm, result: event.target.value })}><option>Godkänd</option><option>Underkänd</option><option>Justerad</option><option>Skrotad</option><option>Saknad</option></select></label>
+          <label>Resultat<select value={controlForm.result} onChange={(event) => setControlForm({ ...controlForm, result: event.target.value })}><option>Godkänd</option><option>Underkänd</option><option>Justerad</option><option>Skrotad</option><option value="Saknad">Saknas</option></select></label>
           <label>Kommentar<textarea rows="3" value={controlForm.comment} onChange={(event) => setControlForm({ ...controlForm, comment: event.target.value })} /></label>
           <button className="btn-primary" type="submit">Spara kontroll</button>
           <button className="btn-secondary" type="button" onClick={() => setControlTool(null)}>Avbryt</button>
