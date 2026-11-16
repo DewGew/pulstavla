@@ -60,3 +60,5 @@
 }
 .measuring-control-form button { align-self:flex-start; }
 @media(max-width:600px) { .measuring-header-actions { width:100%; } .measuring-header-actions button { flex:1; } }
+
+.measuring-status.blocked { color:#8f1d1d; background:#fde8e7; }
