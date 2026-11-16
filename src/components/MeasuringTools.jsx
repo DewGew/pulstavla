@@ -1,0 +1,263 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { apiFetch } from "../api";
+import "./MeasuringTools.css";
+
+const emptyTool = {
+  toolNumber: "", type: "", description: "", range: "", location: "",
+  controlInterval: "365", lastControlDate: "", responsible: "Gemensam",
+};
+
+function dateLabel(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString("sv-SE");
+}
+
+function nextControlDate(tool) {
+  if (!tool.lastControlDate || !tool.controlInterval) return null;
+  const date = new Date(`${tool.lastControlDate}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return null;
+  date.setDate(date.getDate() + Number(tool.controlInterval));
+  return date;
+}
+
+export default function MeasuringTools({ currentUser }) {
+  const isAdmin = ["admin", "suAdmin"].includes(currentUser?.role);
+  const [tools, setTools] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("Alla");
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
+  const [form, setForm] = useState(emptyTool);
+  const [showAdd, setShowAdd] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [importBusy, setImportBusy] = useState(false);
+  const [borrowerId, setBorrowerId] = useState(currentUser?._id || "");
+  const [dueDate, setDueDate] = useState("");
+  const [history, setHistory] = useState(null);
+
+  const load = useCallback(async () => {
+    try {
+      const [toolRes, userRes] = await Promise.all([
+        apiFetch("/measuring-tools", { headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` } }),
+        apiFetch("/measuring-tools/users", { headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` } }),
+      ]);
+      if (!toolRes.ok) throw new Error("Kunde inte läsa verktygsregistret.");
+      setTools(await toolRes.json());
+      if (userRes.ok) setUsers(await userRes.json());
+    } catch (err) {
+      setMessage(err.message || "Kunde inte hämta mätverktyg.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    const refresh = () => load();
+    window.addEventListener("measuringToolsUpdated", refresh);
+    return () => window.removeEventListener("measuringToolsUpdated", refresh);
+  }, [load]);
+
+  const filteredTools = useMemo(() => tools.filter((tool) => {
+    const haystack = [tool.toolNumber, tool.type, tool.description, tool.range, tool.location, tool.activeLoan?.borrowerName]
+      .join(" ").toLocaleLowerCase("sv");
+    return haystack.includes(search.toLocaleLowerCase("sv")) &&
+      (statusFilter === "Alla" || tool.status === statusFilter);
+  }), [tools, search, statusFilter]);
+
+  const checkout = async (tool) => {
+    try {
+      const body = {};
+      if (isAdmin && borrowerId) body.borrowerId = borrowerId;
+      if (dueDate) body.dueDate = dueDate;
+      const response = await apiFetch(`/measuring-tools/${tool._id}/checkout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
+        body: JSON.stringify(body),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Utlåningen misslyckades.");
+      setMessage(`${tool.toolNumber} har lånats ut.`);
+      await load();
+    } catch (err) { setMessage(err.message); }
+  };
+
+  const returnTool = async (tool) => {
+    const note = window.prompt("Kommentar vid återlämning (valfritt):", "");
+    if (note === null) return;
+    try {
+      const response = await apiFetch(`/measuring-tools/${tool._id}/return`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
+        body: JSON.stringify({ note }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Återlämningen misslyckades.");
+      setMessage(`${tool.toolNumber} har återlämnats.`);
+      await load();
+    } catch (err) { setMessage(err.message); }
+  };
+
+  const addTool = async (event) => {
+    event.preventDefault();
+    setMessage("");
+    try {
+      const response = await apiFetch("/measuring-tools", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
+        body: JSON.stringify(form),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Kunde inte spara verktyget.");
+      setForm(emptyTool);
+      setShowAdd(false);
+      setMessage("Verktyget har registrerats.");
+      await load();
+    } catch (err) { setMessage(err.message); }
+  };
+
+  const previewImport = async () => {
+    if (!selectedFile) return setMessage("Välj en Excel-fil först.");
+    setImportBusy(true);
+    setMessage("");
+    setPreview(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      const response = await apiFetch("/measuring-tools/import-preview", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
+        body: formData,
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Kunde inte läsa Excel-filen.");
+      setPreview(data);
+    } catch (err) { setMessage(err.message); }
+    finally { setImportBusy(false); }
+  };
+
+  const commitImport = async () => {
+    if (!preview?.items?.length || preview.errors?.length) return;
+    setImportBusy(true);
+    try {
+      const response = await apiFetch("/measuring-tools/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
+        body: JSON.stringify({ items: preview.items }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Importen misslyckades.");
+      setMessage(`${data.imported} verktyg importerades.`);
+      setPreview(null);
+      setSelectedFile(null);
+      await load();
+    } catch (err) { setMessage(err.message); }
+    finally { setImportBusy(false); }
+  };
+
+  const showHistory = async (tool) => {
+    try {
+      const response = await apiFetch(`/measuring-tools/${tool._id}/history`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Kunde inte läsa historiken.");
+      setHistory({ tool, entries: data });
+    } catch (err) { setMessage(err.message); }
+  };
+
+  if (loading) return <div className="measuring-tools"><p>Laddar mätverktyg…</p></div>;
+
+  return (
+    <div className="measuring-tools">
+      <div className="measuring-header">
+        <div><h2>Mätverktyg</h2><p>Verktygsregister, utlåning och återlämning</p></div>
+        {isAdmin && <button className="btn-primary" onClick={() => setShowAdd((value) => !value)}>{showAdd ? "Stäng" : "＋ Registrera verktyg"}</button>}
+      </div>
+
+      {message && <div className="measuring-message" role="status">{message}<button onClick={() => setMessage("")} aria-label="Stäng">×</button></div>}
+
+      {isAdmin && showAdd && (
+        <form className="measuring-form" onSubmit={addTool}>
+          <h3>Nytt mätverktyg</h3>
+          <div className="measuring-form-grid">
+            <label>Verktygsnr<input required value={form.toolNumber} onChange={(e) => setForm({ ...form, toolNumber: e.target.value })} /></label>
+            <label>Typ<input required value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} /></label>
+            <label>Benämning<input required value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
+            <label>Mätområde/Dimensioner<input value={form.range} onChange={(e) => setForm({ ...form, range: e.target.value })} /></label>
+            <label>Plats<input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} /></label>
+            <label>Kontrollintervall (dagar)<input type="number" min="0" value={form.controlInterval} onChange={(e) => setForm({ ...form, controlInterval: e.target.value })} /></label>
+            <label>Senaste kontrolldatum<input type="date" value={form.lastControlDate} onChange={(e) => setForm({ ...form, lastControlDate: e.target.value })} /></label>
+            <label>Ansvarig<input value={form.responsible} onChange={(e) => setForm({ ...form, responsible: e.target.value })} /></label>
+          </div>
+          <button className="btn-primary" type="submit">Spara verktyg</button>
+        </form>
+      )}
+
+      {isAdmin && (
+        <section className="measuring-import">
+          <h3>Importera verktyg från Excel</h3>
+          <div className="measuring-import-row">
+            <input type="file" accept=".xlsx,.xls" onChange={(e) => { setSelectedFile(e.target.files?.[0] || null); setPreview(null); }} />
+            <button className="btn-secondary" disabled={!selectedFile || importBusy} onClick={previewImport}>{importBusy ? "Läser…" : "Förhandsgranska"}</button>
+          </div>
+          <small>Importen läser första kalkylbladet och skriver inte något förrän du godkänner förhandsgranskningen.</small>
+          {preview && (
+            <div className="measuring-preview">
+              <p>{preview.total} rader hittades, {preview.validCount} möjliga att importera.</p>
+              {preview.errors?.length > 0 && <ul className="measuring-errors">{preview.errors.map((error, index) => <li key={index}>Rad {error.row}: {error.error}</li>)}</ul>}
+              <div className="measuring-table-wrap"><table><thead><tr><th>Verktygsnr</th><th>Typ</th><th>Benämning</th><th>Mätområde</th><th>Plats</th></tr></thead><tbody>{preview.items.slice(0, 12).map((item) => <tr key={item.toolNumber}><td>{item.toolNumber}</td><td>{item.type}</td><td>{item.description}</td><td>{item.range || "—"}</td><td>{item.location || "—"}</td></tr>)}</tbody></table></div>
+              {preview.items.length > 12 && <small>Visar de första 12 raderna.</small>}
+              <button className="btn-primary" disabled={importBusy || preview.validCount !== preview.total || preview.errors?.length > 0} onClick={commitImport}>Godkänn och importera {preview.validCount} verktyg</button>
+            </div>
+          )}
+        </section>
+      )}
+
+      <div className="measuring-controls">
+        <input aria-label="Sök mätverktyg" placeholder="Sök verktygsnr, typ, benämning…" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <select aria-label="Filtrera status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <option>Alla</option><option>Disponibel</option><option>Utlånad</option>
+        </select>
+        {isAdmin && <select aria-label="Välj låntagare" value={borrowerId} onChange={(e) => setBorrowerId(e.target.value)}><option value={currentUser?._id}>Låna själv</option>{users.filter((item) => item._id !== currentUser?._id).map((item) => <option key={item._id} value={item._id}>{item.name || item.username}</option>)}</select>}
+        <label className="measuring-due-date">Planerat återlämningsdatum<input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></label>
+      </div>
+
+      <div className="measuring-summary">
+        <span><strong>{tools.length}</strong> totalt</span>
+        <span><strong>{tools.filter((tool) => tool.status === "Disponibel").length}</strong> disponibla</span>
+        <span><strong>{tools.filter((tool) => tool.status === "Utlånad").length}</strong> utlånade</span>
+      </div>
+
+      {filteredTools.length ? (
+        <div className="measuring-table-wrap"><table className="measuring-table">
+          <thead><tr><th>Verktygsnr</th><th>Typ / Benämning</th><th>Mätområde</th><th>Plats</th><th>Senaste kontroll</th><th>Nästa kontroll</th><th>Status / Låntagare</th><th>Åtgärd</th></tr></thead>
+          <tbody>{filteredTools.map((tool) => {
+            const next = nextControlDate(tool);
+            const overdue = next && next < new Date(new Date().setHours(0, 0, 0, 0));
+            const canReturn = tool.activeLoan && (isAdmin || tool.activeLoan.borrowerId === currentUser?._id);
+            return <tr key={tool._id}>
+              <td><strong>{tool.toolNumber}</strong></td>
+              <td>{tool.type}<small>{tool.description}</small></td>
+              <td>{tool.range || "—"}</td><td>{tool.location || "—"}</td>
+              <td>{dateLabel(tool.lastControlDate)}</td>
+              <td><span className={overdue ? "measuring-overdue" : ""}>{next ? dateLabel(next.toISOString().slice(0, 10)) : "—"}</span></td>
+              <td>{tool.status === "Utlånad" ? <><span className="measuring-status borrowed">Utlånad</span><small>{tool.activeLoan?.borrowerName}</small>{tool.activeLoan?.dueDate && <small>Åter: {dateLabel(tool.activeLoan.dueDate)}</small>}</> : <span className="measuring-status available">Disponibel</span>}</td>
+              <td className="measuring-actions">
+                {tool.status === "Disponibel" && currentUser?.role !== "view" && <button className="btn-primary" onClick={() => checkout(tool)}>Låna</button>}
+                {canReturn && <button className="btn-secondary" onClick={() => returnTool(tool)}>Återlämna</button>}
+                {isAdmin && <button className="btn-secondary" onClick={() => showHistory(tool)}>Historik</button>}
+              </td>
+            </tr>;
+          })}</tbody>
+        </table></div>
+      ) : <p className="measuring-empty">Inga mätverktyg matchar sökningen.</p>}
+
+      {history && <div className="measuring-modal-backdrop" onClick={() => setHistory(null)}><section className="measuring-history" onClick={(e) => e.stopPropagation()}><button className="measuring-close" onClick={() => setHistory(null)}>×</button><h3>Utlåningshistorik – {history.tool.toolNumber}</h3>{history.entries.length ? <ol>{history.entries.slice().reverse().map((entry, index) => <li key={index}><strong>{entry.action === "checkout" ? "Utlånad" : "Återlämnad"}</strong> – {entry.borrowerName} · {new Date(entry.action === "checkout" ? entry.checkedOutAt : entry.returnedAt).toLocaleString("sv-SE")}<small>{entry.action === "return" ? `Registrerad av ${entry.returnedByName || "—"}` : `Planerad åter: ${dateLabel(entry.dueDate)}`}</small>{entry.returnNote && <small>Kommentar: {entry.returnNote}</small>}</li>)}</ol> : <p>Ingen historik ännu.</p>}</section></div>}
+    </div>
+  );
+}
