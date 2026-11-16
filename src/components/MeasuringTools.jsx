@@ -78,7 +78,7 @@ export default function MeasuringTools({ currentUser }) {
     const haystack = [tool.toolNumber, tool.type, tool.description, tool.range, tool.location, tool.activeLoan?.borrowerName]
       .join(" ").toLocaleLowerCase("sv");
     return haystack.includes(search.toLocaleLowerCase("sv")) &&
-      (statusFilter === "Alla" || (statusFilter === "Spärrad" ? tool.controlBlocked : tool.status === statusFilter));
+      (statusFilter === "Alla" || (statusFilter === "Spärrad" ? tool.controlBlocked : statusFilter === "Disponibel" ? tool.status === "Disponibel" && !tool.controlBlocked : tool.status === statusFilter));
   }), [tools, search, statusFilter]);
 
   const checkout = async (tool) => {
