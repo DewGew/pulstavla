@@ -26,8 +26,12 @@ function isControlOverdue(tool) {
   return Boolean(next && next < new Date(new Date().setHours(0, 0, 0, 0)));
 }
 
+function isTerminalTool(tool) {
+  return ["Skrotad", "Saknad"].includes(tool.status);
+}
+
 function isToolBlocked(tool) {
-  return Boolean(tool.controlBlocked || isControlOverdue(tool));
+  return !isTerminalTool(tool) && Boolean(tool.controlBlocked || isControlOverdue(tool));
 }
 
 export default function MeasuringTools({ currentUser }) {
@@ -364,6 +368,7 @@ export default function MeasuringTools({ currentUser }) {
               const next = nextControlDate(tool);
               const overdue = isControlOverdue(tool);
               const blocked = isToolBlocked(tool);
+              const terminalStatus = isTerminalTool(tool);
               const canReturn = tool.activeLoan && (isAdmin || tool.activeLoan.borrowerId === currentUser?._id);
               const canControl = isAdmin || controlUserIds.includes(currentUser?._id);
               const canCheckout = tool.status === "Disponibel" && !blocked && currentUser?.role !== "view";
@@ -372,7 +377,7 @@ export default function MeasuringTools({ currentUser }) {
                   <div className="measuring-card-top">
                     <span className="measuring-tool-number">{tool.toolNumber}</span>
                     <span className={`measuring-status ${tool.status === "Utlånad" ? "borrowed" : blocked ? "blocked" : "available"}`}>
-                      {tool.status === "Utlånad" ? "Utlånad" : blocked ? "Spärrad" : "Ledig"}
+                      {tool.status === "Utlånad" ? "Utlånad" : terminalStatus ? tool.status : blocked ? "Spärrad" : "Ledig"}
                     </span>
                   </div>
                   <h3>{tool.description || tool.type}</h3>
@@ -415,6 +420,7 @@ export default function MeasuringTools({ currentUser }) {
               const next = nextControlDate(tool);
               const overdue = isControlOverdue(tool);
               const blocked = isToolBlocked(tool);
+              const terminalStatus = isTerminalTool(tool);
               const canReturn = tool.activeLoan && (isAdmin || tool.activeLoan.borrowerId === currentUser?._id);
               const canControl = isAdmin || controlUserIds.includes(currentUser?._id);
               return <tr key={tool._id}>
@@ -424,7 +430,8 @@ export default function MeasuringTools({ currentUser }) {
                 <td>{dateLabel(tool.lastControlDate)}</td>
                 <td><span className={overdue ? "measuring-overdue" : ""}>{next ? dateLabel(next.toISOString().slice(0, 10)) : "—"}</span></td>
                 <td>
-                  {tool.status === "Utlånad" ? <><span className="measuring-status borrowed">Utlånad</span><small>{tool.activeLoan?.borrowerName}</small>{tool.activeLoan?.dueDate && <small>Åter: {dateLabel(tool.activeLoan.dueDate)}</small>}</> :
+                  {tool.status === "Utlånad" ? <><span className="measuring-status borrowed">Utlånad</span><small>{tool.activeLoan?.borrowerName}</small>{tool.activeLoan?.dueDate && <small>Åter: {dateLabel(tool.activeLoan.dueDate)}</small></> :
+                    terminalStatus ? <span className="measuring-status blocked">{tool.status}</span> :
                     blocked ? <span className="measuring-status blocked">Spärrad</span> : <span className="measuring-status available">Ledig</span>}
                   {blocked && tool.status === "Utlånad" && <small className="measuring-overdue">{overdue ? "Kontroll förfallen" : "Spärrat efter kontroll"}</small>}
                 </td>
