@@ -822,7 +822,7 @@ measuringToolsDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 270000);
 app.get("/measuring-tools", requireAuth, (req, res) => {
   measuringToolsDB.find({}).sort({ toolNumber: 1 }).exec((err, tools) => {
     if (err) return res.status(500).json({ error: "Kunde inte läsa verktygsregistret." });
-    res.json(tools.map(({ loanHistory, ...tool }) => tool));
+    res.json(tools.map(({ loanHistory, controlHistory, ...tool }) => tool));
   });
 });
 
