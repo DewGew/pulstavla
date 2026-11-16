@@ -158,3 +158,12 @@
   .measuring-extra-controls label, .measuring-extra-controls input, .measuring-extra-controls select { width:100%; box-sizing:border-box; }
   .measuring-result-count { margin-left:0; }
 }
+
+
+/* Mobil OCR-skanning av graverat verktygsnummer */
+.measuring-scan-row { display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin-top:10px; }
+.measuring-scan-button { position:relative; display:inline-flex; align-items:center; justify-content:center; min-height:42px; padding:0 15px; overflow:hidden; border:1px solid var(--header-text); border-radius:10px; background:var(--hover-bg); color:var(--text); font:inherit; font-weight:700; cursor:pointer; }
+.measuring-scan-button input { position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; }
+.measuring-scan-button:has(input:disabled) { opacity:.65; cursor:wait; }
+.measuring-scan-progress { color:var(--muted-text); font-size:.9rem; }
+@media(max-width:700px) { .measuring-scan-button { width:100%; box-sizing:border-box; } }
