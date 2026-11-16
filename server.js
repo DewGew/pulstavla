@@ -177,6 +177,18 @@ function requireEditor(req, res, next) {
   next();
 }
 
+function requireMeasuringControlAccess(req, res, next) {
+  if (["admin", "suAdmin"].includes(req.user.role)) return next();
+  settingsDB.findOne({ key: "measuringToolsControlUsers" }, (err, setting) => {
+    if (err) return res.status(500).json({ error: "Kunde inte kontrollera behörigheten." });
+    const allowedIds = Array.isArray(setting?.value) ? setting.value : [];
+    if (!allowedIds.includes(req.user.id)) {
+      return res.status(403).json({ error: "Du saknar behörighet att registrera kalibrering och kontroll." });
+    }
+    next();
+  });
+}
+
 /* ---------------- HTTP SERVER + WEBSOCKET ---------------- */
 const server = https.createServer(
   app
@@ -822,6 +834,38 @@ app.get("/measuring-tools/users", requireAuth, requireAdmin, (req, res) => {
   });
 });
 
+// Administratörer väljer vilka användare som får registrera kalibrering och kontroll.
+app.get("/measuring-tools/control-access", requireAuth, requireAdmin, (req, res) => {
+  settingsDB.findOne({ key: "measuringToolsControlUsers" }, (err, setting) => {
+    if (err) return res.status(500).json({ error: "Kunde inte läsa behörigheterna." });
+    res.json({ userIds: Array.isArray(setting?.value) ? setting.value : [] });
+  });
+});
+
+app.put("/measuring-tools/control-access", requireAuth, requireAdmin, (req, res) => {
+  const userIds = Array.isArray(req.body?.userIds)
+    ? [...new Set(req.body.userIds.map((id) => String(id)))]
+    : null;
+  if (!userIds || userIds.length > 500) {
+    return res.status(400).json({ error: "Ogiltig användarlista." });
+  }
+  usersDB.find({ _id: { $in: userIds } }, (findErr, users) => {
+    if (findErr) return res.status(500).json({ error: "Kunde inte kontrollera användarna." });
+    if (users.length !== userIds.length) {
+      return res.status(400).json({ error: "En eller flera valda användare finns inte längre." });
+    }
+    settingsDB.update(
+      { key: "measuringToolsControlUsers" },
+      { $set: { key: "measuringToolsControlUsers", value: userIds, updatedAt: Date.now() } },
+      { upsert: true },
+      (updateErr) => {
+        if (updateErr) return res.status(500).json({ error: "Kunde inte spara behörigheterna." });
+        res.json({ success: true, userIds });
+      }
+    );
+  });
+});
+
 // Lägg till eller uppdatera verktyg manuellt.
 app.post("/measuring-tools", requireAuth, requireAdmin, (req, res) => {
   const input = req.body || {};
@@ -852,6 +896,64 @@ app.post("/measuring-tools", requireAuth, requireAdmin, (req, res) => {
       io.emit("measuringToolsUpdated");
       res.status(201).json(saved);
     });
+  });
+});
+
+// Redigera verktygsuppgifter utan att påverka utlånings- eller kontrollhistorik.
+app.patch("/measuring-tools/:id", requireAuth, requireAdmin, (req, res) => {
+  const input = req.body || {};
+  const toolNumber = String(input.toolNumber || "").trim();
+  const type = String(input.type || "").trim();
+  const description = String(input.description || "").trim();
+  if (!toolNumber || !type || !description) {
+    return res.status(400).json({ error: "Verktygsnr, typ och benämning måste anges." });
+  }
+  const fields = {
+    toolNumber, type, description,
+    range: String(input.range || "").trim(),
+    location: String(input.location || "").trim(),
+    controlInterval: Math.max(0, Number(input.controlInterval) || 0),
+    responsible: String(input.responsible || "Gemensam").trim(),
+    updatedAt: Date.now(),
+  };
+  if (input.lastControlDate !== undefined) fields.lastControlDate = String(input.lastControlDate || "");
+  measuringToolsDB.findOne({ toolNumber, _id: { $ne: req.params.id } }, (findErr, duplicate) => {
+    if (findErr) return res.status(500).json({ error: "Kunde inte kontrollera verktygsnumret." });
+    if (duplicate) return res.status(409).json({ error: "Verktygsnumret används redan av ett annat verktyg." });
+    measuringToolsDB.update({ _id: req.params.id }, { $set: fields }, {}, (updateErr, count) => {
+      if (updateErr) return res.status(500).json({ error: "Kunde inte uppdatera verktyget." });
+      if (!count) return res.status(404).json({ error: "Verktyget hittades inte." });
+      io.emit("measuringToolsUpdated");
+      res.json({ success: true });
+    });
+  });
+});
+
+// Registrera kalibrering eller kontroll. Åtkomst ges till administratörer och särskilt valda användare.
+app.post("/measuring-tools/:id/control", requireAuth, requireMeasuringControlAccess, (req, res) => {
+  const type = String(req.body?.type || "");
+  const date = String(req.body?.date || "");
+  const result = String(req.body?.result || "");
+  const allowedTypes = ["Kalibrering", "Kontroll"];
+  const allowedResults = ["Godkänd", "Underkänd", "Justerad"];
+  if (!allowedTypes.includes(type) || !/^\\d{4}-\\d{2}-\\d{2}$/.test(date) || !allowedResults.includes(result)) {
+    return res.status(400).json({ error: "Ange typ, giltigt datum och resultat." });
+  }
+  const entry = {
+    action: "control", type, date, result,
+    comment: String(req.body?.comment || "").trim(),
+    performedBy: req.user.id,
+    performedByName: req.user.name || req.user.username,
+    recordedAt: Date.now(),
+  };
+  measuringToolsDB.update({ _id: req.params.id }, {
+    $set: { lastControlDate: date, updatedAt: Date.now() },
+    $push: { controlHistory: entry },
+  }, {}, (updateErr, count) => {
+    if (updateErr) return res.status(500).json({ error: "Kunde inte spara kontrollen." });
+    if (!count) return res.status(404).json({ error: "Verktyget hittades inte." });
+    io.emit("measuringToolsUpdated");
+    res.json({ success: true });
   });
 });
 
@@ -1038,7 +1140,9 @@ app.get("/measuring-tools/:id/history", requireAuth, requireAdmin, (req, res) =>
   measuringToolsDB.findOne({ _id: req.params.id }, (err, tool) => {
     if (err) return res.status(500).json({ error: "Kunde inte läsa historiken." });
     if (!tool) return res.status(404).json({ error: "Verktyget hittades inte." });
-    res.json(tool.loanHistory || []);
+    const entries = [...(tool.loanHistory || []), ...(tool.controlHistory || [])]
+      .sort((a, b) => (a.recordedAt || a.checkedOutAt || a.returnedAt || 0) - (b.recordedAt || b.checkedOutAt || b.returnedAt || 0));
+    res.json(entries);
   });
 });
 
