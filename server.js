@@ -947,7 +947,7 @@ app.post("/measuring-tools/:id/control", requireAuth, requireMeasuringControlAcc
     recordedAt: Date.now(),
   };
   measuringToolsDB.update({ _id: req.params.id }, {
-    $set: { lastControlDate: date, controlBlocked: result === "Underkänd", updatedAt: Date.now() },
+    $set: { lastControlDate: date, controlBlocked: result !== "Godkänd", updatedAt: Date.now() },
     $push: { controlHistory: entry },
   }, {}, (updateErr, count) => {
     if (updateErr) return res.status(500).json({ error: "Kunde inte spara kontrollen." });
