@@ -897,6 +897,7 @@ app.post("/measuring-tools", requireAuth, requireMeasuringControlAccess, (req, r
   }
   const doc = {
     toolNumber, type, description,
+    manufacturer: String(input.manufacturer || "").trim(),
     range: String(input.range || "").trim(),
     location: String(input.location || "").trim(),
     controlInterval: Math.max(0, Number(input.controlInterval) || 0),
