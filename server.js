@@ -887,7 +887,7 @@ app.put("/measuring-tools/control-access", requireAuth, requireAdmin, (req, res)
 });
 
 // Lägg till eller uppdatera verktyg manuellt.
-app.post("/measuring-tools", requireAuth, requireAdmin, (req, res) => {
+app.post("/measuring-tools", requireAuth, requireMeasuringControlAccess, (req, res) => {
   const input = req.body || {};
   const toolNumber = String(input.toolNumber || "").trim();
   const type = String(input.type || "").trim();
@@ -920,7 +920,7 @@ app.post("/measuring-tools", requireAuth, requireAdmin, (req, res) => {
 });
 
 // Redigera verktygsuppgifter utan att påverka utlånings- eller kontrollhistorik.
-app.patch("/measuring-tools/:id", requireAuth, requireAdmin, (req, res) => {
+app.patch("/measuring-tools/:id", requireAuth, requireMeasuringControlAccess, (req, res) => {
   const input = req.body || {};
   const toolNumber = String(input.toolNumber || "").trim();
   const type = String(input.type || "").trim();
