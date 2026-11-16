@@ -307,3 +307,19 @@
   .measuring-list-toolbar { padding: 12px; }
   .measuring-history { padding: 20px 16px; }
 }
+
+
+/* Håll menyn Fler åtgärder högerställd på verktygskorten så att
+   den öppnas inåt på kortet och inte klipps av vid vänsterkanten. */
+.measuring-card-actions > .measuring-more-actions {
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+
+.measuring-card-actions > .measuring-more-actions .measuring-more-menu {
+  right: 0;
+  left: auto;
+  min-width: 200px;
+  max-width: min(260px, calc(100vw - 48px));
+  box-sizing: border-box;
+}
