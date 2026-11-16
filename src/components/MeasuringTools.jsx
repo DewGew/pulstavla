@@ -39,6 +39,8 @@ export default function MeasuringTools({ currentUser }) {
   const [tools, setTools] = useState([]);
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
+  const [scannerBusy, setScannerBusy] = useState(false);
+  const [scanProgress, setScanProgress] = useState("");
   const [statusFilter, setStatusFilter] = useState("Alla");
   const [viewMode, setViewMode] = useState("cards");
   const [loading, setLoading] = useState(true);
@@ -110,6 +112,56 @@ export default function MeasuringTools({ currentUser }) {
       (statusFilter === "Kontroll förfallen" && isControlOverdue(tool));
     return haystack.includes(search.toLocaleLowerCase("sv")) && matchesStatus;
   }), [tools, search, statusFilter]);
+
+  const scanEngraving = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setScannerBusy(true);
+    setScanProgress("Förbereder textläsning…");
+    setMessage("");
+    try {
+      if (!window.Tesseract) {
+        await new Promise((resolve, reject) => {
+          const existing = document.querySelector('script[data-tesseract-loader="true"]');
+          if (existing) {
+            existing.addEventListener("load", resolve, { once: true });
+            existing.addEventListener("error", reject, { once: true });
+            if (window.Tesseract) resolve();
+            return;
+          }
+          const script = document.createElement("script");
+          script.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+          script.async = true;
+          script.dataset.tesseractLoader = "true";
+          script.onload = resolve;
+          script.onerror = () => reject(new Error("Kunde inte ladda textläsaren. Kontrollera internetanslutningen."));
+          document.head.appendChild(script);
+        });
+      }
+      if (!window.Tesseract) throw new Error("Textläsaren kunde inte startas.");
+      const result = await window.Tesseract.recognize(file, "eng", {
+        logger: (info) => {
+          if (info.status === "recognizing text") setScanProgress(`Läser märkningen… ${Math.round((info.progress || 0) * 100)}%`);
+          else if (info.status) setScanProgress("Bearbetar bilden…");
+        },
+        tessedit_char_whitelist: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_/.",
+        preserve_interword_spaces: "1",
+      });
+      const detected = (result.data.text || "").replace(/\\s+/g, " ").trim();
+      const candidate = detected.split(" ").map((part) => part.replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9._/-]+$/g, "")).find((part) => /[0-9]/.test(part));
+      if (!candidate) throw new Error("Hittade ingen tydlig märkning. Prova igen med bättre ljus och håll kameran stilla.");
+      setSearch(candidate);
+      setStatusFilter("Alla");
+      setScanProgress("");
+      setMessage(`Avläst: ${candidate}. Söker i verktygsregistret.`);
+    } catch (error) {
+      setMessage(error.message || "Kunde inte läsa märkningen.");
+      setScanProgress("");
+    } finally {
+      setScannerBusy(false);
+    }
+  };
 
   const checkout = async (tool) => {
     try {
@@ -331,6 +383,13 @@ export default function MeasuringTools({ currentUser }) {
             <button type="button" className={viewMode === "cards" ? "active" : ""} onClick={() => setViewMode("cards")} aria-pressed={viewMode === "cards"}>▦ Kort</button>
             <button type="button" className={viewMode === "table" ? "active" : ""} onClick={() => setViewMode("table")} aria-pressed={viewMode === "table"}>☷ Tabell</button>
           </div>
+        </div>
+        <div className="measuring-scan-row">
+          <label className="measuring-scan-button">
+            <span>{scannerBusy ? "Läser text…" : "▣ Skanna graverad text"}</span>
+            <input type="file" accept="image/*" capture="environment" onChange={scanEngraving} disabled={scannerBusy} aria-label="Ta bild av graverad verktygstext" />
+          </label>
+          {scannerBusy && <span className="measuring-scan-progress" role="status">{scanProgress}</span>}
         </div>
         <div className="measuring-filter-chips" role="group" aria-label="Filtrera mätverktyg">
           {["Alla", "Lediga", "Utlånade", "Spärrade", "Skrotade", "Saknade", "Kontroll förfallen"].map((filter) => (
