@@ -398,7 +398,7 @@ export default function MeasuringTools({ currentUser }) {
                         {isAdmin && <button onClick={() => editTool(tool)}>Redigera verktyg</button>}
                         {isAdmin && <button onClick={() => showHistory(tool)}>Visa historik</button>}
                       </div>
-                    </details>
+                    </details>}
                   </div>
                 </article>
               );
@@ -431,7 +431,7 @@ export default function MeasuringTools({ currentUser }) {
                     {canControl && <button onClick={() => { setControlTool(tool); setControlForm({ type: "Kontroll", date: new Date().toLocaleDateString("sv-SE"), result: "Godkänd", comment: "" }); }}>Registrera kontroll</button>}
                     {isAdmin && <button onClick={() => editTool(tool)}>Redigera</button>}
                     {isAdmin && <button onClick={() => showHistory(tool)}>Historik</button>}
-                  </div></details>
+                  </div></details>}
                 </td>
               </tr>;
             })}</tbody>
