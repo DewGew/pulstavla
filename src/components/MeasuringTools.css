@@ -1,0 +1,48 @@
+.measuring-tools { max-width: 100%; color: var(--text); }
+.measuring-header { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:18px; }
+.measuring-header h2 { margin:0; color:var(--header-text); }
+.measuring-header p { margin:5px 0 0; color:var(--muted-text); }
+.measuring-form, .measuring-import { padding:16px; margin:16px 0; border:1px solid var(--panel-border); border-radius:var(--control-radius); background:var(--panel); }
+.measuring-form h3, .measuring-import h3 { margin:0 0 12px; }
+.measuring-form-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:14px; }
+.measuring-form-grid label, .measuring-due-date { display:flex; flex-direction:column; gap:5px; font-weight:600; min-width:0; }
+.measuring-form input, .measuring-controls input, .measuring-controls select, .measuring-import input[type=file] { box-sizing:border-box; min-width:0; max-width:100%; padding:9px 10px; border:1px solid var(--panel-border); border-radius:var(--control-radius); background:var(--bg-cell); color:var(--text); }
+.measuring-import-row, .measuring-controls { display:flex; align-items:end; flex-wrap:wrap; gap:10px; }
+.measuring-import-row { margin-bottom:8px; }
+.measuring-import small, .measuring-table td small { display:block; color:var(--muted-text); margin-top:4px; }
+.measuring-preview { margin-top:14px; }
+.measuring-errors { color:#b42318; }
+.measuring-table-wrap { width:100%; overflow-x:auto; margin-top:12px; border:1px solid var(--panel-border); border-radius:var(--control-radius); }
+.measuring-table { width:100%; border-collapse:collapse; min-width:980px; background:var(--panel); }
+.measuring-table th, .measuring-table td { padding:10px 12px; border-bottom:1px solid var(--panel-border); text-align:left; vertical-align:middle; }
+.measuring-table th { background:var(--bg-cell); color:var(--header-text); white-space:nowrap; }
+.measuring-table td small { white-space:normal; }
+.measuring-controls { margin:18px 0 10px; }
+.measuring-controls > input { flex:1 1 260px; }
+.measuring-controls select { flex:0 1 180px; }
+.measuring-due-date { font-size:.85rem; }
+.measuring-summary { display:flex; flex-wrap:wrap; gap:20px; margin:12px 0; color:var(--muted-text); }
+.measuring-summary strong { color:var(--text); }
+.measuring-status { display:inline-block; padding:4px 8px; border-radius:20px; font-size:.85rem; font-weight:700; white-space:nowrap; }
+.measuring-status.available { color:#16703b; background:#e5f5eb; }
+.measuring-status.borrowed { color:#8a5700; background:#fff0ce; }
+.measuring-overdue { color:#b42318; font-weight:700; }
+.measuring-actions { white-space:nowrap; }
+.measuring-actions button { margin:2px; }
+.measuring-message { display:flex; justify-content:space-between; gap:10px; align-items:center; margin:12px 0; padding:10px 12px; border-radius:var(--control-radius); background:var(--hover-bg); }
+.measuring-message button { border:0; background:transparent; color:inherit; font-size:1.3rem; cursor:pointer; }
+.measuring-empty { padding:24px; text-align:center; color:var(--muted-text); }
+.measuring-modal-backdrop { position:fixed; inset:0; z-index:2000; display:grid; place-items:center; padding:16px; background:#0008; }
+.measuring-history { position:relative; width:min(600px,100%); max-height:85vh; overflow:auto; padding:22px; border-radius:12px; background:var(--panel); color:var(--text); }
+.measuring-history li { margin:12px 0; }
+.measuring-history li small { display:block; color:var(--muted-text); }
+.measuring-close { position:absolute; top:10px; right:12px; border:0; background:none; color:var(--text); font-size:1.6rem; cursor:pointer; }
+@media(max-width:900px) { .measuring-form-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:600px) {
+  .measuring-header { align-items:flex-start; flex-direction:column; }
+  .measuring-form-grid { grid-template-columns:1fr; }
+  .measuring-controls { align-items:stretch; flex-direction:column; }
+  .measuring-controls > *, .measuring-import-row > * { width:100%; }
+  .measuring-summary { gap:12px; font-size:.9rem; }
+  .measuring-table { min-width:900px; }
+}
