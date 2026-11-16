@@ -962,19 +962,26 @@ app.post("/measuring-tools/:id/control", requireAuth, requireMeasuringControlAcc
     recordedAt: Date.now(),
   };
   const terminalStatus = ["Skrotad", "Saknad"].includes(result) ? result : null;
-  measuringToolsDB.update({ _id: req.params.id }, {
-    $set: {
-      lastControlDate: date,
-      controlBlocked: result !== "Godkänd",
-      ...(terminalStatus ? { status: terminalStatus, activeLoan: null } : {}),
-      updatedAt: Date.now(),
-    },
-    $push: { controlHistory: entry },
-  }, {}, (updateErr, count) => {
-    if (updateErr) return res.status(500).json({ error: "Kunde inte spara kontrollen." });
-    if (!count) return res.status(404).json({ error: "Verktyget hittades inte." });
-    io.emit("measuringToolsUpdated");
-    res.json({ success: true });
+  measuringToolsDB.findOne({ _id: req.params.id }, (findErr, tool) => {
+    if (findErr) return res.status(500).json({ error: "Kunde inte läsa verktyget." });
+    if (!tool) return res.status(404).json({ error: "Verktyget hittades inte." });
+    if (terminalStatus && tool.activeLoan) {
+      return res.status(409).json({ error: "Återlämna verktyget innan det kan markeras som skrotat eller saknat." });
+    }
+    measuringToolsDB.update({ _id: req.params.id }, {
+      $set: {
+        lastControlDate: date,
+        controlBlocked: result !== "Godkänd",
+        ...(terminalStatus ? { status: terminalStatus } : {}),
+        updatedAt: Date.now(),
+      },
+      $push: { controlHistory: entry },
+    }, {}, (updateErr, count) => {
+      if (updateErr) return res.status(500).json({ error: "Kunde inte spara kontrollen." });
+      if (!count) return res.status(404).json({ error: "Verktyget hittades inte." });
+      io.emit("measuringToolsUpdated");
+      res.json({ success: true });
+    });
   });
 });
 
