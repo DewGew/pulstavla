@@ -112,16 +112,12 @@ export default function ProductionOrderImport() {
 
       const data = await res.json();
 
-      if (res.ok && data.success) {
+      if (data.success) {
         setUploadMsg({ type: "success", text: `Importerade ${data.rowsImported} rader` });
         setFile(null);
         fetchOrders();
       } else {
-        const details = Array.isArray(data.details) ? data.details.join(" ") : "";
-        setUploadMsg({
-          type: "error",
-          text: [data.error || "Import misslyckades", details].filter(Boolean).join(" ")
-        });
+        setUploadMsg({ type: "error", text: data.error || "Import misslyckades" });
       }
     } catch {
       setUploadMsg({ type: "error", text: "Nätverksfel – kunde inte importera" });
@@ -189,7 +185,7 @@ export default function ProductionOrderImport() {
   // FIX: headers derived from all orders (not just first row) to handle
   // edge cases where different rows have different keys after re-import.
   const tableHeaders = useMemo(() => {
-    const excluded = new Set(["_id", "_importBatchId", "importedAt", "importedBy"]);
+    const excluded = new Set(["_id", "importedAt", "importedBy"]);
     const keySet = new Set();
     orders.forEach(o => Object.keys(o).forEach(k => { if (!excluded.has(k)) keySet.add(k); }));
     return [...keySet];
