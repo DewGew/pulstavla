@@ -100,3 +100,61 @@
   .measuring-summary-card strong { font-size:1.5rem; }
   .measuring-summary-card span { font-size:.82rem; }
 }
+
+
+/* Appvänlig verktygslista: sök, filterchips och responsiva kort */
+.measuring-list-toolbar { margin:18px 0 16px; padding:14px; border:1px solid var(--panel-border); border-radius:var(--control-radius); background:var(--panel); }
+.measuring-search-row { display:flex; align-items:center; gap:12px; }
+.measuring-search-row > input { flex:1 1 auto; min-width:0; padding:12px 14px; border:1px solid var(--panel-border); border-radius:var(--control-radius); background:var(--bg-cell); color:var(--text); font:inherit; }
+.measuring-view-toggle { display:flex; flex:0 0 auto; gap:3px; padding:3px; border-radius:10px; background:var(--bg-cell); }
+.measuring-view-toggle button, .measuring-filter-chips button { border:0; border-radius:8px; padding:9px 12px; background:transparent; color:var(--muted-text); font:inherit; font-weight:650; cursor:pointer; }
+.measuring-view-toggle button.active, .measuring-filter-chips button.active { background:var(--panel); color:var(--text); box-shadow:0 1px 4px #0002; }
+.measuring-filter-chips { display:flex; flex-wrap:wrap; gap:7px; margin-top:13px; }
+.measuring-filter-chips button { display:inline-flex; align-items:center; gap:8px; border:1px solid var(--panel-border); background:var(--bg-cell); }
+.measuring-filter-chips button.active { border-color:var(--header-text); }
+.measuring-filter-chips button span { display:inline-grid; min-width:22px; height:22px; padding:0 5px; place-items:center; border-radius:20px; background:var(--hover-bg); font-size:.78em; font-variant-numeric:tabular-nums; }
+.measuring-extra-controls { display:flex; align-items:end; flex-wrap:wrap; gap:12px; margin-top:13px; }
+.measuring-extra-controls label { display:flex; flex-direction:column; gap:5px; color:var(--muted-text); font-size:.85rem; font-weight:650; }
+.measuring-extra-controls input, .measuring-extra-controls select { min-width:190px; padding:8px 10px; border:1px solid var(--panel-border); border-radius:var(--control-radius); background:var(--bg-cell); color:var(--text); font:inherit; }
+.measuring-result-count { margin-left:auto; color:var(--muted-text); font-size:.85rem; }
+.measuring-card-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; align-items:stretch; }
+.measuring-tool-card { display:flex; flex-direction:column; min-width:0; padding:16px; border:1px solid var(--panel-border); border-top:4px solid #16834a; border-radius:14px; background:var(--panel); box-shadow:0 2px 8px #0000000a; }
+.measuring-tool-card.is-borrowed { border-top-color:#c18416; }
+.measuring-tool-card.is-blocked { border-top-color:#c52d2d; }
+.measuring-card-top { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.measuring-tool-number { color:var(--muted-text); font-size:.9rem; font-weight:800; letter-spacing:.035em; }
+.measuring-tool-card h3 { margin:12px 0 2px; color:var(--header-text); font-size:1.12rem; line-height:1.3; }
+.measuring-card-type { margin:0 0 12px; color:var(--muted-text); font-size:.88rem; }
+.measuring-card-facts { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:11px 0; border-top:1px solid var(--panel-border); border-bottom:1px solid var(--panel-border); }
+.measuring-card-facts div, .measuring-card-control div { display:flex; flex-direction:column; gap:4px; min-width:0; }
+.measuring-card-facts span, .measuring-card-control span, .measuring-card-loan > span { color:var(--muted-text); font-size:.76rem; }
+.measuring-card-facts strong, .measuring-card-control strong { overflow-wrap:anywhere; font-size:.9rem; }
+.measuring-card-control { padding:11px 0 4px; }
+.measuring-card-warning { margin:8px 0 0; color:#b42318; font-size:.83rem; font-weight:650; }
+.measuring-card-loan { display:flex; flex-direction:column; gap:3px; margin:8px 0; padding:10px; border-radius:9px; background:var(--bg-cell); }
+.measuring-card-loan strong { font-size:.92rem; }
+.measuring-card-loan small { color:var(--muted-text); }
+.measuring-card-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:auto; padding-top:13px; }
+.measuring-card-actions > .btn-primary { flex:1 1 auto; min-height:40px; }
+.measuring-more-actions, .measuring-table-more { position:relative; }
+.measuring-more-actions > summary, .measuring-table-more > summary { display:flex; align-items:center; justify-content:center; min-height:38px; padding:0 12px; border:1px solid var(--panel-border); border-radius:9px; color:var(--text); cursor:pointer; list-style:none; font-weight:650; }
+.measuring-more-actions > summary::-webkit-details-marker, .measuring-table-more > summary::-webkit-details-marker { display:none; }
+.measuring-more-menu { position:absolute; right:0; bottom:calc(100% + 6px); z-index:5; display:flex; flex-direction:column; min-width:190px; padding:5px; border:1px solid var(--panel-border); border-radius:10px; background:var(--panel); box-shadow:0 8px 24px #0002; }
+.measuring-more-menu button { padding:10px; border:0; border-radius:7px; background:transparent; color:var(--text); text-align:left; font:inherit; cursor:pointer; }
+.measuring-more-menu button:hover { background:var(--hover-bg); }
+.measuring-table-more .measuring-more-menu { top:calc(100% + 5px); bottom:auto; }
+.measuring-empty-state { display:flex; flex-direction:column; align-items:center; gap:9px; padding:38px 18px; border:1px dashed var(--panel-border); border-radius:14px; color:var(--muted-text); text-align:center; }
+.measuring-empty-state strong { color:var(--text); font-size:1.05rem; }
+@media(max-width:1200px) { .measuring-card-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:700px) {
+  .measuring-list-toolbar { padding:10px; }
+  .measuring-search-row { align-items:stretch; flex-direction:column; }
+  .measuring-view-toggle { align-self:flex-end; }
+  .measuring-filter-chips { flex-wrap:nowrap; overflow-x:auto; padding-bottom:4px; }
+  .measuring-filter-chips button { flex:0 0 auto; }
+  .measuring-card-grid { grid-template-columns:1fr; gap:10px; }
+  .measuring-tool-card { padding:14px; }
+  .measuring-extra-controls { align-items:stretch; flex-direction:column; }
+  .measuring-extra-controls label, .measuring-extra-controls input, .measuring-extra-controls select { width:100%; box-sizing:border-box; }
+  .measuring-result-count { margin-left:0; }
+}
