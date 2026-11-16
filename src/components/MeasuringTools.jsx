@@ -99,6 +99,18 @@ export default function MeasuringTools({ currentUser }) {
     return () => window.removeEventListener("measuringToolsUpdated", refresh);
   }, [load]);
 
+  const nextSuggestedToolNumber = useMemo(() => {
+    const usedNumbers = new Set(
+      tools.map((tool) => {
+        const match = String(tool.toolNumber || "").trim().match(/^1115-(\d{1,3})$/);
+        return match ? Number(match[1]) : null;
+      }).filter((number) => number !== null)
+    );
+    for (let number = 10; number <= 999; number += 1) {
+      if (!usedNumbers.has(number)) return `1115-${number}`;
+    }
+    return "";
+  }, [tools]);
   const statusCounts = useMemo(() => ({
     Alla: tools.length,
     Lediga: tools.filter((tool) => tool.status === "Disponibel" && !tool.reservation && !isToolBlocked(tool)).length,
@@ -350,7 +362,7 @@ export default function MeasuringTools({ currentUser }) {
         <div><h2>Mätverktyg</h2><p>Verktygsregister, utlåning och återlämning</p></div>
         {(isAdmin || canRegisterControl) && <div className="measuring-header-actions">
           <button className="btn-secondary" onClick={() => setShowAccess((value) => !value)}>Behörighet kontroll</button>
-          <button className="btn-primary" onClick={() => { setEditingToolId(null); setForm(emptyTool); setShowAdd((value) => !value); }}>{showAdd && !editingToolId ? "Stäng" : "＋ Registrera verktyg"}</button>
+          <button className="btn-primary" onClick={() => { setEditingToolId(null); setForm({ ...emptyTool, toolNumber: nextSuggestedToolNumber }); setShowAdd((value) => !value); }}>{showAdd && !editingToolId ? "Stäng" : "＋ Registrera verktyg"}</button>
         </div>}
       </div>
 
@@ -360,7 +372,7 @@ export default function MeasuringTools({ currentUser }) {
         <form className="measuring-form" onSubmit={addTool}>
           <h3>{editingToolId ? "Redigera mätverktyg" : "Nytt mätverktyg"}</h3>
           <div className="measuring-form-grid">
-            <label>Verktygsnr<input required value={form.toolNumber} onChange={(e) => setForm({ ...form, toolNumber: e.target.value })} /></label>
+            <label>Verktygsnr<input required value={form.toolNumber} onChange={(e) => setForm({ ...form, toolNumber: e.target.value })} />{!editingToolId && <small>{nextSuggestedToolNumber ? `Nästa lediga nummer: ${nextSuggestedToolNumber}` : "Inga lediga nummer kvar i serien 1115-10–1115-999."}</small>}</label>
             <label>Typ<input required value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} /></label>
             <label>Benämning<input required value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
             <label>Tillverkare<input value={form.manufacturer} onChange={(e) => setForm({ ...form, manufacturer: e.target.value })} /></label>
