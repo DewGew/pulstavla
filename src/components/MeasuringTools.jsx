@@ -139,7 +139,7 @@ export default function MeasuringTools({ currentUser }) {
       const cell = String(value ?? "").replace(/"/g, '""');
       return /[;"\\r\\n]/.test(cell) ? `"${cell}"` : cell;
     }).join(";")).join("\r\n");
-    const blob = new Blob(["\\uFEFF", csv], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
