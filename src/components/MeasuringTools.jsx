@@ -297,7 +297,7 @@ export default function MeasuringTools({ currentUser }) {
     <div className="measuring-tools">
       <div className="measuring-header">
         <div><h2>Mätverktyg</h2><p>Verktygsregister, utlåning och återlämning</p></div>
-        {isAdmin && <div className="measuring-header-actions">
+        {(isAdmin || canRegisterControl) && <div className="measuring-header-actions">
           <button className="btn-secondary" onClick={() => setShowAccess((value) => !value)}>Behörighet kontroll</button>
           <button className="btn-primary" onClick={() => { setEditingToolId(null); setForm(emptyTool); setShowAdd((value) => !value); }}>{showAdd && !editingToolId ? "Stäng" : "＋ Registrera verktyg"}</button>
         </div>}
@@ -305,7 +305,7 @@ export default function MeasuringTools({ currentUser }) {
 
       {message && <div className="measuring-message" role="status">{message}<button onClick={() => setMessage("")} aria-label="Stäng">×</button></div>}
 
-      {isAdmin && showAdd && (
+      {(isAdmin || canRegisterControl) && showAdd && (
         <form className="measuring-form" onSubmit={addTool}>
           <h3>{editingToolId ? "Redigera mätverktyg" : "Nytt mätverktyg"}</h3>
           <div className="measuring-form-grid">
@@ -326,7 +326,7 @@ export default function MeasuringTools({ currentUser }) {
       {isAdmin && showAccess && (
         <section className="measuring-form">
           <h3>Behörighet för kalibrering och kontroll</h3>
-          <p>Administratörer har alltid behörighet. Välj vilka övriga användare som får registrera kontroller.</p>
+          <p>Administratörer har alltid behörighet. Valda användare får registrera kalibrering och kontroll samt lägga till och redigera mätverktyg.</p>
           <div className="measuring-user-list">
             {users.map((item) => <label key={item._id}>
               <input type="checkbox" checked={controlUserIds.includes(item._id)}
@@ -447,7 +447,7 @@ export default function MeasuringTools({ currentUser }) {
                       <summary>Fler åtgärder</summary>
                       <div className="measuring-more-menu">
                         {canControl && <button onClick={() => { setControlTool(tool); setControlForm({ type: "Kontroll", date: new Date().toLocaleDateString("sv-SE"), result: "Godkänd", comment: "" }); }}>Registrera kontroll</button>}
-                        {isAdmin && <button onClick={() => editTool(tool)}>Redigera verktyg</button>}
+                        {canRegisterControl && <button onClick={() => editTool(tool)}>Redigera verktyg</button>}
                         {isAdmin && <button onClick={() => showHistory(tool)}>Visa historik</button>}
                       </div>
                     </details>}
@@ -465,7 +465,7 @@ export default function MeasuringTools({ currentUser }) {
               const blocked = isToolBlocked(tool);
               const terminalStatus = isTerminalTool(tool);
               const canReturn = tool.activeLoan && (isAdmin || tool.activeLoan.borrowerId === currentUser?._id);
-              const canControl = isAdmin || controlUserIds.includes(currentUser?._id);
+              const canControl = canRegisterControl;
               const statusLabel = tool.status === "Utlånad"
                 ? "Utlånad"
                 : terminalStatus
@@ -502,7 +502,7 @@ export default function MeasuringTools({ currentUser }) {
                   {canReturn && <button className="btn-secondary" onClick={() => returnTool(tool)}>Återlämna</button>}
                   {(canControl || isAdmin) && <details className="measuring-table-more"><summary>•••</summary><div className="measuring-more-menu">
                     {canControl && <button onClick={() => { setControlTool(tool); setControlForm({ type: "Kontroll", date: new Date().toLocaleDateString("sv-SE"), result: "Godkänd", comment: "" }); }}>Registrera kontroll</button>}
-                    {isAdmin && <button onClick={() => editTool(tool)}>Redigera</button>}
+                    {canRegisterControl && <button onClick={() => editTool(tool)}>Redigera</button>}
                     {isAdmin && <button onClick={() => showHistory(tool)}>Historik</button>}
                   </div></details>}
                 </td>
