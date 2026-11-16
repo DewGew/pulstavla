@@ -947,7 +947,7 @@ app.post("/measuring-tools/:id/control", requireAuth, requireMeasuringControlAcc
     recordedAt: Date.now(),
   };
   measuringToolsDB.update({ _id: req.params.id }, {
-    $set: { lastControlDate: date, updatedAt: Date.now() },
+    $set: { lastControlDate: date, controlBlocked: result === "Underkänd", updatedAt: Date.now() },
     $push: { controlHistory: entry },
   }, {}, (updateErr, count) => {
     if (updateErr) return res.status(500).json({ error: "Kunde inte spara kontrollen." });
@@ -966,7 +966,7 @@ app.post("/measuring-tools/import-preview", requireAuth, requireAdmin, upload.si
         const workbook = xlsx.readFile(req.file.path, { cellDates: true });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         if (!sheet) return res.status(400).json({ error: "Excel-filen saknar ett kalkylblad." });
-        const rows = xlsx.utils.sheet_to_json(sheet, { defval: "", raw: false });
+        const rows = xlsx.utils.sheet_to_json(sheet, { defval: "", raw: true });
         const normalize = (value) => String(value || "").trim().toLowerCase().replace(/[åä]/g, "a").replace(/ö/g, "o").replace(/\s+/g, " ");
         const aliases = {
           toolNumber: ["verktygsnr", "verktygsnummer"],
@@ -998,10 +998,13 @@ app.post("/measuring-tools/import-preview", requireAuth, requireAdmin, upload.si
           let lastControlDate = "";
           if (rawDate instanceof Date && !Number.isNaN(rawDate.getTime())) {
             lastControlDate = rawDate.toISOString().slice(0, 10);
+          } else if (typeof rawDate === "number" && Number.isFinite(rawDate)) {
+            const parsed = xlsx.SSF.parse_date_code(rawDate);
+            if (parsed) lastControlDate = `${parsed.y}-${String(parsed.m).padStart(2, "0")}-${String(parsed.d).padStart(2, "0")}`;
           } else if (rawDate) {
             const value = String(rawDate).trim();
             const iso = value.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-            const swedish = value.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
+            const swedish = value.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})(?:\s|$)/);
             if (iso) lastControlDate = `${iso[1]}-${iso[2].padStart(2, "0")}-${iso[3].padStart(2, "0")}`;
             else if (swedish) lastControlDate = `${swedish[3]}-${swedish[2].padStart(2, "0")}-${swedish[1].padStart(2, "0")}`;
           }
@@ -1087,6 +1090,7 @@ app.post("/measuring-tools/:id/checkout", requireAuth, requireEditor, (req, res)
     measuringToolsDB.findOne({ _id: req.params.id }, (toolErr, tool) => {
       if (toolErr) return res.status(500).json({ error: "Kunde inte läsa verktyget." });
       if (!tool) return res.status(404).json({ error: "Verktyget hittades inte." });
+      if (tool.controlBlocked) return res.status(409).json({ error: "Verktyget är spärrat efter underkänd kontroll och kan inte lånas ut." });
       if (tool.status !== "Disponibel" || tool.activeLoan) return res.status(409).json({ error: "Verktyget är inte tillgängligt." });
       const loan = {
         borrowerId: borrower._id, borrowerName: borrower.name || borrower.username,
@@ -1095,7 +1099,7 @@ app.post("/measuring-tools/:id/checkout", requireAuth, requireEditor, (req, res)
         checkedOutByName: req.user.name || req.user.username,
         note: String(req.body?.note || "").trim(),
       };
-      measuringToolsDB.update({ _id: tool._id, status: "Disponibel" }, {
+      measuringToolsDB.update({ _id: tool._id, status: "Disponibel", controlBlocked: { $ne: true } }, {
         $set: { status: "Utlånad", activeLoan: loan, updatedAt: Date.now() },
         $push: { loanHistory: { ...loan, action: "checkout" } },
       }, {}, (updateErr, count) => {
