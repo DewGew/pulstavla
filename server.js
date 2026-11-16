@@ -818,11 +818,26 @@ measuringToolsDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 270000);
 
 /* ---------------- MÄTVERKTYG ENDPOINTS ---------------- */
 
-// Lista verktyg och aktuell utlåning.
+// Beräkna om nästa kontroll passerat. Datum hanteras som kalenderdatum i UTC.
+function isMeasuringToolControlOverdue(tool) {
+  if (!tool?.lastControlDate || !Number(tool.controlInterval)) return false;
+  const match = String(tool.lastControlDate).match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
+  if (!match) return false;
+  const nextDate = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]) + Number(tool.controlInterval)));
+  const today = new Date();
+  const todayDate = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+  return nextDate.getTime() < todayDate;
+}
+
+// Lista verktyg och aktuell utlåning. Förfallen kontroll ger automatisk spärr.
 app.get("/measuring-tools", requireAuth, (req, res) => {
   measuringToolsDB.find({}).sort({ toolNumber: 1 }).exec((err, tools) => {
     if (err) return res.status(500).json({ error: "Kunde inte läsa verktygsregistret." });
-    res.json(tools.map(({ loanHistory, controlHistory, ...tool }) => tool));
+    res.json(tools.map(({ loanHistory, controlHistory, ...tool }) => ({
+      ...tool,
+      controlBlocked: Boolean(tool.controlBlocked || isMeasuringToolControlOverdue(tool)),
+      controlBlockReason: isMeasuringToolControlOverdue(tool) ? "Förfallen kontroll" : (tool.controlBlocked ? "Underkänd kontroll" : ""),
+    })));
   });
 });
 
@@ -1090,7 +1105,7 @@ app.post("/measuring-tools/:id/checkout", requireAuth, requireEditor, (req, res)
     measuringToolsDB.findOne({ _id: req.params.id }, (toolErr, tool) => {
       if (toolErr) return res.status(500).json({ error: "Kunde inte läsa verktyget." });
       if (!tool) return res.status(404).json({ error: "Verktyget hittades inte." });
-      if (tool.controlBlocked) return res.status(409).json({ error: "Verktyget är spärrat efter underkänd kontroll och kan inte lånas ut." });
+      if (tool.controlBlocked || isMeasuringToolControlOverdue(tool)) return res.status(409).json({ error: isMeasuringToolControlOverdue(tool) ? "Verktyget är spärrat eftersom datumet för nästa kontroll har passerat." : "Verktyget är spärrat efter underkänd kontroll och kan inte lånas ut." });
       if (tool.status !== "Disponibel" || tool.activeLoan) return res.status(409).json({ error: "Verktyget är inte tillgängligt." });
       const loan = {
         borrowerId: borrower._id, borrowerName: borrower.name || borrower.username,
