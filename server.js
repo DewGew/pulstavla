@@ -936,7 +936,7 @@ app.post("/measuring-tools/:id/control", requireAuth, requireMeasuringControlAcc
   const result = String(req.body?.result || "");
   const allowedTypes = ["Kalibrering", "Kontroll"];
   const allowedResults = ["Godkänd", "Underkänd", "Justerad"];
-  if (!allowedTypes.includes(type) || !/^\\d{4}-\\d{2}-\\d{2}$/.test(date) || !allowedResults.includes(result)) {
+  if (!allowedTypes.includes(type) || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !allowedResults.includes(result)) {
     return res.status(400).json({ error: "Ange typ, giltigt datum och resultat." });
   }
   const entry = {
