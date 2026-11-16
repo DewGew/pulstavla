@@ -1163,7 +1163,14 @@ app.post("/measuring-tools/:id/reserve", requireAuth, requireEditor, (req, res) 
         username: user.username, reservedAt: Date.now(),
         reservedBy: req.user.id, reservedByName: req.user.name || req.user.username,
       };
-      measuringToolsDB.update({ _id: tool._id, status: "Disponibel", reservation: null }, {
+      measuringToolsDB.update({
+        _id: tool._id,
+        status: "Disponibel",
+        $or: [
+          { reservation: { $exists: false } },
+          { reservation: null },
+        ],
+      }, {
         $set: { reservation, updatedAt: Date.now() },
         $push: { reservationHistory: { ...reservation, action: "reserve" } },
       }, {}, (updateErr, count) => {
