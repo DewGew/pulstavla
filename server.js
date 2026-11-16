@@ -803,8 +803,6 @@ matprotokollDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 260000);
 /* ---------------- MÄTVERKTYG DATABASE ---------------- */
 const measuringToolsDB = new Datastore({ filename: "./db/measuringTools.db", autoload: true });
 measuringToolsDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 270000);
-const measuringToolLoansDB = new Datastore({ filename: "./db/measuringToolLoans.db", autoload: true });
-measuringToolLoansDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 280000);
 
 /* ---------------- MÄTVERKTYG ENDPOINTS ---------------- */
 
