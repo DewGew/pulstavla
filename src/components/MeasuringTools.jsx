@@ -51,6 +51,7 @@ export default function MeasuringTools({ currentUser }) {
   const [borrowerId, setBorrowerId] = useState(currentUser?._id || "");
   const [reservationUserId, setReservationUserId] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [actionModal, setActionModal] = useState(null);
   const [history, setHistory] = useState(null);
   const [controlUserIds, setControlUserIds] = useState([]);
   const [canRegisterControl, setCanRegisterControl] = useState(false);
@@ -110,7 +111,7 @@ export default function MeasuringTools({ currentUser }) {
   }), [tools]);
 
   const filteredTools = useMemo(() => tools.filter((tool) => {
-    const haystack = [tool.toolNumber, tool.type, tool.description, tool.range, tool.location, tool.activeLoan?.borrowerName, tool.reservation?.userName]
+    const haystack = [tool.toolNumber, tool.type, tool.description, tool.manufacturer, tool.range, tool.location, tool.activeLoan?.borrowerName, tool.reservation?.userName]
       .join(" ").toLocaleLowerCase("sv");
     const matchesStatus = statusFilter === "Alla" ||
       (statusFilter === "Lediga" && tool.status === "Disponibel" && !tool.reservation && !isToolBlocked(tool)) ||
@@ -122,6 +123,21 @@ export default function MeasuringTools({ currentUser }) {
       (statusFilter === "Kontroll förfallen" && isControlOverdue(tool));
     return haystack.includes(search.toLocaleLowerCase("sv")) && matchesStatus;
   }), [tools, search, statusFilter]);
+
+  const openActionModal = (tool, mode) => {
+    setBorrowerId(currentUser?._id || users[0]?._id || "");
+    setReservationUserId("");
+    setDueDate("");
+    setActionModal({ tool, mode });
+  };
+
+  const submitAction = (event) => {
+    event.preventDefault();
+    if (!actionModal) return;
+    if (actionModal.mode === "checkout") checkout(actionModal.tool);
+    else reserveTool(actionModal.tool);
+    setActionModal(null);
+  };
 
   const checkout = async (tool) => {
     try {
@@ -384,9 +400,6 @@ export default function MeasuringTools({ currentUser }) {
           ))}
         </div>
         <div className="measuring-extra-controls">
-          {isAdmin && <label>Utlåning till<select aria-label="Välj låntagare" value={borrowerId} onChange={(e) => setBorrowerId(e.target.value)}>{users.map((item) => <option key={item._id} value={item._id}>{item.name || item.username}</option>)}</select></label>}
-          {canReserve && <label>Reservera till användare<select aria-label="Välj användare för reservation" value={reservationUserId} onChange={(e) => setReservationUserId(e.target.value)}><option value="">Välj användare…</option>{users.map((item) => <option key={item._id} value={item._id}>{item.name || item.username}</option>)}</select></label>}
-          <label>Planerat återlämningsdatum<input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></label>
           <span className="measuring-result-count">Visar {filteredTools.length} av {tools.length} verktyg</span>
         </div>
       </div>
@@ -416,7 +429,7 @@ export default function MeasuringTools({ currentUser }) {
               const terminalStatus = isTerminalTool(tool);
               const canReturn = tool.activeLoan && (isAdmin || tool.activeLoan.borrowerId === currentUser?._id);
               const canControl = canRegisterControl;
-              const canCheckout = tool.status === "Disponibel" && !blocked && currentUser?.role !== "view" && (!tool.reservation || tool.reservation.userId === currentUser?._id || (isAdmin && tool.reservation.userId === borrowerId));
+              const canCheckout = tool.status === "Disponibel" && !blocked && currentUser?.role !== "view" && (!tool.reservation || tool.reservation.userId === currentUser?._id || isAdmin);
               return (
                 <article className={`measuring-tool-card ${blocked || terminalStatus ? "is-blocked" : tool.status === "Utlånad" ? "is-borrowed" : tool.reservation ? "is-reserved" : "is-available"}`} key={tool._id}>
                   <div className="measuring-card-top">
@@ -448,8 +461,8 @@ export default function MeasuringTools({ currentUser }) {
                     </div>
                   )}
                   <div className="measuring-card-actions">
-                    {canCheckout && <button className="btn-primary" onClick={() => checkout(tool)}>Låna verktyg</button>}
-                    {!tool.reservation && tool.status === "Disponibel" && !blocked && canReserve && <button className="btn-secondary" disabled={!reservationUserId} onClick={() => reserveTool(tool)}>Reservera tills vidare</button>}
+                    {canCheckout && <button className="btn-primary" onClick={() => openActionModal(tool, "checkout")}>Låna verktyg</button>}
+                    {!tool.reservation && tool.status === "Disponibel" && !blocked && canReserve && <button className="btn-secondary" onClick={() => openActionModal(tool, "reserve")}>Reservera tills vidare</button>}
                     {tool.reservation && (isAdmin || tool.reservation.userId === currentUser?._id) && <button className="btn-secondary" onClick={() => releaseReservation(tool)}>Häv reservation</button>}
                     {canReturn && <button className="btn-primary" onClick={() => returnTool(tool)}>Återlämna</button>}
                     {(canControl || isAdmin) && <details className="measuring-more-actions">
@@ -467,7 +480,7 @@ export default function MeasuringTools({ currentUser }) {
           </div>
         ) : (
           <div className="measuring-table-wrap"><table className="measuring-table">
-            <thead><tr><th>Verktygsnr</th><th>Typ / Benämning</th><th>Mätområde</th><th>Plats</th><th>Senaste kontroll</th><th>Nästa kontroll</th><th>Status / Låntagare</th><th>Åtgärd</th></tr></thead>
+            <thead><tr><th>Verktygsnr</th><th>Typ / Benämning</th><th>Tillverkare</th><th>Mätområde</th><th>Plats</th><th>Senaste kontroll</th><th>Nästa kontroll</th><th>Status / Låntagare</th><th>Åtgärd</th></tr></thead>
             <tbody>{filteredTools.map((tool) => {
               const next = nextControlDate(tool);
               const overdue = isControlOverdue(tool);
@@ -494,6 +507,7 @@ export default function MeasuringTools({ currentUser }) {
               return <tr key={tool._id}>
                 <td><strong>{tool.toolNumber}</strong></td>
                 <td>{tool.type}<small>{tool.description}</small></td>
+                <td>{tool.manufacturer || "—"}</td>
                 <td>{tool.range || "—"}</td><td>{tool.location || "—"}</td>
                 <td>{dateLabel(tool.lastControlDate)}</td>
                 <td><span className={overdue ? "measuring-overdue" : ""}>{next ? dateLabel(next.toISOString().slice(0, 10)) : "—"}</span></td>
@@ -505,8 +519,8 @@ export default function MeasuringTools({ currentUser }) {
                   {blocked && tool.status === "Utlånad" && <small className="measuring-overdue">{overdue ? "Kontroll förfallen" : "Spärrat efter kontroll"}</small>}
                 </td>
                 <td className="measuring-actions">
-                  {tool.status === "Disponibel" && !blocked && currentUser?.role !== "view" && (!tool.reservation || tool.reservation.userId === currentUser?._id || (isAdmin && tool.reservation.userId === borrowerId)) && <button className="btn-primary" onClick={() => checkout(tool)}>Låna</button>}
-                  {!tool.reservation && tool.status === "Disponibel" && !blocked && canReserve && <button className="btn-secondary" disabled={!reservationUserId} onClick={() => reserveTool(tool)}>Reservera</button>}
+                  {tool.status === "Disponibel" && !blocked && currentUser?.role !== "view" && (!tool.reservation || tool.reservation.userId === currentUser?._id || isAdmin) && <button className="btn-primary" onClick={() => openActionModal(tool, "checkout")}>Låna</button>}
+                  {!tool.reservation && tool.status === "Disponibel" && !blocked && canReserve && <button className="btn-secondary" onClick={() => openActionModal(tool, "reserve")}>Reservera</button>}
                   {tool.reservation && (isAdmin || tool.reservation.userId === currentUser?._id) && <button className="btn-secondary" onClick={() => releaseReservation(tool)}>Häv reservation</button>}
                   {canReturn && <button className="btn-secondary" onClick={() => returnTool(tool)}>Återlämna</button>}
                   {(canControl || isAdmin) && <details className="measuring-table-more"><summary>•••</summary><div className="measuring-more-menu">
@@ -520,6 +534,28 @@ export default function MeasuringTools({ currentUser }) {
           </table></div>
         )
       ) : <div className="measuring-empty-state"><strong>Inga verktyg hittades</strong><span>Prova att ändra sökningen eller välj ett annat filter.</span><button className="btn-secondary" onClick={() => { setSearch(""); setStatusFilter("Alla"); }}>Rensa sökning och filter</button></div>}
+
+      {actionModal && <div className="measuring-modal-backdrop" onClick={() => setActionModal(null)}>
+        <form className="measuring-history measuring-action-form" onSubmit={submitAction} onClick={(event) => event.stopPropagation()}>
+          <button type="button" className="measuring-close" onClick={() => setActionModal(null)}>×</button>
+          <h3>{actionModal.mode === "checkout" ? "Låna mätverktyg" : "Reservera mätverktyg"} – {actionModal.tool.toolNumber}</h3>
+          <p>{actionModal.tool.description || actionModal.tool.type}{actionModal.tool.manufacturer ? ` · ${actionModal.tool.manufacturer}` : ""}</p>
+          {actionModal.mode === "checkout" ? <>
+            <label>Utlåning till
+              {isAdmin ? <select required value={borrowerId} onChange={(event) => setBorrowerId(event.target.value)}>
+                <option value="">Välj användare…</option>{users.map((item) => <option key={item._id} value={item._id}>{item.name || item.username}</option>)}
+              </select> : <input readOnly value={currentUser?.name || currentUser?.username || "Inloggad användare"} />}
+            </label>
+            <label>Planerat återlämningsdatum<input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} /></label>
+          </> : <label>Reservera till
+            <select required value={reservationUserId} onChange={(event) => setReservationUserId(event.target.value)}>
+              <option value="">Välj användare…</option>{users.map((item) => <option key={item._id} value={item._id}>{item.name || item.username}</option>)}
+            </select>
+          </label>}
+          <button className="btn-primary" type="submit" disabled={actionModal.mode === "reserve" ? !reservationUserId : isAdmin && !borrowerId}>{actionModal.mode === "checkout" ? "Bekräfta utlåning" : "Bekräfta reservation"}</button>
+          <button className="btn-secondary" type="button" onClick={() => setActionModal(null)}>Avbryt</button>
+        </form>
+      </div>}
 
       {history && <div className="measuring-modal-backdrop" onClick={() => setHistory(null)}><section className="measuring-history" onClick={(e) => e.stopPropagation()}><button className="measuring-close" onClick={() => setHistory(null)}>×</button><h3>Historik – {history.tool.toolNumber}</h3>{history.entries.length ? <ol>{history.entries.slice().reverse().map((entry, index) => <li key={index}>{entry.action === "control" ? <><strong>{entry.type}</strong> – {entry.result} · {dateLabel(entry.date)}<small>Utförd av {entry.performedByName || "—"}</small>{entry.comment && <small>Kommentar: {entry.comment}</small>}</> : <><strong>{entry.action === "checkout" ? "Utlånad" : entry.action === "return" ? "Återlämnad" : entry.action === "reserve" ? "Reserverad" : "Reservation hävd"}</strong> – {entry.borrowerName || entry.userName} · {new Date(entry.checkedOutAt || entry.returnedAt || entry.reservedAt || entry.releasedAt).toLocaleString("sv-SE")}<small>{entry.action === "return" ? `Registrerad av ${entry.returnedByName || "—"}` : entry.action === "reserve" || entry.action === "release" ? `Hanterad av ${entry.reservedByName || entry.releasedByName || "—"}` : `Planerad åter: ${dateLabel(entry.dueDate)}`}</small>{entry.returnNote && <small>Kommentar: {entry.returnNote}</small>}</>}</li>)}</ol> : <p>Ingen historik ännu.</p>}</section></div>}
       {controlTool && <div className="measuring-modal-backdrop" onClick={() => setControlTool(null)}>
