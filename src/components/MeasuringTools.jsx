@@ -90,7 +90,8 @@ export default function MeasuringTools({ currentUser }) {
 
   const statusCounts = useMemo(() => ({
     Alla: tools.length,
-    Lediga: tools.filter((tool) => tool.status === "Disponibel" && !isToolBlocked(tool)).length,
+    Lediga: tools.filter((tool) => tool.status === "Disponibel" && !tool.reservation && !isToolBlocked(tool)).length,
+    Reserverade: tools.filter((tool) => Boolean(tool.reservation)).length,
     Utlånade: tools.filter((tool) => tool.status === "Utlånad").length,
     Spärrade: tools.filter((tool) => isToolBlocked(tool)).length,
     Skrotade: tools.filter((tool) => tool.status === "Skrotad").length,
@@ -102,7 +103,8 @@ export default function MeasuringTools({ currentUser }) {
     const haystack = [tool.toolNumber, tool.type, tool.description, tool.range, tool.location, tool.activeLoan?.borrowerName, tool.reservation?.userName]
       .join(" ").toLocaleLowerCase("sv");
     const matchesStatus = statusFilter === "Alla" ||
-      (statusFilter === "Lediga" && tool.status === "Disponibel" && !isToolBlocked(tool)) ||
+      (statusFilter === "Lediga" && tool.status === "Disponibel" && !tool.reservation && !isToolBlocked(tool)) ||
+      (statusFilter === "Reserverade" && Boolean(tool.reservation)) ||
       (statusFilter === "Utlånade" && tool.status === "Utlånad") ||
       (statusFilter === "Spärrade" && isToolBlocked(tool)) ||
       (statusFilter === "Skrotade" && tool.status === "Skrotad") ||
@@ -363,7 +365,7 @@ export default function MeasuringTools({ currentUser }) {
           </div>
         </div>
         <div className="measuring-filter-chips" role="group" aria-label="Filtrera mätverktyg">
-          {["Alla", "Lediga", "Utlånade", "Spärrade", "Skrotade", "Saknade", "Kontroll förfallen"].map((filter) => (
+          {["Alla", "Lediga", "Reserverade", "Utlånade", "Spärrade", "Skrotade", "Saknade", "Kontroll förfallen"].map((filter) => (
             <button type="button" key={filter} className={statusFilter === filter ? "active" : ""} onClick={() => setStatusFilter(filter)} aria-pressed={statusFilter === filter}>
               {filter}<span>{statusCounts[filter]}</span>
             </button>
@@ -401,13 +403,13 @@ export default function MeasuringTools({ currentUser }) {
               const terminalStatus = isTerminalTool(tool);
               const canReturn = tool.activeLoan && (isAdmin || tool.activeLoan.borrowerId === currentUser?._id);
               const canControl = isAdmin || controlUserIds.includes(currentUser?._id);
-              const canCheckout = tool.status === "Disponibel" && !blocked && currentUser?.role !== "view";
+              const canCheckout = tool.status === "Disponibel" && !blocked && currentUser?.role !== "view" && (!tool.reservation || tool.reservation.userId === currentUser?._id || (isAdmin && tool.reservation.userId === borrowerId));
               return (
                 <article className={`measuring-tool-card ${blocked || terminalStatus ? "is-blocked" : tool.status === "Utlånad" ? "is-borrowed" : "is-available"}`} key={tool._id}>
                   <div className="measuring-card-top">
                     <span className="measuring-tool-number">{tool.toolNumber}</span>
                     <span className={`measuring-status ${tool.status === "Utlånad" ? "borrowed" : blocked || terminalStatus ? "blocked" : "available"}`}>
-                      {tool.status === "Utlånad" ? "Utlånad" : terminalStatus ? tool.status : blocked ? "Spärrad" : "Ledig"}
+                      {tool.status === "Utlånad" ? "Utlånad" : terminalStatus ? tool.status : blocked ? "Spärrad" : tool.reservation ? "Reserverad" : "Ledig"}
                     </span>
                   </div>
                   <h3>{tool.description || tool.type}</h3>
@@ -467,7 +469,9 @@ export default function MeasuringTools({ currentUser }) {
                   ? tool.status
                   : blocked
                     ? "Spärrad"
-                    : "Ledig";
+                    : tool.reservation
+                      ? "Reserverad"
+                      : "Ledig";
               const statusClass = tool.status === "Utlånad"
                 ? "borrowed"
                 : (terminalStatus || blocked)
@@ -487,7 +491,7 @@ export default function MeasuringTools({ currentUser }) {
                   {blocked && tool.status === "Utlånad" && <small className="measuring-overdue">{overdue ? "Kontroll förfallen" : "Spärrat efter kontroll"}</small>}
                 </td>
                 <td className="measuring-actions">
-                  {tool.status === "Disponibel" && !blocked && currentUser?.role !== "view" && <button className="btn-primary" onClick={() => checkout(tool)}>Låna</button>}
+                  {tool.status === "Disponibel" && !blocked && currentUser?.role !== "view" && (!tool.reservation || tool.reservation.userId === currentUser?._id || (isAdmin && tool.reservation.userId === borrowerId)) && <button className="btn-primary" onClick={() => checkout(tool)}>Låna</button>}
                   {!tool.reservation && tool.status === "Disponibel" && !blocked && currentUser?.role !== "view" && <button className="btn-secondary" onClick={() => reserveTool(tool)}>Reservera</button>}
                   {tool.reservation && (isAdmin || tool.reservation.userId === currentUser?._id) && <button className="btn-secondary" onClick={() => releaseReservation(tool)}>Häv reservation</button>}
                   {canReturn && <button className="btn-secondary" onClick={() => returnTool(tool)}>Återlämna</button>}
@@ -503,7 +507,7 @@ export default function MeasuringTools({ currentUser }) {
         )
       ) : <div className="measuring-empty-state"><strong>Inga verktyg hittades</strong><span>Prova att ändra sökningen eller välj ett annat filter.</span><button className="btn-secondary" onClick={() => { setSearch(""); setStatusFilter("Alla"); }}>Rensa sökning och filter</button></div>}
 
-      {history && <div className="measuring-modal-backdrop" onClick={() => setHistory(null)}><section className="measuring-history" onClick={(e) => e.stopPropagation()}><button className="measuring-close" onClick={() => setHistory(null)}>×</button><h3>Historik – {history.tool.toolNumber}</h3>{history.entries.length ? <ol>{history.entries.slice().reverse().map((entry, index) => <li key={index}>{entry.action === "control" ? <><strong>{entry.type}</strong> – {entry.result} · {dateLabel(entry.date)}<small>Utförd av {entry.performedByName || "—"}</small>{entry.comment && <small>Kommentar: {entry.comment}</small>}</> : <><strong>{entry.action === "checkout" ? "Utlånad" : entry.action === "return" ? "Återlämnad" : entry.action === "reserve" ? "Reserverad" : "Reservation hävd"}</strong> – {entry.borrowerName || entry.userName} · {new Date(entry.checkedOutAt || entry.returnedAt || entry.reservedAt || entry.releasedAt).toLocaleString("sv-SE")}<small>{entry.action === "return" ? `Registrerad av ${entry.returnedByName || "—"}` : `Planerad åter: ${dateLabel(entry.dueDate)}`}</small>{entry.returnNote && <small>Kommentar: {entry.returnNote}</small>}</>}</li>)}</ol> : <p>Ingen historik ännu.</p>}</section></div>}
+      {history && <div className="measuring-modal-backdrop" onClick={() => setHistory(null)}><section className="measuring-history" onClick={(e) => e.stopPropagation()}><button className="measuring-close" onClick={() => setHistory(null)}>×</button><h3>Historik – {history.tool.toolNumber}</h3>{history.entries.length ? <ol>{history.entries.slice().reverse().map((entry, index) => <li key={index}>{entry.action === "control" ? <><strong>{entry.type}</strong> – {entry.result} · {dateLabel(entry.date)}<small>Utförd av {entry.performedByName || "—"}</small>{entry.comment && <small>Kommentar: {entry.comment}</small>}</> : <><strong>{entry.action === "checkout" ? "Utlånad" : entry.action === "return" ? "Återlämnad" : entry.action === "reserve" ? "Reserverad" : "Reservation hävd"}</strong> – {entry.borrowerName || entry.userName} · {new Date(entry.checkedOutAt || entry.returnedAt || entry.reservedAt || entry.releasedAt).toLocaleString("sv-SE")}<small>{entry.action === "return" ? `Registrerad av ${entry.returnedByName || "—"}` : entry.action === "reserve" || entry.action === "release" ? `Hanterad av ${entry.reservedByName || entry.releasedByName || "—"}` : `Planerad åter: ${dateLabel(entry.dueDate)}`}</small>{entry.returnNote && <small>Kommentar: {entry.returnNote}</small>}</>}</li>)}</ol> : <p>Ingen historik ännu.</p>}</section></div>}
       {controlTool && <div className="measuring-modal-backdrop" onClick={() => setControlTool(null)}>
         <form className="measuring-history measuring-control-form" onSubmit={submitControl} onClick={(event) => event.stopPropagation()}>
           <button type="button" className="measuring-close" onClick={() => setControlTool(null)}>×</button>
