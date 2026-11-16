@@ -161,3 +161,11 @@
   .app.ultra4k :is(.progress-text):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.02rem !important; }
   .app.ultra4k :is(.meta):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 0.96rem !important; }
 }
+
+
+/* Dölj checklistans topplista på mobil */
+@media (max-width: 700px) {
+  .checked-machines {
+    display: none;
+  }
+}
