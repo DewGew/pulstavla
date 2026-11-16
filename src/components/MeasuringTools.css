@@ -178,16 +178,3 @@
 
 
 .measuring-export-actions { display:flex; justify-content:flex-end; margin:0 0 10px; }
-.measuring-print-only { display:none; }
-@media print {
-  @page { size: landscape; margin: 12mm; }
-  body * { visibility:hidden !important; }
-  .measuring-print-only, .measuring-print-only * { visibility:visible !important; }
-  .measuring-print-only { display:block !important; position:absolute; inset:0 auto auto 0; width:100%; color:#111 !important; background:#fff !important; font-family:Arial,sans-serif; }
-  .measuring-print-only h1 { margin:0 0 6px; font-size:18pt; }
-  .measuring-print-only p { margin:0 0 12px; font-size:9pt; }
-  .measuring-print-only table { width:100%; border-collapse:collapse; font-size:8pt; }
-  .measuring-print-only th, .measuring-print-only td { border:1px solid #888; padding:5px; text-align:left; vertical-align:top; }
-  .measuring-print-only th { background:#eee !important; }
-  .measuring-print-only tr { break-inside:avoid; }
-}
