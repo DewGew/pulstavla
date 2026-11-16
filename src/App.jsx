@@ -28,6 +28,7 @@ const Settings = lazy(() => import("./components/Settings"));
 const OrderImport = lazy(() => import("./components/OrderImport"));
 const ProductionOrderImport = lazy(() => import("./components/ProductionOrderImport"));
 const Matprotokoll = lazy(() => import("./components/Matprotokoll"));
+const MeasuringTools = lazy(() => import("./components/MeasuringTools"));
 const KpiAdmin = lazy(() => import("./dashboard/KpiAdmin"));
 
 
@@ -391,6 +392,15 @@ return (
                   </button>
                 )}
                 <button
+                  className={activeTab === "measuringTools" ? "active" : ""}
+                  onClick={() => {
+                    setActiveTab("measuringTools");
+                    setOpenMenu(false);
+                  }}
+                >
+                  Mätverktyg
+                </button>
+                <button
                   className={activeTab === "matprotokoll" ? "active" : ""}
                   onClick={() => {
                     setActiveTab("matprotokoll");
@@ -462,6 +472,7 @@ return (
         {activeTab === "orders" && <OrderImport />}
         {activeTab === "production" && <ProductionOrderImport />}
         {activeTab === "matprotokoll" && <Matprotokoll />}
+        {activeTab === "measuringTools" && <MeasuringTools currentUser={user} />}
         {activeTab === "kpis" && <KpiAdmin currentUser={user} />}
       </Suspense>
     </main>
