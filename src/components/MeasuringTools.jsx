@@ -306,12 +306,20 @@ export default function MeasuringTools({ currentUser }) {
         <label className="measuring-due-date">Planerat återlämningsdatum<input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></label>
       </div>
 
-      <div className="measuring-summary">
-        <span><strong>{tools.length}</strong> totalt</span>
-        <span><strong>{tools.filter((tool) => tool.status === "Disponibel" && !tool.controlBlocked).length}</strong> disponibla</span>
-        <span><strong>{tools.filter((tool) => tool.controlBlocked).length}</strong> spärrade</span>
-        <span><strong>{tools.filter((tool) => tool.status === "Utlånad").length}</strong> utlånade</span>
-      </div>
+      <section className="measuring-summary" aria-label="Översikt över mätverktyg">
+        <div className="measuring-summary-card total">
+          <strong>{tools.length}</strong><span>Totalt antal verktyg</span>
+        </div>
+        <div className="measuring-summary-card available">
+          <strong>{tools.filter((tool) => tool.status === "Disponibel" && !tool.controlBlocked).length}</strong><span>Disponibla – kan lånas</span>
+        </div>
+        <div className="measuring-summary-card blocked">
+          <strong>{tools.filter((tool) => tool.controlBlocked).length}</strong><span>Spärrade – får inte lånas</span>
+        </div>
+        <div className="measuring-summary-card borrowed">
+          <strong>{tools.filter((tool) => tool.status === "Utlånad").length}</strong><span>Utlånade – hos användare</span>
+        </div>
+      </section>
 
       {filteredTools.length ? (
         <div className="measuring-table-wrap"><table className="measuring-table">
