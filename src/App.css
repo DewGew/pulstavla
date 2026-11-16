@@ -1237,3 +1237,114 @@ textarea:disabled {
   .app.ultra4k .nav,
   .app.ultra4k .dash-toolbar { font-size: 1rem; }
 }
+
+
+/* Mobil navigering: tydlig toppsektion och tryckvänliga knappar (iPhone m.fl.). */
+@media screen and (max-width: 768px) {
+  .app.top .dashboard,
+  .app.side .dashboard {
+    width: 100%;
+    height: auto;
+    min-width: 0;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  .app.top .nav,
+  .app.side .nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 0.5rem;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+  }
+
+  .app.top .nav > button,
+  .app.side .nav > button,
+  .app.top .nav .nav-dropdown,
+  .app.side .nav .nav-dropdown {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 44px;
+    margin: 0;
+  }
+
+  .app.top .nav > button,
+  .app.side .nav > button,
+  .app.top .nav .nav-dropdown-button,
+  .app.side .nav .nav-dropdown-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0.6rem 0.45rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.2;
+    text-align: center;
+  }
+
+  .app.top .nav .nav-dropdown-menu,
+  .app.side .nav .nav-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    bottom: auto;
+    left: 0;
+    right: 0;
+    width: 100%;
+    min-width: 0;
+    max-height: 60vh;
+    overflow-y: auto;
+    z-index: 1200;
+  }
+
+  .app.top .nav .nav-dropdown-menu button,
+  .app.side .nav .nav-dropdown-menu button {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    padding: 0.7rem 0.75rem;
+    text-align: left;
+    white-space: normal;
+  }
+
+  .app.top .logo,
+  .app.side .logo {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .app.top .logo-row,
+  .app.side .logo-row {
+    flex-wrap: wrap;
+    min-width: 0;
+    row-gap: 0.25rem;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .app.top .dashboard,
+  .app.side .dashboard {
+    padding: 0.65rem;
+    gap: 0.65rem;
+  }
+
+  .app.top .nav,
+  .app.side .nav {
+    gap: 0.4rem;
+  }
+
+  .app.top .nav > button,
+  .app.side .nav > button,
+  .app.top .nav .nav-dropdown-button,
+  .app.side .nav .nav-dropdown-button {
+    font-size: 0.85rem;
+    padding: 0.55rem 0.35rem;
+  }
+}
