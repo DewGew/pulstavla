@@ -423,6 +423,18 @@ export default function MeasuringTools({ currentUser }) {
               const terminalStatus = isTerminalTool(tool);
               const canReturn = tool.activeLoan && (isAdmin || tool.activeLoan.borrowerId === currentUser?._id);
               const canControl = isAdmin || controlUserIds.includes(currentUser?._id);
+              const statusLabel = tool.status === "Utlånad"
+                ? "Utlånad"
+                : terminalStatus
+                  ? tool.status
+                  : blocked
+                    ? "Spärrad"
+                    : "Ledig";
+              const statusClass = tool.status === "Utlånad"
+                ? "borrowed"
+                : (terminalStatus || blocked)
+                  ? "blocked"
+                  : "available";
               return <tr key={tool._id}>
                 <td><strong>{tool.toolNumber}</strong></td>
                 <td>{tool.type}<small>{tool.description}</small></td>
@@ -430,9 +442,9 @@ export default function MeasuringTools({ currentUser }) {
                 <td>{dateLabel(tool.lastControlDate)}</td>
                 <td><span className={overdue ? "measuring-overdue" : ""}>{next ? dateLabel(next.toISOString().slice(0, 10)) : "—"}</span></td>
                 <td>
-                  {tool.status === "Utlånad" ? <><span className="measuring-status borrowed">Utlånad</span><small>{tool.activeLoan?.borrowerName}</small>{tool.activeLoan?.dueDate && <small>Åter: {dateLabel(tool.activeLoan.dueDate)}</small></> :
-                    terminalStatus ? <span className="measuring-status blocked">{tool.status}</span> :
-                    blocked ? <span className="measuring-status blocked">Spärrad</span> : <span className="measuring-status available">Ledig</span>}
+                  <span className={`measuring-status ${statusClass}`}>{statusLabel}</span>
+                  {tool.status === "Utlånad" && <small>{tool.activeLoan?.borrowerName}</small>}
+                  {tool.status === "Utlånad" && tool.activeLoan?.dueDate && <small>Åter: {dateLabel(tool.activeLoan.dueDate)}</small>}
                   {blocked && tool.status === "Utlånad" && <small className="measuring-overdue">{overdue ? "Kontroll förfallen" : "Spärrat efter kontroll"}</small>}
                 </td>
                 <td className="measuring-actions">
