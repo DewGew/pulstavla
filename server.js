@@ -950,7 +950,7 @@ app.post("/measuring-tools/:id/control", requireAuth, requireMeasuringControlAcc
   const date = String(req.body?.date || "");
   const result = String(req.body?.result || "");
   const allowedTypes = ["Kalibrering", "Kontroll"];
-  const allowedResults = ["Godkänd", "Underkänd", "Justerad"];
+  const allowedResults = ["Godkänd", "Underkänd", "Justerad", "Skrotad", "Saknad"];
   if (!allowedTypes.includes(type) || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !allowedResults.includes(result)) {
     return res.status(400).json({ error: "Ange typ, giltigt datum och resultat." });
   }
@@ -961,8 +961,14 @@ app.post("/measuring-tools/:id/control", requireAuth, requireMeasuringControlAcc
     performedByName: req.user.name || req.user.username,
     recordedAt: Date.now(),
   };
+  const terminalStatus = ["Skrotad", "Saknad"].includes(result) ? result : null;
   measuringToolsDB.update({ _id: req.params.id }, {
-    $set: { lastControlDate: date, controlBlocked: result !== "Godkänd", updatedAt: Date.now() },
+    $set: {
+      lastControlDate: date,
+      controlBlocked: result !== "Godkänd",
+      ...(terminalStatus ? { status: terminalStatus, activeLoan: null } : {}),
+      updatedAt: Date.now(),
+    },
     $push: { controlHistory: entry },
   }, {}, (updateErr, count) => {
     if (updateErr) return res.status(500).json({ error: "Kunde inte spara kontrollen." });
