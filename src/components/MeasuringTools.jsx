@@ -3,8 +3,8 @@ import { apiFetch } from "../api";
 import "./MeasuringTools.css";
 
 const emptyTool = {
-  toolNumber: "", type: "", description: "", range: "", location: "",
-  controlInterval: "365", lastControlDate: "", responsible: "Gemensam",
+  toolNumber: "", type: "", description: "", manufacturer: "", range: "", location: "",
+  controlInterval: "365", lastControlDate: "",
 };
 
 function dateLabel(value) {
@@ -211,9 +211,8 @@ export default function MeasuringTools({ currentUser }) {
   const editTool = (tool) => {
     setForm({
       toolNumber: tool.toolNumber || "", type: tool.type || "", description: tool.description || "",
-      range: tool.range || "", location: tool.location || "",
+      manufacturer: tool.manufacturer || "", range: tool.range || "", location: tool.location || "",
       controlInterval: String(tool.controlInterval ?? 365), lastControlDate: tool.lastControlDate || "",
-      responsible: tool.responsible || "Gemensam",
     });
     setEditingToolId(tool._id);
     setShowAdd(true);
@@ -322,11 +321,11 @@ export default function MeasuringTools({ currentUser }) {
             <label>Verktygsnr<input required value={form.toolNumber} onChange={(e) => setForm({ ...form, toolNumber: e.target.value })} /></label>
             <label>Typ<input required value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} /></label>
             <label>Benämning<input required value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
+            <label>Tillverkare<input value={form.manufacturer} onChange={(e) => setForm({ ...form, manufacturer: e.target.value })} /></label>
             <label>Mätområde/Dimensioner<input value={form.range} onChange={(e) => setForm({ ...form, range: e.target.value })} /></label>
             <label>Plats<input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} /></label>
             <label>Kontrollintervall (dagar)<input type="number" min="0" value={form.controlInterval} onChange={(e) => setForm({ ...form, controlInterval: e.target.value })} /></label>
             <label>Senaste kontrolldatum<input type="date" value={form.lastControlDate} onChange={(e) => setForm({ ...form, lastControlDate: e.target.value })} /></label>
-            <label>Ansvarig<input value={form.responsible} onChange={(e) => setForm({ ...form, responsible: e.target.value })} /></label>
           </div>
           <button className="btn-primary" type="submit">{editingToolId ? "Spara ändringar" : "Spara verktyg"}</button>
           {editingToolId && <button className="btn-secondary" type="button" onClick={() => { setEditingToolId(null); setForm(emptyTool); setShowAdd(false); }}>Avbryt</button>}
@@ -361,7 +360,7 @@ export default function MeasuringTools({ currentUser }) {
             <div className="measuring-preview">
               <p>{preview.total} rader hittades, {preview.validCount} möjliga att importera.</p>
               {preview.errors?.length > 0 && <ul className="measuring-errors">{preview.errors.map((error, index) => <li key={index}>Rad {error.row}: {error.error}</li>)}</ul>}
-              <div className="measuring-table-wrap"><table><thead><tr><th>Verktygsnr</th><th>Typ</th><th>Benämning</th><th>Mätområde</th><th>Plats</th><th>Senaste kontroll</th></tr></thead><tbody>{preview.items.slice(0, 12).map((item) => <tr key={item.toolNumber}><td>{item.toolNumber}</td><td>{item.type}</td><td>{item.description}</td><td>{item.range || "—"}</td><td>{item.location || "—"}</td><td>{dateLabel(item.lastControlDate)}</td></tr>)}</tbody></table></div>
+              <div className="measuring-table-wrap"><table><thead><tr><th>Verktygsnr</th><th>Typ</th><th>Benämning</th><th>Tillverkare</th><th>Mätområde</th><th>Plats</th><th>Senaste kontroll</th></tr></thead><tbody>{preview.items.slice(0, 12).map((item) => <tr key={item.toolNumber}><td>{item.toolNumber}</td><td>{item.type}</td><td>{item.description}</td><td>{item.manufacturer || "—"}</td><td>{item.range || "—"}</td><td>{item.location || "—"}</td><td>{dateLabel(item.lastControlDate)}</td></tr>)}</tbody></table></div>
               {preview.items.length > 12 && <small>Visar de första 12 raderna.</small>}
               <button className="btn-primary" disabled={importBusy || preview.validCount !== preview.total || preview.errors?.length > 0} onClick={commitImport}>Godkänn och importera {preview.validCount} verktyg</button>
             </div>
@@ -426,8 +425,7 @@ export default function MeasuringTools({ currentUser }) {
                       {tool.status === "Utlånad" ? "Utlånad" : terminalStatus ? tool.status : blocked ? "Spärrad" : tool.reservation ? "Reserverad" : "Ledig"}
                     </span>
                   </div>
-                  <h3>{tool.description || tool.type}</h3>
-                  <p className="measuring-card-type">{tool.type}</p>
+                  <h3>{tool.description || tool.type}{tool.manufacturer ? ` · ${tool.manufacturer}` : ""}</h3>
                   <div className="measuring-card-facts">
                     <div><span>Mätområde</span><strong>{tool.range || "Ej angivet"}</strong></div>
                     <div><span>Placering</span><strong>{tool.location || "Ej angiven"}</strong></div>
