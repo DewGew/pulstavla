@@ -37,16 +37,28 @@ export default function MeasuringTools({ currentUser }) {
   const [borrowerId, setBorrowerId] = useState(currentUser?._id || "");
   const [dueDate, setDueDate] = useState("");
   const [history, setHistory] = useState(null);
+  const [controlUserIds, setControlUserIds] = useState([]);
+  const [showAccess, setShowAccess] = useState(false);
+  const [editingToolId, setEditingToolId] = useState(null);
+  const [controlTool, setControlTool] = useState(null);
+  const [controlForm, setControlForm] = useState({ type: "Kontroll", date: new Date().toLocaleDateString("sv-SE"), result: "Godkänd", comment: "" });
 
   const load = useCallback(async () => {
     try {
       const headers = { Authorization: `Bearer ${localStorage.getItem("token") || ""}` };
       const requests = [apiFetch("/measuring-tools", { headers })];
-      if (isAdmin) requests.push(apiFetch("/measuring-tools/users", { headers }));
+      if (isAdmin) {
+        requests.push(apiFetch("/measuring-tools/users", { headers }));
+        requests.push(apiFetch("/measuring-tools/control-access", { headers }));
+      }
       const responses = await Promise.all(requests);
       if (!responses[0].ok) throw new Error("Kunde inte läsa verktygsregistret.");
       setTools(await responses[0].json());
       if (isAdmin && responses[1]?.ok) setUsers(await responses[1].json());
+      if (isAdmin && responses[2]?.ok) {
+        const access = await responses[2].json();
+        setControlUserIds(access.userIds || []);
+      }
     } catch (err) {
       setMessage(err.message || "Kunde inte hämta mätverktyg.");
     } finally {
@@ -106,8 +118,8 @@ export default function MeasuringTools({ currentUser }) {
     event.preventDefault();
     setMessage("");
     try {
-      const response = await apiFetch("/measuring-tools", {
-        method: "POST",
+      const response = await apiFetch(editingToolId ? `/measuring-tools/${editingToolId}` : "/measuring-tools", {
+        method: editingToolId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
         body: JSON.stringify(form),
       });
@@ -115,7 +127,51 @@ export default function MeasuringTools({ currentUser }) {
       if (!response.ok) throw new Error(data.error || "Kunde inte spara verktyget.");
       setForm(emptyTool);
       setShowAdd(false);
-      setMessage("Verktyget har registrerats.");
+      setEditingToolId(null);
+      setMessage(editingToolId ? "Verktyget har uppdaterats." : "Verktyget har registrerats.");
+      await load();
+    } catch (err) { setMessage(err.message); }
+  };
+
+  const editTool = (tool) => {
+    setForm({
+      toolNumber: tool.toolNumber || "", type: tool.type || "", description: tool.description || "",
+      range: tool.range || "", location: tool.location || "",
+      controlInterval: String(tool.controlInterval ?? 365), lastControlDate: tool.lastControlDate || "",
+      responsible: tool.responsible || "Gemensam",
+    });
+    setEditingToolId(tool._id);
+    setShowAdd(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const saveControlAccess = async () => {
+    try {
+      const response = await apiFetch("/measuring-tools/control-access", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
+        body: JSON.stringify({ userIds: controlUserIds }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Kunde inte spara behörigheterna.");
+      setMessage("Behörigheterna för kalibrering och kontroll har sparats.");
+      setShowAccess(false);
+    } catch (err) { setMessage(err.message); }
+  };
+
+  const submitControl = async (event) => {
+    event.preventDefault();
+    if (!controlTool) return;
+    try {
+      const response = await apiFetch(`/measuring-tools/${controlTool._id}/control`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
+        body: JSON.stringify(controlForm),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Kunde inte registrera kontrollen.");
+      setMessage(`${controlTool.toolNumber}: ${controlForm.type.toLowerCase()} registrerad.`);
+      setControlTool(null);
       await load();
     } catch (err) { setMessage(err.message); }
   };
@@ -176,14 +232,17 @@ export default function MeasuringTools({ currentUser }) {
     <div className="measuring-tools">
       <div className="measuring-header">
         <div><h2>Mätverktyg</h2><p>Verktygsregister, utlåning och återlämning</p></div>
-        {isAdmin && <button className="btn-primary" onClick={() => setShowAdd((value) => !value)}>{showAdd ? "Stäng" : "＋ Registrera verktyg"}</button>}
+        {isAdmin && <div className="measuring-header-actions">
+          <button className="btn-secondary" onClick={() => setShowAccess((value) => !value)}>Behörighet kontroll</button>
+          <button className="btn-primary" onClick={() => { setEditingToolId(null); setForm(emptyTool); setShowAdd((value) => !value); }}>{showAdd && !editingToolId ? "Stäng" : "＋ Registrera verktyg"}</button>
+        </div>}
       </div>
 
       {message && <div className="measuring-message" role="status">{message}<button onClick={() => setMessage("")} aria-label="Stäng">×</button></div>}
 
       {isAdmin && showAdd && (
         <form className="measuring-form" onSubmit={addTool}>
-          <h3>Nytt mätverktyg</h3>
+          <h3>{editingToolId ? "Redigera mätverktyg" : "Nytt mätverktyg"}</h3>
           <div className="measuring-form-grid">
             <label>Verktygsnr<input required value={form.toolNumber} onChange={(e) => setForm({ ...form, toolNumber: e.target.value })} /></label>
             <label>Typ<input required value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} /></label>
@@ -194,8 +253,25 @@ export default function MeasuringTools({ currentUser }) {
             <label>Senaste kontrolldatum<input type="date" value={form.lastControlDate} onChange={(e) => setForm({ ...form, lastControlDate: e.target.value })} /></label>
             <label>Ansvarig<input value={form.responsible} onChange={(e) => setForm({ ...form, responsible: e.target.value })} /></label>
           </div>
-          <button className="btn-primary" type="submit">Spara verktyg</button>
+          <button className="btn-primary" type="submit">{editingToolId ? "Spara ändringar" : "Spara verktyg"}</button>
+          {editingToolId && <button className="btn-secondary" type="button" onClick={() => { setEditingToolId(null); setForm(emptyTool); setShowAdd(false); }}>Avbryt</button>}
         </form>
+      )}
+
+      {isAdmin && showAccess && (
+        <section className="measuring-form">
+          <h3>Behörighet för kalibrering och kontroll</h3>
+          <p>Administratörer har alltid behörighet. Välj vilka övriga användare som får registrera kontroller.</p>
+          <div className="measuring-user-list">
+            {users.map((item) => <label key={item._id}>
+              <input type="checkbox" checked={controlUserIds.includes(item._id)}
+                onChange={(event) => setControlUserIds((ids) => event.target.checked ? [...ids, item._id] : ids.filter((id) => id !== item._id))} />
+              {item.name || item.username} <small>{item.username}</small>
+            </label>)}
+          </div>
+          <button className="btn-primary" onClick={saveControlAccess}>Spara behörigheter</button>
+          <button className="btn-secondary" onClick={() => setShowAccess(false)}>Avbryt</button>
+        </section>
       )}
 
       {isAdmin && (
@@ -240,6 +316,7 @@ export default function MeasuringTools({ currentUser }) {
             const next = nextControlDate(tool);
             const overdue = next && next < new Date(new Date().setHours(0, 0, 0, 0));
             const canReturn = tool.activeLoan && (isAdmin || tool.activeLoan.borrowerId === currentUser?._id);
+            const canControl = isAdmin || controlUserIds.includes(currentUser?._id);
             return <tr key={tool._id}>
               <td><strong>{tool.toolNumber}</strong></td>
               <td>{tool.type}<small>{tool.description}</small></td>
@@ -250,6 +327,8 @@ export default function MeasuringTools({ currentUser }) {
               <td className="measuring-actions">
                 {tool.status === "Disponibel" && currentUser?.role !== "view" && <button className="btn-primary" onClick={() => checkout(tool)}>Låna</button>}
                 {canReturn && <button className="btn-secondary" onClick={() => returnTool(tool)}>Återlämna</button>}
+                {canControl && <button className="btn-secondary" onClick={() => { setControlTool(tool); setControlForm({ type: "Kontroll", date: new Date().toLocaleDateString("sv-SE"), result: "Godkänd", comment: "" }); }}>Registrera kontroll</button>}
+                {isAdmin && <button className="btn-secondary" onClick={() => editTool(tool)}>Redigera</button>}
                 {isAdmin && <button className="btn-secondary" onClick={() => showHistory(tool)}>Historik</button>}
               </td>
             </tr>;
@@ -257,7 +336,19 @@ export default function MeasuringTools({ currentUser }) {
         </table></div>
       ) : <p className="measuring-empty">Inga mätverktyg matchar sökningen.</p>}
 
-      {history && <div className="measuring-modal-backdrop" onClick={() => setHistory(null)}><section className="measuring-history" onClick={(e) => e.stopPropagation()}><button className="measuring-close" onClick={() => setHistory(null)}>×</button><h3>Utlåningshistorik – {history.tool.toolNumber}</h3>{history.entries.length ? <ol>{history.entries.slice().reverse().map((entry, index) => <li key={index}><strong>{entry.action === "checkout" ? "Utlånad" : "Återlämnad"}</strong> – {entry.borrowerName} · {new Date(entry.action === "checkout" ? entry.checkedOutAt : entry.returnedAt).toLocaleString("sv-SE")}<small>{entry.action === "return" ? `Registrerad av ${entry.returnedByName || "—"}` : `Planerad åter: ${dateLabel(entry.dueDate)}`}</small>{entry.returnNote && <small>Kommentar: {entry.returnNote}</small>}</li>)}</ol> : <p>Ingen historik ännu.</p>}</section></div>}
+      {history && <div className="measuring-modal-backdrop" onClick={() => setHistory(null)}><section className="measuring-history" onClick={(e) => e.stopPropagation()}><button className="measuring-close" onClick={() => setHistory(null)}>×</button><h3>Historik – {history.tool.toolNumber}</h3>{history.entries.length ? <ol>{history.entries.slice().reverse().map((entry, index) => <li key={index}>{entry.action === "control" ? <><strong>{entry.type}</strong> – {entry.result} · {dateLabel(entry.date)}<small>Utförd av {entry.performedByName || "—"}</small>{entry.comment && <small>Kommentar: {entry.comment}</small>}</> : <><strong>{entry.action === "checkout" ? "Utlånad" : "Återlämnad"}</strong> – {entry.borrowerName} · {new Date(entry.action === "checkout" ? entry.checkedOutAt : entry.returnedAt).toLocaleString("sv-SE")}<small>{entry.action === "return" ? `Registrerad av ${entry.returnedByName || "—"}` : `Planerad åter: ${dateLabel(entry.dueDate)}`}</small>{entry.returnNote && <small>Kommentar: {entry.returnNote}</small>}</>}</li>)}</ol> : <p>Ingen historik ännu.</p>}</section></div>}
+      {controlTool && <div className="measuring-modal-backdrop" onClick={() => setControlTool(null)}>
+        <form className="measuring-history measuring-control-form" onSubmit={submitControl} onClick={(event) => event.stopPropagation()}>
+          <button type="button" className="measuring-close" onClick={() => setControlTool(null)}>×</button>
+          <h3>Registrera kalibrering / kontroll – {controlTool.toolNumber}</h3>
+          <label>Typ<select value={controlForm.type} onChange={(event) => setControlForm({ ...controlForm, type: event.target.value })}><option>Kontroll</option><option>Kalibrering</option></select></label>
+          <label>Datum<input type="date" required value={controlForm.date} onChange={(event) => setControlForm({ ...controlForm, date: event.target.value })} /></label>
+          <label>Resultat<select value={controlForm.result} onChange={(event) => setControlForm({ ...controlForm, result: event.target.value })}><option>Godkänd</option><option>Underkänd</option><option>Justerad</option></select></label>
+          <label>Kommentar<textarea rows="3" value={controlForm.comment} onChange={(event) => setControlForm({ ...controlForm, comment: event.target.value })} /></label>
+          <button className="btn-primary" type="submit">Spara kontroll</button>
+          <button className="btn-secondary" type="button" onClick={() => setControlTool(null)}>Avbryt</button>
+        </form>
+      </div>}
     </div>
   );
 }
