@@ -1120,6 +1120,9 @@ app.post("/measuring-tools/:id/checkout", requireAuth, requireEditor, (req, res)
       if (!tool) return res.status(404).json({ error: "Verktyget hittades inte." });
       if (tool.controlBlocked || isMeasuringToolControlOverdue(tool)) return res.status(409).json({ error: isMeasuringToolControlOverdue(tool) ? "Verktyget är spärrat eftersom datumet för nästa kontroll har passerat." : "Verktyget är spärrat efter underkänd kontroll och kan inte lånas ut." });
       if (tool.status !== "Disponibel" || tool.activeLoan) return res.status(409).json({ error: "Verktyget är inte tillgängligt." });
+      if (tool.reservation && tool.reservation.userId !== borrower._id) {
+        return res.status(409).json({ error: `Verktyget är reserverat för ${tool.reservation.userName}.` });
+      }
       const loan = {
         borrowerId: borrower._id, borrowerName: borrower.name || borrower.username,
         borrowerUsername: borrower.username, checkedOutAt: Date.now(),
@@ -1127,7 +1130,10 @@ app.post("/measuring-tools/:id/checkout", requireAuth, requireEditor, (req, res)
         checkedOutByName: req.user.name || req.user.username,
         note: String(req.body?.note || "").trim(),
       };
-      measuringToolsDB.update({ _id: tool._id, status: "Disponibel", controlBlocked: { $ne: true } }, {
+      measuringToolsDB.update({
+        _id: tool._id, status: "Disponibel", controlBlocked: { $ne: true },
+        $or: [{ reservation: null }, { "reservation.userId": borrower._id }],
+      }, {
         $set: { status: "Utlånad", activeLoan: loan, updatedAt: Date.now() },
         $push: { loanHistory: { ...loan, action: "checkout" } },
       }, {}, (updateErr, count) => {
@@ -1136,6 +1142,62 @@ app.post("/measuring-tools/:id/checkout", requireAuth, requireEditor, (req, res)
         io.emit("measuringToolsUpdated");
         res.json({ success: true });
       });
+    });
+  });
+});
+
+// Reservera ett ledigt mätverktyg tills vidare. Vanliga användare reserverar åt sig själva; admin kan välja konto.
+app.post("/measuring-tools/:id/reserve", requireAuth, requireEditor, (req, res) => {
+  const isAdmin = ["admin", "suAdmin"].includes(req.user.role);
+  const userId = isAdmin && req.body?.userId ? String(req.body.userId) : req.user.id;
+  usersDB.findOne({ _id: userId }, (userErr, user) => {
+    if (userErr || !user) return res.status(400).json({ error: "Användaren hittades inte." });
+    measuringToolsDB.findOne({ _id: req.params.id }, (toolErr, tool) => {
+      if (toolErr) return res.status(500).json({ error: "Kunde inte läsa verktyget." });
+      if (!tool) return res.status(404).json({ error: "Verktyget hittades inte." });
+      if (tool.status !== "Disponibel" || tool.activeLoan) return res.status(409).json({ error: "Endast lediga verktyg kan reserveras." });
+      if (tool.controlBlocked || isMeasuringToolControlOverdue(tool)) return res.status(409).json({ error: "Verktyget är spärrat och kan inte reserveras." });
+      if (tool.reservation) return res.status(409).json({ error: `Verktyget är redan reserverat för ${tool.reservation.userName}.` });
+      const reservation = {
+        userId: user._id, userName: user.name || user.username,
+        username: user.username, reservedAt: Date.now(),
+        reservedBy: req.user.id, reservedByName: req.user.name || req.user.username,
+      };
+      measuringToolsDB.update({ _id: tool._id, status: "Disponibel", reservation: null }, {
+        $set: { reservation, updatedAt: Date.now() },
+        $push: { reservationHistory: { ...reservation, action: "reserve" } },
+      }, {}, (updateErr, count) => {
+        if (updateErr) return res.status(500).json({ error: "Kunde inte reservera verktyget." });
+        if (!count) return res.status(409).json({ error: "Verktyget hann reserveras eller ändras av någon annan." });
+        io.emit("measuringToolsUpdated");
+        res.json({ success: true, reservation });
+      });
+    });
+  });
+});
+
+// Reservationen kan hävas av den reserverade användaren eller administratör.
+app.delete("/measuring-tools/:id/reserve", requireAuth, requireEditor, (req, res) => {
+  measuringToolsDB.findOne({ _id: req.params.id }, (findErr, tool) => {
+    if (findErr) return res.status(500).json({ error: "Kunde inte läsa verktyget." });
+    if (!tool?.reservation) return res.status(404).json({ error: "Ingen aktiv reservation hittades." });
+    const isAdmin = ["admin", "suAdmin"].includes(req.user.role);
+    if (!isAdmin && tool.reservation.userId !== req.user.id) {
+      return res.status(403).json({ error: "Endast den reserverade användaren eller administratör kan häva reservationen." });
+    }
+    const releasedAt = Date.now();
+    const entry = {
+      ...tool.reservation, action: "release", releasedAt,
+      releasedBy: req.user.id, releasedByName: req.user.name || req.user.username,
+    };
+    measuringToolsDB.update({ _id: tool._id, "reservation.userId": tool.reservation.userId }, {
+      $set: { reservation: null, updatedAt: releasedAt },
+      $push: { reservationHistory: entry },
+    }, {}, (updateErr, count) => {
+      if (updateErr) return res.status(500).json({ error: "Kunde inte häva reservationen." });
+      if (!count) return res.status(409).json({ error: "Reservationen har redan ändrats." });
+      io.emit("measuringToolsUpdated");
+      res.json({ success: true });
     });
   });
 });
@@ -1172,7 +1234,7 @@ app.get("/measuring-tools/:id/history", requireAuth, requireAdmin, (req, res) =>
   measuringToolsDB.findOne({ _id: req.params.id }, (err, tool) => {
     if (err) return res.status(500).json({ error: "Kunde inte läsa historiken." });
     if (!tool) return res.status(404).json({ error: "Verktyget hittades inte." });
-    const entries = [...(tool.loanHistory || []), ...(tool.controlHistory || [])]
+    const entries = [...(tool.loanHistory || []), ...(tool.controlHistory || []), ...(tool.reservationHistory || [])]
       .sort((a, b) => (a.recordedAt || a.checkedOutAt || a.returnedAt || 0) - (b.recordedAt || b.checkedOutAt || b.returnedAt || 0));
     res.json(entries);
   });
