@@ -66,7 +66,7 @@ export default function MeasuringTools({ currentUser }) {
         apiFetch("/measuring-tools", { headers }),
         apiFetch("/measuring-tools/control-access", { headers }),
       ];
-      if (isAdmin) requests.push(apiFetch("/measuring-tools/users", { headers }));
+      if (canReserve) requests.push(apiFetch("/measuring-tools/users", { headers }));
       const responses = await Promise.all(requests);
       if (!responses[0].ok) throw new Error("Kunde inte läsa verktygsregistret.");
       setTools(await responses[0].json());
@@ -75,7 +75,7 @@ export default function MeasuringTools({ currentUser }) {
         setCanRegisterControl(Boolean(access.canRegister));
         if (isAdmin) setControlUserIds(access.userIds || []);
       }
-      if (isAdmin && responses[2]?.ok) setUsers(await responses[2].json());
+      if (canReserve && responses[2]?.ok) setUsers(await responses[2].json());
     } catch (err) {
       setMessage(err.message || "Kunde inte hämta mätverktyg.");
     } finally {
@@ -136,7 +136,7 @@ export default function MeasuringTools({ currentUser }) {
   const reserveTool = async (tool) => {
     try {
       const body = {};
-      if (isAdmin && borrowerId) body.userId = borrowerId;
+      if (borrowerId) body.userId = borrowerId;
       const response = await apiFetch(`/measuring-tools/${tool._id}/reserve`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
@@ -375,7 +375,7 @@ export default function MeasuringTools({ currentUser }) {
           ))}
         </div>
         <div className="measuring-extra-controls">
-          {isAdmin && <label>Utlåning/reservation till<select aria-label="Välj låntagare" value={borrowerId} onChange={(e) => setBorrowerId(e.target.value)}><option value={currentUser?._id}>Mig själv</option>{users.filter((item) => item._id !== currentUser?._id && item.role !== "view").map((item) => <option key={item._id} value={item._id}>{item.name || item.username}</option>)}</select></label>}
+          {canReserve && <label>Utlåning/reservation till<select aria-label="Välj användare" value={borrowerId} onChange={(e) => setBorrowerId(e.target.value)}><option value={currentUser?._id}>Mig själv</option>{users.filter((item) => item._id !== currentUser?._id).map((item) => <option key={item._id} value={item._id}>{item.name || item.username}</option>)}</select></label>}
           <label>Planerat återlämningsdatum<input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></label>
           <span className="measuring-result-count">Visar {filteredTools.length} av {tools.length} verktyg</span>
         </div>
