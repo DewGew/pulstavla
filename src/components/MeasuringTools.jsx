@@ -383,7 +383,7 @@ export default function MeasuringTools({ currentUser }) {
           <strong>{tools.length}</strong><span>Totalt antal verktyg</span>
         </div>
         <div className="measuring-summary-card available">
-          <strong>{tools.filter((tool) => tool.status === "Disponibel" && !tool.controlBlocked).length}</strong><span>Lediga – kan lånas</span>
+          <strong>{tools.filter((tool) => tool.status === "Disponibel" && !tool.controlBlocked && !tool.reservation).length}</strong><span>Lediga – ej reserverade</span>
         </div>
         <div className="measuring-summary-card blocked">
           <strong>{tools.filter((tool) => tool.controlBlocked).length}</strong><span>Spärrade – får inte lånas</span>
@@ -408,7 +408,7 @@ export default function MeasuringTools({ currentUser }) {
                 <article className={`measuring-tool-card ${blocked || terminalStatus ? "is-blocked" : tool.status === "Utlånad" ? "is-borrowed" : "is-available"}`} key={tool._id}>
                   <div className="measuring-card-top">
                     <span className="measuring-tool-number">{tool.toolNumber}</span>
-                    <span className={`measuring-status ${tool.status === "Utlånad" ? "borrowed" : blocked || terminalStatus ? "blocked" : "available"}`}>
+                    <span className={`measuring-status ${tool.status === "Utlånad" ? "borrowed" : blocked || terminalStatus ? "blocked" : tool.reservation ? "reserved" : "available"}`}>
                       {tool.status === "Utlånad" ? "Utlånad" : terminalStatus ? tool.status : blocked ? "Spärrad" : tool.reservation ? "Reserverad" : "Ledig"}
                     </span>
                   </div>
@@ -476,7 +476,9 @@ export default function MeasuringTools({ currentUser }) {
                 ? "borrowed"
                 : (terminalStatus || blocked)
                   ? "blocked"
-                  : "available";
+                  : tool.reservation
+                    ? "reserved"
+                    : "available";
               return <tr key={tool._id}>
                 <td><strong>{tool.toolNumber}</strong></td>
                 <td>{tool.type}<small>{tool.description}</small></td>
