@@ -106,7 +106,7 @@ export default function MeasuringTools({ currentUser }) {
         return match ? Number(match[1]) : null;
       }).filter((number) => number !== null)
     );
-    for (let number = 10; number <= 999; number += 1) {
+    for (let number = 100; number <= 999; number += 1) {
       if (!usedNumbers.has(number)) return `1115-${number}`;
     }
     return "";
@@ -372,7 +372,7 @@ export default function MeasuringTools({ currentUser }) {
         <form className="measuring-form" onSubmit={addTool}>
           <h3>{editingToolId ? "Redigera mätverktyg" : "Nytt mätverktyg"}</h3>
           <div className="measuring-form-grid">
-            <label>Verktygsnr<input required value={form.toolNumber} onChange={(e) => setForm({ ...form, toolNumber: e.target.value })} />{!editingToolId && <small>{nextSuggestedToolNumber ? `Nästa lediga nummer: ${nextSuggestedToolNumber}` : "Inga lediga nummer kvar i serien 1115-10–1115-999."}</small>}</label>
+            <label>Verktygsnr<input required value={form.toolNumber} onChange={(e) => setForm({ ...form, toolNumber: e.target.value })} />{!editingToolId && <small>{nextSuggestedToolNumber ? `Nästa lediga nummer: ${nextSuggestedToolNumber}` : "Inga lediga nummer kvar i serien 1115-100–1115-999."}</small>}</label>
             <label>Typ<input required value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} /></label>
             <label>Benämning<input required value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
             <label>Tillverkare<input value={form.manufacturer} onChange={(e) => setForm({ ...form, manufacturer: e.target.value })} /></label>
