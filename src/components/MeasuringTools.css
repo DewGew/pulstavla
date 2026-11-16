@@ -165,3 +165,5 @@
 .measuring-card-reservation span, .measuring-reservation-note { font-size:.8rem; color:var(--muted-text); }
 .measuring-card-reservation strong { font-size:.92rem; }
 .measuring-card-actions > button.btn-secondary { flex:1 1 auto; min-height:40px; }
+
+.measuring-status.reserved { color:#704b08; background:#fff0c2; }
