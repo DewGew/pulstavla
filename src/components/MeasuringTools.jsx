@@ -384,6 +384,10 @@ export default function MeasuringTools({ currentUser }) {
         </section>
       )}
 
+      {(isAdmin || canRegisterControl) && <div className="measuring-export-actions">
+        <button type="button" className="btn-secondary" onClick={() => window.print()} disabled={!filteredTools.length}>Exportera filtrerad lista till PDF</button>
+      </div>}
+
       <div className="measuring-list-toolbar">
         <div className="measuring-search-row">
           <input aria-label="Sök mätverktyg" placeholder="Sök verktygsnr, typ, benämning, plats eller låntagare…" value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -534,6 +538,22 @@ export default function MeasuringTools({ currentUser }) {
           </table></div>
         )
       ) : <div className="measuring-empty-state"><strong>Inga verktyg hittades</strong><span>Prova att ändra sökningen eller välj ett annat filter.</span><button className="btn-secondary" onClick={() => { setSearch(""); setStatusFilter("Alla"); }}>Rensa sökning och filter</button></div>}
+
+      {(isAdmin || canRegisterControl) && <section className="measuring-print-only">
+        <h1>Mätverktyg</h1>
+        <p>Exporterad {new Date().toLocaleDateString("sv-SE")} · Filter: {statusFilter} · Sökning: {search || "Ingen"}</p>
+        <table><thead><tr><th>Verktygsnr</th><th>Typ</th><th>Benämning</th><th>Tillverkare</th><th>Mätområde</th><th>Plats</th><th>Senaste kontroll</th><th>Nästa kontroll</th><th>Status</th><th>Låntagare / Reservation</th></tr></thead>
+          <tbody>{filteredTools.map((tool) => {
+            const next = nextControlDate(tool);
+            const status = tool.status === "Utlånad" ? "Utlånad" : isTerminalTool(tool) ? tool.status : isToolBlocked(tool) ? "Spärrad" : tool.reservation ? "Reserverad" : "Ledig";
+            return <tr key={tool._id}>
+              <td>{tool.toolNumber || "—"}</td><td>{tool.type || "—"}</td><td>{tool.description || "—"}</td><td>{tool.manufacturer || "—"}</td>
+              <td>{tool.range || "—"}</td><td>{tool.location || "—"}</td><td>{dateLabel(tool.lastControlDate)}</td><td>{next ? dateLabel(next.toISOString().slice(0, 10)) : "—"}</td>
+              <td>{status}</td><td>{tool.activeLoan?.borrowerName || (tool.reservation ? `Reserverad för ${tool.reservation.userName}` : "—")}</td>
+            </tr>;
+          })}</tbody>
+        </table>
+      </section>}
 
       {actionModal && <div className="measuring-modal-backdrop" onClick={() => setActionModal(null)}>
         <form className="measuring-history measuring-action-form" onSubmit={submitAction} onClick={(event) => event.stopPropagation()}>
