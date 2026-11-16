@@ -842,7 +842,7 @@ app.get("/measuring-tools", requireAuth, (req, res) => {
 });
 
 // Lista aktiva användarkonton utan känsliga uppgifter för val vid utlåning och reservation.
-app.get("/measuring-tools/users", requireAuth, requireEditor, (req, res) => {
+app.get("/measuring-tools/users", requireAuth, requireMeasuringControlAccess, (req, res) => {
   usersDB.find({}, (err, docs) => {
     if (err) return res.status(500).json({ error: "Kunde inte läsa användare." });
     res.json(docs.filter(({ role }) => role !== "view").map(({ _id, username, name, role }) => ({ _id, username, name, role })));
@@ -1152,7 +1152,7 @@ app.post("/measuring-tools/:id/checkout", requireAuth, requireEditor, (req, res)
 });
 
 // Reservera ett ledigt mätverktyg tills vidare. Alla användare med redigeringsbehörighet kan välja valfritt användarkonto.
-app.post("/measuring-tools/:id/reserve", requireAuth, requireEditor, (req, res) => {
+app.post("/measuring-tools/:id/reserve", requireAuth, requireMeasuringControlAccess, (req, res) => {
   const userId = req.body?.userId ? String(req.body.userId) : req.user.id;
   usersDB.findOne({ _id: userId }, (userErr, user) => {
     if (userErr || !user) return res.status(400).json({ error: "Användaren hittades inte." });
