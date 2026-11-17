@@ -30,6 +30,7 @@ const ProductionOrderImport = lazy(() => import("./components/ProductionOrderImp
 const Matprotokoll = lazy(() => import("./components/Matprotokoll"));
 const MeasuringTools = lazy(() => import("./components/MeasuringTools"));
 const KpiAdmin = lazy(() => import("./dashboard/KpiAdmin"));
+const Notifications = lazy(() => import("./components/Notifications"));
 
 
 const today = new Date().toLocaleDateString("sv-SE", {
@@ -45,6 +46,7 @@ export default function App() {
   const { loading } = useSettings();
   const [openMenu, setOpenMenu] = useState(false);
   const [imageExists, setImageExists] = useState(true);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   
   /* ------------------- FULLSCREEN ------------------- */
 	const [isFullscreen, setIsFullscreen] = useState(
@@ -147,6 +149,26 @@ export default function App() {
     window.addEventListener("authExpired", clearSession);
     return () => window.removeEventListener("authExpired", clearSession);
   }, [clearSession]);
+
+  /* ------------------- NOTIFICATION BADGE ------------------- */
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    const loadUnread = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch(`${API_URL}/notifications/unread-count`, { headers: { Authorization: `Bearer ${token}` } });
+        if (response.ok) {
+          const data = await response.json();
+          if (active) setUnreadNotifications(Number(data.count) || 0);
+        }
+      } catch (error) { console.warn("Kunde inte hämta olästa meddelanden:", error.message); }
+    };
+    loadUnread();
+    const interval = window.setInterval(loadUnread, 60000);
+    window.addEventListener("notificationsUpdated", loadUnread);
+    return () => { active = false; window.clearInterval(interval); window.removeEventListener("notificationsUpdated", loadUnread); };
+  }, [user]);
 
   /* ------------------- TABS ------------------- */
   const [activeTab, setActiveTab] = useState("overview");
@@ -324,6 +346,13 @@ return (
         </button>
 
         <button
+          className={activeTab === "notifications" ? "active" : ""}
+          onClick={() => { setActiveTab("notifications"); setOpenMenu(false); }}
+        >
+          Meddelanden{unreadNotifications > 0 ? ` (${unreadNotifications})` : ""}
+        </button>
+
+        <button
           className={activeTab === "measuringTools" ? "active" : ""}
           onClick={() => {
             setActiveTab("measuringTools");
@@ -475,6 +504,7 @@ return (
         {activeTab === "matprotokoll" && <Matprotokoll />}
         {activeTab === "measuringTools" && <MeasuringTools currentUser={user} />}
         {activeTab === "kpis" && <KpiAdmin currentUser={user} />}
+        {activeTab === "notifications" && <Notifications currentUser={user} />}
       </Suspense>
     </main>
   </div>
