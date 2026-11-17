@@ -346,13 +346,6 @@ return (
         </button>
 
         <button
-          className={activeTab === "notifications" ? "active" : ""}
-          onClick={() => { setActiveTab("notifications"); setOpenMenu(false); }}
-        >
-          Meddelanden{unreadNotifications > 0 ? ` (${unreadNotifications})` : ""}
-        </button>
-
-        <button
           className={activeTab === "measuringTools" ? "active" : ""}
           onClick={() => {
             setActiveTab("measuringTools");
@@ -398,6 +391,15 @@ return (
 
             {openMenu && (
               <div className="nav-dropdown-menu">
+                <button
+                  className={activeTab === "notifications" ? "active" : ""}
+                  onClick={() => {
+                    setActiveTab("notifications");
+                    setOpenMenu(false);
+                  }}
+                >
+                  Meddelanden{unreadNotifications > 0 ? ` (${unreadNotifications})` : ""}
+                </button>
                 <button
                   className={activeTab === "orders" ? "active" : ""}
                   onClick={() => {
@@ -459,6 +461,23 @@ return (
                     Inställningar
                   </button>
                 )}
+              </div>
+            )}
+          </div>
+        )}
+        {user?.role === "view" && (
+          <div className="nav-dropdown">
+            <button className="nav-dropdown-button" onClick={() => setOpenMenu(!openMenu)}>
+              Mer ▾
+            </button>
+            {openMenu && (
+              <div className="nav-dropdown-menu">
+                <button
+                  className={activeTab === "notifications" ? "active" : ""}
+                  onClick={() => { setActiveTab("notifications"); setOpenMenu(false); }}
+                >
+                  Meddelanden{unreadNotifications > 0 ? ` (${unreadNotifications})` : ""}
+                </button>
               </div>
             )}
           </div>
