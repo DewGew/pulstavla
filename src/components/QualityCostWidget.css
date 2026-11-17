@@ -185,3 +185,22 @@
   .app.ultra4k :is(.qualityCostWidget .total):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 18px !important; }
   .app.ultra4k :is(.qualityCostWidget .title-input):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 18px !important; }
 }
+
+
+/* Ultra 4K: matcha textstorleken i EditableTextWidget */
+@media screen and (min-width: 3200px) {
+  .app.ultra4k .qualityCostWidget .summary-label,
+  .app.ultra4k .qualityCostWidget .summary-value,
+  .app.ultra4k .qualityCostWidget .delta-badge,
+  .app.ultra4k .qualityCostWidget .cost-table th,
+  .app.ultra4k .qualityCostWidget .cost-table td,
+  .app.ultra4k .qualityCostWidget .cost,
+  .app.ultra4k .qualityCostWidget .prev,
+  .app.ultra4k .qualityCostWidget .total {
+    font-size: 25px !important;
+  }
+
+  .app.ultra4k .qualityCostWidget .edit-btn {
+    font-size: 20px !important;
+  }
+}
