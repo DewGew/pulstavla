@@ -1053,8 +1053,8 @@ function measuringToolsToday() {
 }
 
 function measuringToolDateDiffDays(fromDate, toDate) {
-  const from = String(fromDate || "").match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
-  const to = String(toDate || "").match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
+  const from = String(fromDate || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const to = String(toDate || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!from || !to) return null;
   const fromUtc = Date.UTC(Number(from[1]), Number(from[2]) - 1, Number(from[3]));
   const toUtc = Date.UTC(Number(to[1]), Number(to[2]) - 1, Number(to[3]));
@@ -1063,7 +1063,7 @@ function measuringToolDateDiffDays(fromDate, toDate) {
 
 function measuringToolNextControlDate(tool) {
   if (!tool?.lastControlDate || !Number(tool.controlInterval)) return "";
-  const match = String(tool.lastControlDate).match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
+  const match = String(tool.lastControlDate).match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!match) return "";
   const date = new Date(Date.UTC(
     Number(match[1]), Number(match[2]) - 1,
@@ -1172,7 +1172,7 @@ function notifyMeasuringToolEvents() {
 
           const loan = tool.activeLoan;
           const dueDate = String(loan?.dueDate || "").slice(0, 10);
-          if (loan?.borrowerId && /^\\d{4}-\\d{2}-\\d{2}$/.test(dueDate) && dueDate < today) {
+          if (loan?.borrowerId && /^\d{4}-\d{2}-\d{2}$/.test(dueDate) && dueDate < today) {
             const dateLabel = new Date(dueDate + "T12:00:00Z").toLocaleDateString("sv-SE", { timeZone: "Europe/Stockholm" });
             insertMeasuringToolNoticeOnce(
               loan.borrowerId,
