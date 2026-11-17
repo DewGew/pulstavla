@@ -478,7 +478,7 @@ app.get("/notifications/unread-count", requireAuth, (req, res) => {
 app.get("/notifications/users", requireAuth, requireAdmin, (req, res) => {
   usersDB.find({}, (err, users) => {
     if (err) return res.status(500).json({ error: "Kunde inte läsa användare." });
-    res.json(users.filter((u) => u.role !== "view").map(({ _id, username, name }) => ({ _id, username, name })));
+    res.json(users.map(({ _id, username, name }) => ({ _id, username, name })));
   });
 });
 
@@ -499,7 +499,7 @@ app.post("/notifications", requireAuth, requireAdmin, (req, res) => {
 
   const findRecipients = (callback) => {
     if (sendToAll) {
-      usersDB.find({ role: { $ne: "view" } }, (err, users) => callback(err, users || []));
+      usersDB.find({}, (err, users) => callback(err, users || []));
     } else {
       usersDB.find({ _id: { $in: recipientIds } }, (err, users) => callback(err, users || []));
     }
