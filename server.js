@@ -1132,10 +1132,10 @@ function notifyMeasuringToolEvents() {
             if (daysUntilControl === 7) {
               eventType = "control-upcoming";
               eventLabel = "Kontroll närmar sig";
-            } else if (daysUntilControl === 0) {
+            } else if (daysUntilControl === -1) {
               eventType = "control-due";
               eventLabel = "Kontroll förfaller";
-            } else if (daysUntilControl !== null && daysUntilControl < 0 && Math.abs(daysUntilControl) % 7 === 0) {
+            } else if (daysUntilControl !== null && daysUntilControl <= -8 && (Math.abs(daysUntilControl) - 1) % 7 === 0) {
               eventType = "control-overdue";
               eventLabel = "Kontroll försenad";
             }
@@ -1157,6 +1157,14 @@ function notifyMeasuringToolEvents() {
                   `measuring-tool:${tool._id}:${eventType}:${nextControlDate}:reserved:${tool.reservation.userId}`,
                   `${eventLabel}: reserverat mätverktyg ${tool.toolNumber}`,
                   message
+                );
+              }
+              if (tool.activeLoan?.borrowerId) {
+                insertMeasuringToolNoticeOnce(
+                  tool.activeLoan.borrowerId,
+                  `measuring-tool:${tool._id}:${eventType}:${nextControlDate}:borrowed:${tool.activeLoan.borrowerId}`,
+                  `${eventLabel}: lånat mätverktyg ${tool.toolNumber}`,
+                  `Mätverktyg ${tool.toolNumber} (${tool.description || tool.type}) som du har lånat behöver lämnas till kontrollansvarig. Nästa kontrolldatum: ${dateLabel}.`
                 );
               }
             }
