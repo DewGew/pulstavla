@@ -1127,6 +1127,38 @@ function notifyMeasuringToolEvents() {
           const nextControlDate = measuringToolNextControlDate(tool);
           if (nextControlDate) {
             const daysUntilControl = measuringToolDateDiffDays(today, nextControlDate);
+            const dateLabel = new Date(nextControlDate + "T12:00:00Z").toLocaleDateString("sv-SE", { timeZone: "Europe/Stockholm" });
+            const message = `Mätverktyg ${tool.toolNumber} – ${tool.description || tool.type} behöver lämnas till kontrollansvarig. Nästa kontrolldatum: ${dateLabel}.`;
+
+            // Engångsavisering för varje redan förfallet verktyg och mottagare.
+            // Nyckeln innehåller kontrolldatum så en ny kontrollperiod kan avisera igen.
+            if (daysUntilControl !== null && daysUntilControl < 0) {
+              controlRecipientIds.forEach((recipientId) => {
+                insertMeasuringToolNoticeOnce(
+                  recipientId,
+                  `measuring-tool:${tool._id}:control-overdue-initial:${nextControlDate}:${recipientId}`,
+                  `Förfallen kontroll: mätverktyg ${tool.toolNumber}`,
+                  message
+                );
+              });
+              if (tool.reservation?.userId) {
+                insertMeasuringToolNoticeOnce(
+                  tool.reservation.userId,
+                  `measuring-tool:${tool._id}:control-overdue-initial:${nextControlDate}:reserved:${tool.reservation.userId}`,
+                  `Förfallen kontroll: reserverat mätverktyg ${tool.toolNumber}`,
+                  message
+                );
+              }
+              if (tool.activeLoan?.borrowerId) {
+                insertMeasuringToolNoticeOnce(
+                  tool.activeLoan.borrowerId,
+                  `measuring-tool:${tool._id}:control-overdue-initial:${nextControlDate}:borrowed:${tool.activeLoan.borrowerId}`,
+                  `Förfallen kontroll: lånat mätverktyg ${tool.toolNumber}`,
+                  `Mätverktyg ${tool.toolNumber} (${tool.description || tool.type}) som du har lånat behöver lämnas till kontrollansvarig. Nästa kontrolldatum: ${dateLabel}.`
+                );
+              }
+            }
+
             let eventType = "";
             let eventLabel = "";
             if (daysUntilControl === 7) {
@@ -1135,7 +1167,7 @@ function notifyMeasuringToolEvents() {
             } else if (daysUntilControl === 0) {
               eventType = "control-due";
               eventLabel = "Kontroll ska utföras idag";
-            } else if (daysUntilControl !== null && daysUntilControl < 0 && (Math.abs(daysUntilControl) - 1) % 7 === 0) {
+            } else if (daysUntilControl !== null && daysUntilControl < 0 && Math.abs(daysUntilControl) > 1 && (Math.abs(daysUntilControl) - 1) % 7 === 0) {
               eventType = "control-overdue";
               eventLabel = "Kontroll försenad";
             }
