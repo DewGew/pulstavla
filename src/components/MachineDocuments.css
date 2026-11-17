@@ -196,6 +196,23 @@
 @media screen and (min-width: 3840px) {
 	.documents,
 	.documents input	{
-		font-size: 2rem;
-	}
+		}
+}
+
+
+/* Enhetlig typografi för Dokument */
+.documents { font-size: .9rem; line-height: 1.45; }
+.documents h2 { font-size: 1.35rem; line-height: 1.25; }
+.documents button, .documents input, .documents select, .documents textarea { font-size: .9rem; }
+.documents li { line-height: 1.4; }
+
+/* Ultra 4K text scale: 20% */
+@media screen and (min-width: 3200px) {
+  .app.ultra4k :is(.close):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 28.8px !important; }
+  .app.ultra4k :is(.documents):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.documents h2):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.62rem !important; }
+  .app.ultra4k :is(.documents button):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.documents input):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.documents select):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.documents textarea):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
 }

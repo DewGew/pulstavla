@@ -1,61 +1,86 @@
-/* Presence – gemensam kort-, status- och typografistil */
+/* Presence – ursprunglig liststruktur med förbättrade rubriker/statusar */
+.presence-widget { padding: .65rem; min-height: 0; gap: .25rem; }
+.presence-widget h3 { flex: 0 0 auto; margin-bottom: .1rem; }
+.presence-widget h4 {
+  flex: 0 0 auto; width: 100%; margin: .25rem 0 .15rem;
+  font-size: .82rem; text-align: left;
+}
 .presence-list {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  width: 100%;
-  margin-top: 8px;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: minmax(30px, auto); align-content: start; gap: 4px;
+  width: 100%; min-height: 0; flex: 0 0 auto; padding: 1px 3px 1px 0;
 }
-
 .presence-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  min-height: 60px;
-  padding: 9px 10px;
-  border: 1px solid var(--panel-border);
-  border-left: 4px solid var(--panel-border);
-  border-radius: var(--cell-radius);
-  background: var(--bg-cell);
-  color: var(--text-cell);
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+  display: flex; justify-content: space-between; align-items: center; gap: 5px;
+  min-width: 0; min-height: 30px; padding: 4px 6px;
+  border: 1px solid var(--panel-border); border-left: 3px solid var(--panel-border);
+  border-radius: var(--cell-radius); background: var(--bg-cell); color: var(--text-cell);
+  text-align: left; cursor: pointer; transition: background .18s ease, border-color .18s ease;
 }
-
-.presence-item:hover {
-  background: var(--hover-bg);
-  transform: translateY(-1px);
+.presence-item:hover { background: var(--hover-bg); }
+.presence-item.here { background: var(--status-green-bg); color: var(--status-green-text); border-left-color: var(--status-green-border); }
+.presence-item.away { background: var(--status-red-bg); color: var(--status-red-text); border-left-color: var(--status-red-border); }
+.presence-name { min-width: 0; font-size: .76rem; line-height: 1.1; font-weight: 600; overflow-wrap: anywhere; }
+.presence-status { flex: 0 0 auto; font-size: .72rem; }
+.presence-widget .gc-legend-row {
+  flex: 0 0 auto; display: flex; justify-content: center; flex-wrap: wrap;
+  gap: 4px 12px; width: 100%; padding-top: 4px; font-size: .7rem; line-height: 1.2;
 }
-
-.presence-item.here {
-  background: var(--status-green-bg);
-  color: var(--status-green-text);
-  border-left-color: var(--status-green-border);
-}
-.presence-item.away {
-  background: var(--status-red-bg);
-  color: var(--status-red-text);
-  border-left-color: var(--status-red-border);
-}
-
-
-.presence-name { font-size: 0.9rem; font-weight: 600; }
-.presence-status { font-size: 0.8rem; opacity: 0.9; }
-
-@media (max-width: 768px) {
+.presence-widget .gc-legend-row > div { white-space: nowrap; }
+@media (max-width: 480px) {
   .presence-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-@media (max-width: 480px) {
-  .presence-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
-  .presence-item { min-height: 52px; padding: 8px; }
-  .presence-name { font-size: 0.82rem; }
-  .presence-status { font-size: 0.72rem; }
+
+/* Ultra 4K text scale: 20% */
+@media screen and (min-width: 3200px) {
+  .app.ultra4k :is(.presence-widget h4):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 0.984rem !important; }
+  .app.ultra4k :is(.presence-status):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 0.864rem !important; }
+  .app.ultra4k :is(.presence-widget .gc-legend-row):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 0.84rem !important; }
 }
-@media screen and (min-width: 3840px) {
-  .presence-name { font-size: 2rem; }
-  .presence-status { font-size: 1.5rem; }
-  .presence-item { min-height: 80px; }
+
+
+/* Ultra 4K Presence sizing based on master styles */
+@media screen and (min-width: 3200px) {
+  .app.ultra4k .presence-name {
+    font-size: 1.8rem !important;
+  }
+
+  .app.ultra4k .presence-status {
+    font-size: 1.35rem !important;
+  }
+
+  .app.ultra4k .presence-item {
+    min-height: 80px !important;
+  }
+}
+
+
+/* Ultra 4K: gemensamma widgetmått och luftigare närvaroceller */
+@media screen and (min-width: 3200px) {
+  .app.ultra4k .presence-widget {
+    padding: var(--u4k-widget-padding);
+    gap: var(--u4k-widget-gap);
+  }
+
+  .app.ultra4k .presence-list {
+    gap: var(--u4k-cell-gap);
+  }
+
+  .app.ultra4k .presence-item {
+    min-height: 80px !important;
+    padding: var(--u4k-cell-padding);
+    gap: var(--u4k-cell-gap);
+  }
+
+  .app.ultra4k .presence-name {
+    font-size: var(--u4k-widget-text) !important;
+  }
+
+  .app.ultra4k .presence-status {
+    font-size: var(--u4k-widget-compact-text) !important;
+  }
+
+  .app.ultra4k .presence-widget .gc-legend-row {
+    font-size: var(--u4k-widget-meta) !important;
+  }
 }

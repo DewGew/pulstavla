@@ -117,8 +117,8 @@ export default function Profile({ user, setUser, setActiveTab }) {
 
   // 🔥 Mina aktiviteter
   const [myTasks, setMyTasks] = useState([]);
-  // Visa även klara aktiviteter från början; användaren kan välja att dölja dem.
-  const [showDone, setShowDone] = useState(true);
+  // Dölj klara aktiviteter som standard; användaren kan välja att visa dem.
+  const [showDone, setShowDone] = useState(false);
   /* ---------------- HÄMTA MINA AKTIVITETER ---------------- */
   useEffect(() => {
     const loadTasks = async () => {

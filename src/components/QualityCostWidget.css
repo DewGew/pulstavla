@@ -170,17 +170,18 @@
   gap: 8px;
 }
 
-@media screen and (min-width: 3840px) {
-	.cost-table th,
-	.cost-table td,
-	.qualityCostWidget .total,
-	.qualityCostWidget .prev {
-	  font-size: 1.9rem;
-	}
-	.qualityCostWidget .summary-value {
-	  font-size: 30px;
-	}
-	.qualityCostWidget .delta-badge {
-	  font-size: 18px;
-	}
+
+/* Ultra 4K text scale: 20% */
+@media screen and (min-width: 3200px) {
+  .app.ultra4k :is(.qualityCostWidget .edit-btn):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 15.6px !important; }
+  .app.ultra4k :is(.qualityCostWidget .summary-label):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 13.2px !important; }
+  .app.ultra4k :is(.qualityCostWidget .summary-value):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 24px !important; }
+  .app.ultra4k :is(.qualityCostWidget .delta-badge):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 16.8px !important; }
+  .app.ultra4k :is(.qualityCostWidget .delta-arrow):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 12px !important; }
+  .app.ultra4k :is(.cost-table td):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 16.8px !important; }
+  .app.ultra4k :is(.cost-table th):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 16.8px !important; }
+  .app.ultra4k :is(.cost):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 16.8px !important; }
+  .app.ultra4k :is(.qualityCostWidget .prev):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 16.8px !important; }
+  .app.ultra4k :is(.qualityCostWidget .total):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 18px !important; }
+  .app.ultra4k :is(.qualityCostWidget .title-input):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 18px !important; }
 }

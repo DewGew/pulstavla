@@ -111,25 +111,39 @@
   }
 
   .analog-clock-date {
-    font-size: 2.5rem;
-  }
+    }
 
   .clock-weather {
-    font-size: 2.5rem;
-  }
+    }
   .clock-visitor {
 	  font-size: 2.2rem
   }
 
   .weather-icon {
-    font-size: 4.4rem;
-  }
+    }
 
   .weather-range {
-    font-size: 2.5rem;
-  }
+    }
   
   .today-date {
 	display: none;
   }
+}
+
+/* Ultra 4K text scale: 20% */
+@media screen and (min-width: 3200px) {
+  .app.ultra4k :is(.analog-clock-date):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.26rem !important; }
+  .app.ultra4k :is(.clock-weather):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.2rem !important; }
+  .app.ultra4k :is(.weather-icon):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.68rem !important; }
+  .app.ultra4k :is(.weather-range):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.02rem !important; }
+  .app.ultra4k :is(.weather-loading):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.02rem !important; }
+  .app.ultra4k :is(.weather-error):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.02rem !important; }
+  .app.ultra4k :is(.clock-visitor .edit-btn):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 15.6px !important; }
+  .app.ultra4k :is(.clock-visitor):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 2.64rem !important; }
+}
+
+/* Besöksmeddelandet i klockan ska behålla sin ursprungliga storlek. */
+@media screen and (min-width: 3200px) {
+  .app.ultra4k .clock-visitor { font-size: 2.2rem !important; }
+  .app.ultra4k .clock-visitor .edit-btn { font-size: 13px !important; }
 }

@@ -6,7 +6,17 @@ import { Server } from "socket.io";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { PORT } from "./src/config.js";
+import registerKpis from "./server/kpis.js";
+
+// PORT: miljövariabel först, sedan (bakåtkompatibelt) src/config.local.js, annars 3000.
+let PORT = Number(process.env.PORT) || 0;
+if (!PORT) {
+  try {
+    ({ PORT } = await import("./src/config.local.js"));
+  } catch {
+    PORT = 3000;
+  }
+}
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET || JWT_SECRET.length < 32) {
@@ -39,6 +49,22 @@ const upload = multer({
 });
 
 // Kontrollera filsignatur efter uppladdning, inte bara filändelsen.
+// Radera tillfälliga uppladdningar när importens HTTP-svar är färdigt.
+// Då hinner Excel-filen användas under hela importen, men blir inte kvar på servern.
+function cleanupUploadAfterResponse(req, res, next) {
+  const uploadedPath = req.file?.path;
+  if (uploadedPath) {
+    res.once("finish", () => {
+      fs.unlink(uploadedPath, (err) => {
+        if (err && err.code !== "ENOENT") {
+          console.error("Kunde inte radera tillfällig importfil:", err);
+        }
+      });
+    });
+  }
+  next();
+}
+
 function validateUploadedFile(allowedExtensions) {
   return (req, res, next) => {
     if (!req.file) return res.status(400).json({ error: "Ingen fil skickades." });
@@ -64,7 +90,8 @@ function validateUploadedFile(allowedExtensions) {
       docx: header[0] === 0x50 && header[1] === 0x4b,
       xlsx: header[0] === 0x50 && header[1] === 0x4b,
       doc: header.subarray(0,8).equals(Buffer.from([0xd0,0xcf,0x11,0xe0,0xa1,0xb1,0x1a,0xe1])),
-      xls: header.subarray(0,8).equals(Buffer.from([0xd0,0xcf,0x11,0xe0,0xa1,0xb1,0x1a,0xe1]))
+      xls: header.subarray(0,8).equals(Buffer.from([0xd0,0xcf,0x11,0xe0,0xa1,0xb1,0x1a,0xe1])),
+      csv: !header.includes(0)
     };
     if (!allowed || !signatures[ext]) {
       fs.unlink(req.file.path, () => {});
@@ -76,6 +103,7 @@ function validateUploadedFile(allowedExtensions) {
 const imageFileTypes = { png:true, jpg:true, jpeg:true, webp:true, gif:true };
 const documentFileTypes = { pdf:true, doc:true, docx:true, xls:true, xlsx:true, png:true, jpg:true, jpeg:true };
 const spreadsheetFileTypes = { xls:true, xlsx:true };
+const kpiImportFileTypes = { xls:true, xlsx:true, csv:true };
 
 function cleanText(html) {
   return html
@@ -147,6 +175,18 @@ function requireEditor(req, res, next) {
     return res.status(403).json({ error: "Du saknar behörighet att ändra information." });
   }
   next();
+}
+
+function requireMeasuringControlAccess(req, res, next) {
+  if (["admin", "suAdmin"].includes(req.user.role)) return next();
+  settingsDB.findOne({ key: "measuringToolsControlUsers" }, (err, setting) => {
+    if (err) return res.status(500).json({ error: "Kunde inte kontrollera behörigheten." });
+    const allowedIds = Array.isArray(setting?.value) ? setting.value : [];
+    if (!allowedIds.includes(req.user.id)) {
+      return res.status(403).json({ error: "Du saknar behörighet att registrera kalibrering och kontroll." });
+    }
+    next();
+  });
 }
 
 /* ---------------- HTTP SERVER + WEBSOCKET ---------------- */
@@ -240,6 +280,10 @@ const settingsDB = new Datastore({
   autoload: true,
 });
 settingsDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 60000);
+
+/* ---------------- NOTIFICATIONS DATABASE ---------------- */
+const notificationsDB = new Datastore({ filename: "./db/notifications.db", autoload: true });
+notificationsDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 65000);
 
 
 // Läs inställningar som objekt för interna funktioner.
@@ -408,6 +452,126 @@ app.put("/settings/:key", requireAuth, requireAdmin, (req, res) => {
 
       io.emit("settingsUpdated", { key, value });
       res.json({ success: true, key, value });
+    }
+  );
+});
+
+/* ---------------- GENERELLA MEDDELANDEN / AVISERINGAR ---------------- */
+
+// Hämta den inloggade användarens inkorg.
+app.get("/notifications", requireAuth, (req, res) => {
+  notificationsDB.find({ recipientId: req.user.id }).sort({ createdAt: -1 }).exec((err, messages) => {
+    if (err) return res.status(500).json({ error: "Kunde inte läsa meddelanden." });
+    res.json(messages);
+  });
+});
+
+// Antal olästa meddelanden till menyindikatorn.
+app.get("/notifications/unread-count", requireAuth, (req, res) => {
+  notificationsDB.count({ recipientId: req.user.id, readAt: null }, (err, count) => {
+    if (err) return res.status(500).json({ error: "Kunde inte läsa aviseringar." });
+    res.json({ count });
+  });
+});
+
+// Administratörer får en begränsad lista över mottagare.
+app.get("/notifications/users", requireAuth, requireAdmin, (req, res) => {
+  usersDB.find({}, (err, users) => {
+    if (err) return res.status(500).json({ error: "Kunde inte läsa användare." });
+    res.json(users.map(({ _id, username, name }) => ({ _id, username, name })));
+  });
+});
+
+// Skicka ett internt meddelande till valda användare eller alla användare.
+app.post("/notifications", requireAuth, requireAdmin, (req, res) => {
+  const title = typeof req.body.title === "string" ? req.body.title.trim() : "";
+  const message = typeof req.body.message === "string" ? req.body.message.trim() : "";
+  const priority = ["info", "important", "urgent"].includes(req.body.priority) ? req.body.priority : "info";
+  const recipientIds = Array.isArray(req.body.recipientIds) ? [...new Set(req.body.recipientIds.filter((id) => typeof id === "string" && id))] : [];
+  const sendToAll = req.body.sendToAll === true;
+
+  if (!title || title.length > 120 || !message || message.length > 4000) {
+    return res.status(400).json({ error: "Ange rubrik och meddelande (max 120 respektive 4000 tecken)." });
+  }
+  if (!sendToAll && recipientIds.length === 0) {
+    return res.status(400).json({ error: "Välj minst en mottagare." });
+  }
+
+  const findRecipients = (callback) => {
+    if (sendToAll) {
+      usersDB.find({}, (err, users) => callback(err, users || []));
+    } else {
+      usersDB.find({ _id: { $in: recipientIds } }, (err, users) => callback(err, users || []));
+    }
+  };
+
+  findRecipients((err, users) => {
+    if (err) return res.status(500).json({ error: "Kunde inte hitta mottagare." });
+    if (!users.length) return res.status(400).json({ error: "Inga giltiga mottagare hittades." });
+    const createdAt = Date.now();
+    const docs = users.map((recipient) => ({
+      recipientId: recipient._id,
+      title,
+      message,
+      priority,
+      senderId: req.user.id,
+      senderName: req.user.name || req.user.username,
+      createdAt,
+      readAt: null,
+    }));
+    notificationsDB.insert(docs, (insertErr, inserted) => {
+      if (insertErr) return res.status(500).json({ error: "Kunde inte spara meddelandet." });
+      res.status(201).json({ success: true, count: inserted.length });
+    });
+  });
+});
+
+// Markera ett meddelande som läst – endast mottagaren kan ändra det.
+app.patch("/notifications/:id/read", requireAuth, (req, res) => {
+  notificationsDB.update(
+    { _id: req.params.id, recipientId: req.user.id, readAt: null },
+    { $set: { readAt: Date.now() } },
+    {},
+    (err, changed) => {
+      if (err) return res.status(500).json({ error: "Kunde inte uppdatera meddelandet." });
+      if (!changed) return res.status(404).json({ error: "Meddelandet hittades inte eller är redan läst." });
+      res.json({ success: true });
+    }
+  );
+});
+
+app.patch("/notifications/read-all", requireAuth, (req, res) => {
+  notificationsDB.update(
+    { recipientId: req.user.id, readAt: null },
+    { $set: { readAt: Date.now() } },
+    { multi: true },
+    (err, changed) => {
+      if (err) return res.status(500).json({ error: "Kunde inte uppdatera meddelandena." });
+      res.json({ success: true, count: changed });
+    }
+  );
+});
+
+// Mottagaren kan endast radera sina egna meddelanden som redan är lästa.
+app.delete("/notifications/read", requireAuth, (req, res) => {
+  notificationsDB.remove(
+    { recipientId: req.user.id, readAt: { $ne: null } },
+    { multi: true },
+    (err, removed) => {
+      if (err) return res.status(500).json({ error: "Kunde inte ta bort lästa meddelanden." });
+      res.json({ success: true, count: removed });
+    }
+  );
+});
+
+app.delete("/notifications/:id", requireAuth, (req, res) => {
+  notificationsDB.remove(
+    { _id: req.params.id, recipientId: req.user.id, readAt: { $ne: null } },
+    {},
+    (err, removed) => {
+      if (err) return res.status(500).json({ error: "Kunde inte ta bort meddelandet." });
+      if (!removed) return res.status(404).json({ error: "Meddelandet hittades inte eller är inte läst." });
+      res.json({ success: true });
     }
   );
 });
@@ -771,6 +935,322 @@ const matprotokollDB = new Datastore({
   autoload: true,
 });
 matprotokollDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 260000);
+
+/* ---------------- MÄTVERKTYG DATABASE ---------------- */
+const measuringToolsDB = new Datastore({ filename: "./db/measuringTools.db", autoload: true });
+measuringToolsDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 270000);
+
+/* ---------------- MÄTVERKTYG ENDPOINTS ---------------- */
+
+// Beräkna om nästa kontroll passerat. Datum hanteras som kalenderdatum i UTC.
+function isMeasuringToolControlOverdue(tool) {
+  if (!tool?.lastControlDate || !Number(tool.controlInterval)) return false;
+  const match = String(tool.lastControlDate).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return false;
+  const nextDate = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]) + Number(tool.controlInterval)));
+  const today = new Date();
+  const todayDate = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+  return nextDate.getTime() < todayDate;
+}
+
+// Lista verktyg och aktuell utlåning. Förfallen kontroll ger automatisk spärr.
+app.get("/measuring-tools", requireAuth, (req, res) => {
+  measuringToolsDB.find({}).sort({ toolNumber: 1 }).exec((err, tools) => {
+    if (err) return res.status(500).json({ error: "Kunde inte läsa verktygsregistret." });
+    res.json(tools.map(({ loanHistory, controlHistory, ...tool }) => ({
+      ...tool,
+      controlBlocked: Boolean(tool.controlBlocked || isMeasuringToolControlOverdue(tool)),
+      controlBlockReason: isMeasuringToolControlOverdue(tool) ? "Förfallen kontroll" : (tool.controlBlocked ? "Underkänd kontroll" : ""),
+    })));
+  });
+});
+
+// Lista aktiva användarkonton utan känsliga uppgifter för val vid utlåning och reservation.
+app.get("/measuring-tools/users", requireAuth, requireMeasuringControlAccess, (req, res) => {
+  usersDB.find({}, (err, docs) => {
+    if (err) return res.status(500).json({ error: "Kunde inte läsa användare." });
+    res.json(docs.filter(({ role }) => role !== "view").map(({ _id, username, name, role }) => ({ _id, username, name, role })));
+  });
+});
+
+// Returnera den inloggade användarens kontrollbehörighet. Endast admin får se hela listan.
+app.get("/measuring-tools/control-access", requireAuth, (req, res) => {
+  settingsDB.findOne({ key: "measuringToolsControlUsers" }, (err, setting) => {
+    if (err) return res.status(500).json({ error: "Kunde inte läsa behörigheterna." });
+    const userIds = Array.isArray(setting?.value) ? setting.value : [];
+    const isAdmin = ["admin", "suAdmin"].includes(req.user.role);
+    res.json({
+      userIds: isAdmin ? userIds : [],
+      canRegister: isAdmin || userIds.includes(req.user.id),
+    });
+  });
+});
+
+app.put("/measuring-tools/control-access", requireAuth, requireAdmin, (req, res) => {
+  const userIds = Array.isArray(req.body?.userIds)
+    ? [...new Set(req.body.userIds.map((id) => String(id)))]
+    : null;
+  if (!userIds || userIds.length > 500) {
+    return res.status(400).json({ error: "Ogiltig användarlista." });
+  }
+  usersDB.find({ _id: { $in: userIds } }, (findErr, users) => {
+    if (findErr) return res.status(500).json({ error: "Kunde inte kontrollera användarna." });
+    if (users.length !== userIds.length) {
+      return res.status(400).json({ error: "En eller flera valda användare finns inte längre." });
+    }
+    settingsDB.update(
+      { key: "measuringToolsControlUsers" },
+      { $set: { key: "measuringToolsControlUsers", value: userIds, updatedAt: Date.now() } },
+      { upsert: true },
+      (updateErr) => {
+        if (updateErr) return res.status(500).json({ error: "Kunde inte spara behörigheterna." });
+        res.json({ success: true, userIds });
+      }
+    );
+  });
+});
+
+// Lägg till eller uppdatera verktyg manuellt.
+app.post("/measuring-tools", requireAuth, requireMeasuringControlAccess, (req, res) => {
+  const input = req.body || {};
+  const toolNumber = String(input.toolNumber || "").trim();
+  const type = String(input.type || "").trim();
+  const description = String(input.description || "").trim();
+  if (!toolNumber || !type || !description) {
+    return res.status(400).json({ error: "Verktygsnr, typ och benämning måste anges." });
+  }
+  const doc = {
+    toolNumber, type, description,
+    manufacturer: String(input.manufacturer || "").trim(),
+    range: String(input.range || "").trim(),
+    location: String(input.location || "").trim(),
+    controlInterval: Math.max(0, Number(input.controlInterval) || 0),
+    lastControlDate: input.lastControlDate || "",
+    status: "Disponibel",
+    activeLoan: null,
+    loanHistory: [],
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+  measuringToolsDB.findOne({ toolNumber }, (findErr, existing) => {
+    if (findErr) return res.status(500).json({ error: "Kunde inte kontrollera verktygsnumret." });
+    if (existing) return res.status(409).json({ error: "Verktygsnumret finns redan." });
+    measuringToolsDB.insert(doc, (insertErr, saved) => {
+      if (insertErr) return res.status(500).json({ error: "Kunde inte spara verktyget." });
+      io.emit("measuringToolsUpdated");
+      res.status(201).json(saved);
+    });
+  });
+});
+
+// Redigera verktygsuppgifter utan att påverka utlånings- eller kontrollhistorik.
+app.patch("/measuring-tools/:id", requireAuth, requireMeasuringControlAccess, (req, res) => {
+  const input = req.body || {};
+  const toolNumber = String(input.toolNumber || "").trim();
+  const type = String(input.type || "").trim();
+  const description = String(input.description || "").trim();
+  if (!toolNumber || !type || !description) {
+    return res.status(400).json({ error: "Verktygsnr, typ och benämning måste anges." });
+  }
+  const fields = {
+    toolNumber, type, description,
+    manufacturer: String(input.manufacturer || "").trim(),
+    range: String(input.range || "").trim(),
+    location: String(input.location || "").trim(),
+    controlInterval: Math.max(0, Number(input.controlInterval) || 0),
+    updatedAt: Date.now(),
+  };
+  if (input.lastControlDate !== undefined) fields.lastControlDate = String(input.lastControlDate || "");
+  measuringToolsDB.findOne({ toolNumber, _id: { $ne: req.params.id } }, (findErr, duplicate) => {
+    if (findErr) return res.status(500).json({ error: "Kunde inte kontrollera verktygsnumret." });
+    if (duplicate) return res.status(409).json({ error: "Verktygsnumret används redan av ett annat verktyg." });
+    measuringToolsDB.update({ _id: req.params.id }, { $set: fields }, {}, (updateErr, count) => {
+      if (updateErr) return res.status(500).json({ error: "Kunde inte uppdatera verktyget." });
+      if (!count) return res.status(404).json({ error: "Verktyget hittades inte." });
+      io.emit("measuringToolsUpdated");
+      res.json({ success: true });
+    });
+  });
+});
+
+// Registrera kalibrering eller kontroll. Åtkomst ges till administratörer och särskilt valda användare.
+app.post("/measuring-tools/:id/control", requireAuth, requireMeasuringControlAccess, (req, res) => {
+  const type = String(req.body?.type || "");
+  const date = String(req.body?.date || "");
+  const result = String(req.body?.result || "");
+  const allowedTypes = ["Kalibrering", "Kontroll"];
+  const allowedResults = ["Godkänd", "Underkänd", "Justerad", "Skrotad", "Saknad"];
+  if (!allowedTypes.includes(type) || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !allowedResults.includes(result)) {
+    return res.status(400).json({ error: "Ange typ, giltigt datum och resultat." });
+  }
+  const entry = {
+    action: "control", type, date, result,
+    comment: String(req.body?.comment || "").trim(),
+    performedBy: req.user.id,
+    performedByName: req.user.name || req.user.username,
+    recordedAt: Date.now(),
+  };
+  const terminalStatus = ["Skrotad", "Saknad"].includes(result) ? result : null;
+  measuringToolsDB.findOne({ _id: req.params.id }, (findErr, tool) => {
+    if (findErr) return res.status(500).json({ error: "Kunde inte läsa verktyget." });
+    if (!tool) return res.status(404).json({ error: "Verktyget hittades inte." });
+    if (terminalStatus && tool.activeLoan) {
+      return res.status(409).json({ error: "Återlämna verktyget innan det kan markeras som skrotat eller saknat." });
+    }
+    measuringToolsDB.update({ _id: req.params.id }, {
+      $set: {
+        lastControlDate: date,
+        controlBlocked: result !== "Godkänd",
+        ...(terminalStatus ? { status: terminalStatus } : {}),
+        updatedAt: Date.now(),
+      },
+      $push: { controlHistory: entry },
+    }, {}, (updateErr, count) => {
+      if (updateErr) return res.status(500).json({ error: "Kunde inte spara kontrollen." });
+      if (!count) return res.status(404).json({ error: "Verktyget hittades inte." });
+      io.emit("measuringToolsUpdated");
+      res.json({ success: true });
+    });
+  });
+});
+
+// Låntagaren lånar som standard sig själv. Admin kan välja annat befintligt konto.
+app.post("/measuring-tools/:id/checkout", requireAuth, requireEditor, (req, res) => {
+  const borrowerId = (["admin", "suAdmin"].includes(req.user.role) && req.body?.borrowerId)
+    ? String(req.body.borrowerId) : req.user.id;
+  usersDB.findOne({ _id: borrowerId }, (userErr, borrower) => {
+    if (userErr || !borrower) return res.status(400).json({ error: "Användaren hittades inte." });
+    measuringToolsDB.findOne({ _id: req.params.id }, (toolErr, tool) => {
+      if (toolErr) return res.status(500).json({ error: "Kunde inte läsa verktyget." });
+      if (!tool) return res.status(404).json({ error: "Verktyget hittades inte." });
+      if (tool.controlBlocked || isMeasuringToolControlOverdue(tool)) return res.status(409).json({ error: isMeasuringToolControlOverdue(tool) ? "Verktyget är spärrat eftersom datumet för nästa kontroll har passerat." : "Verktyget är spärrat efter underkänd kontroll och kan inte lånas ut." });
+      if (tool.status !== "Disponibel" || tool.activeLoan) return res.status(409).json({ error: "Verktyget är inte tillgängligt." });
+      if (tool.reservation && tool.reservation.userId !== borrower._id) {
+        return res.status(409).json({ error: `Verktyget är reserverat för ${tool.reservation.userName}.` });
+      }
+      const loan = {
+        borrowerId: borrower._id, borrowerName: borrower.name || borrower.username,
+        borrowerUsername: borrower.username, checkedOutAt: Date.now(),
+        dueDate: req.body?.dueDate || "", checkedOutBy: req.user.id,
+        checkedOutByName: req.user.name || req.user.username,
+        note: String(req.body?.note || "").trim(),
+      };
+      measuringToolsDB.update({
+        _id: tool._id, status: "Disponibel", controlBlocked: { $ne: true },
+        $or: [{ reservation: null }, { "reservation.userId": borrower._id }],
+      }, {
+        $set: { status: "Utlånad", activeLoan: loan, updatedAt: Date.now() },
+        $push: { loanHistory: { ...loan, action: "checkout" } },
+      }, {}, (updateErr, count) => {
+        if (updateErr) return res.status(500).json({ error: "Kunde inte registrera utlåningen." });
+        if (!count) return res.status(409).json({ error: "Verktyget hann lånas ut av någon annan." });
+        io.emit("measuringToolsUpdated");
+        res.json({ success: true });
+      });
+    });
+  });
+});
+
+// Reservera ett ledigt mätverktyg tills vidare. Alla användare med redigeringsbehörighet kan välja valfritt användarkonto.
+app.post("/measuring-tools/:id/reserve", requireAuth, requireMeasuringControlAccess, (req, res) => {
+  const userId = req.body?.userId ? String(req.body.userId) : req.user.id;
+  usersDB.findOne({ _id: userId }, (userErr, user) => {
+    if (userErr || !user) return res.status(400).json({ error: "Användaren hittades inte." });
+    if (user.role === "view") return res.status(403).json({ error: "Reservation kan endast göras för en behörig användare." });
+    measuringToolsDB.findOne({ _id: req.params.id }, (toolErr, tool) => {
+      if (toolErr) return res.status(500).json({ error: "Kunde inte läsa verktyget." });
+      if (!tool) return res.status(404).json({ error: "Verktyget hittades inte." });
+      if (tool.status !== "Disponibel" || tool.activeLoan) return res.status(409).json({ error: "Endast lediga verktyg kan reserveras." });
+      if (tool.controlBlocked || isMeasuringToolControlOverdue(tool)) return res.status(409).json({ error: "Verktyget är spärrat och kan inte reserveras." });
+      if (tool.reservation) return res.status(409).json({ error: `Verktyget är redan reserverat för ${tool.reservation.userName}.` });
+      const reservation = {
+        userId: user._id, userName: user.name || user.username,
+        username: user.username, reservedAt: Date.now(),
+        reservedBy: req.user.id, reservedByName: req.user.name || req.user.username,
+      };
+      measuringToolsDB.update({
+        _id: tool._id,
+        status: "Disponibel",
+        $or: [
+          { reservation: { $exists: false } },
+          { reservation: null },
+        ],
+      }, {
+        $set: { reservation, updatedAt: Date.now() },
+        $push: { reservationHistory: { ...reservation, action: "reserve" } },
+      }, {}, (updateErr, count) => {
+        if (updateErr) return res.status(500).json({ error: "Kunde inte reservera verktyget." });
+        if (!count) return res.status(409).json({ error: "Verktyget hann reserveras eller ändras av någon annan." });
+        io.emit("measuringToolsUpdated");
+        res.json({ success: true, reservation });
+      });
+    });
+  });
+});
+
+// Reservationen kan hävas av den reserverade användaren eller administratör.
+app.delete("/measuring-tools/:id/reserve", requireAuth, requireEditor, (req, res) => {
+  measuringToolsDB.findOne({ _id: req.params.id }, (findErr, tool) => {
+    if (findErr) return res.status(500).json({ error: "Kunde inte läsa verktyget." });
+    if (!tool?.reservation) return res.status(404).json({ error: "Ingen aktiv reservation hittades." });
+    const isAdmin = ["admin", "suAdmin"].includes(req.user.role);
+    if (!isAdmin && tool.reservation.userId !== req.user.id) {
+      return res.status(403).json({ error: "Endast den reserverade användaren eller administratör kan häva reservationen." });
+    }
+    const releasedAt = Date.now();
+    const entry = {
+      ...tool.reservation, action: "release", releasedAt,
+      releasedBy: req.user.id, releasedByName: req.user.name || req.user.username,
+    };
+    measuringToolsDB.update({ _id: tool._id, "reservation.userId": tool.reservation.userId }, {
+      $set: { reservation: null, updatedAt: releasedAt },
+      $push: { reservationHistory: entry },
+    }, {}, (updateErr, count) => {
+      if (updateErr) return res.status(500).json({ error: "Kunde inte häva reservationen." });
+      if (!count) return res.status(409).json({ error: "Reservationen har redan ändrats." });
+      io.emit("measuringToolsUpdated");
+      res.json({ success: true });
+    });
+  });
+});
+
+// Återlämning får registreras av låntagaren eller administratör.
+app.post("/measuring-tools/:id/return", requireAuth, requireEditor, (req, res) => {
+  measuringToolsDB.findOne({ _id: req.params.id }, (findErr, tool) => {
+    if (findErr) return res.status(500).json({ error: "Kunde inte läsa verktyget." });
+    if (!tool || !tool.activeLoan) return res.status(404).json({ error: "Ingen aktiv utlåning hittades." });
+    const isAdmin = ["admin", "suAdmin"].includes(req.user.role);
+    if (!isAdmin && tool.activeLoan.borrowerId !== req.user.id) {
+      return res.status(403).json({ error: "Endast låntagaren eller administratör kan registrera återlämning." });
+    }
+    const returnedAt = Date.now();
+    const returnEntry = {
+      ...tool.activeLoan, action: "return", returnedAt,
+      returnedBy: req.user.id, returnedByName: req.user.name || req.user.username,
+      returnNote: String(req.body?.note || "").trim(),
+    };
+    measuringToolsDB.update({ _id: tool._id, status: "Utlånad" }, {
+      $set: { status: "Disponibel", activeLoan: null, updatedAt: returnedAt },
+      $push: { loanHistory: returnEntry },
+    }, {}, (updateErr, count) => {
+      if (updateErr) return res.status(500).json({ error: "Kunde inte registrera återlämningen." });
+      if (!count) return res.status(409).json({ error: "Utlåningen har redan ändrats." });
+      io.emit("measuringToolsUpdated");
+      res.json({ success: true });
+    });
+  });
+});
+
+// Administratörer kan se fullständig utlåningshistorik.
+app.get("/measuring-tools/:id/history", requireAuth, requireMeasuringControlAccess, (req, res) => {
+  measuringToolsDB.findOne({ _id: req.params.id }, (err, tool) => {
+    if (err) return res.status(500).json({ error: "Kunde inte läsa historiken." });
+    if (!tool) return res.status(404).json({ error: "Verktyget hittades inte." });
+    const entries = [...(tool.loanHistory || []), ...(tool.controlHistory || []), ...(tool.reservationHistory || [])]
+      .sort((a, b) => (a.recordedAt || a.checkedOutAt || a.returnedAt || a.reservedAt || a.releasedAt || 0) - (b.recordedAt || b.checkedOutAt || b.returnedAt || b.reservedAt || b.releasedAt || 0));
+    res.json(entries);
+  });
+});
 
 /* ---------------- USERS ENDPOINTS ---------------- */
 app.get("/users", requireAuth, requireAdmin, (req, res) => {
@@ -1706,7 +2186,7 @@ app.delete("/checklist/:machine", requireAuth, requireAdmin, (req, res) => {
   });
 });
 
-app.post("/orders/import", requireAuth, requireAdmin, upload.single("file"), validateUploadedFile(spreadsheetFileTypes), (req, res) => {
+app.post("/orders/import", requireAuth, requireAdmin, upload.single("file"), validateUploadedFile(spreadsheetFileTypes), cleanupUploadAfterResponse, (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "Ingen fil uppladdad" });
   }
@@ -1851,6 +2331,7 @@ app.post(
   requireAdmin,
   upload.single("file"),
   validateUploadedFile(spreadsheetFileTypes),
+  cleanupUploadAfterResponse,
   (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: "Ingen fil uppladdad" });
@@ -1971,6 +2452,13 @@ app.get("/production-orders", requireAuth, (req, res) => {
 
       res.json(docs);
     });
+});
+
+/* ---------------- NYCKELTAL (KPI) ---------------- */
+registerKpis({
+  app, io, Datastore, xlsx, fs,
+  requireAuth, requireAdmin, requireEditor,
+  upload, validateUploadedFile, kpiImportFileTypes,
 });
 
 /* ---------------- SERVE VITE BUILD ---------------- */

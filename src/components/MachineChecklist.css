@@ -150,13 +150,22 @@
 }
 
 @media screen and (min-width: 3840px) {
-	.checklist-container{
-		max-width: 2160px;
-	}
-	.checklist-header {
-		font-size: 4rem;
-	}
-	.checklist-header label, .checklist-header select, .checklist-header input, .checklist-section, .checked-machines h3, .toplist {
-		font-size: 2rem;
-	}
+  .checklist-container {
+    max-width: 2160px;
+  }
+}
+
+/* Ultra 4K text scale: 20% */
+@media screen and (min-width: 3200px) {
+  .app.ultra4k :is(.checklist-header label):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.progress-text):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.02rem !important; }
+  .app.ultra4k :is(.meta):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 0.96rem !important; }
+}
+
+
+/* Dölj checklistans topplista på mobil */
+@media (max-width: 700px) {
+  .checked-machines {
+    display: none;
+  }
 }

@@ -327,13 +327,11 @@
 @media screen and (min-width: 3840px) {
   .mätprotokoll-container {
 	max-width: 2700px;
-	font-size: 2rem;
-    padding: 3rem;
+	padding: 3rem;
   }
 
   .mätprotokoll-container h2 {
-    font-size: 4rem;
-  }
+    }
 
   .mätprotokoll-info {
     padding: 25px;
@@ -341,18 +339,15 @@
   }
 
   .mätprotokoll-field label {
-    font-size: 2rem;
-  }
+    }
 
   .mätprotokoll-field input,
   .mätprotokoll-field select  {
-    font-size: 2rem;
     padding: 14px;
   }
 
   .mätprotokoll-table {
-    font-size: 1.7rem;
-  }
+    }
 
   .mätprotokoll-table th {
     padding: 16px 12px;
@@ -364,13 +359,11 @@
 
   .mätprotokoll-table input,
   .mätprotokoll-table select  {
-    font-size: 1.7rem;
     padding: 12px;
   }
 
   .mätprotokoll-add-button,
   .mätprotokoll-pdf-button {
-    font-size: 1.7rem;
     padding: 14px 20px;
   }
 }
@@ -514,7 +507,47 @@
   .mätprotokoll-openpanel-filter input[type="text"],
   .mätprotokoll-openpanel-sort,
   .mätprotokoll-openpanel-sort select {
-    font-size: 1.7rem;
     padding: 14px;
   }
+}
+
+/* Enhetlig, kompakt typografi för Mätprotokoll även på 4K */
+.mätprotokoll-container { font-size: .9rem; line-height: 1.45; }
+.mätprotokoll-container h2 { font-size: 1.35rem; line-height: 1.25; }
+.mätprotokoll-container h3 { font-size: 1.05rem; line-height: 1.3; }
+.mätprotokoll-container label,
+.mätprotokoll-container input,
+.mätprotokoll-container select,
+.mätprotokoll-container textarea,
+.mätprotokoll-container button { font-size: .9rem; }
+.mätprotokoll-table { font-size: .85rem; }
+.mätprotokoll-table input,
+.mätprotokoll-table select,
+.mätprotokoll-table textarea { font-size: .9rem; }
+
+/* Ultra 4K text scale: 20% */
+@media screen and (min-width: 3200px) {
+  .app.ultra4k :is(.mätprotokoll-field label):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.mätprotokoll-field select):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.2rem !important; }
+  .app.ultra4k :is(.mätprotokoll-field input):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.2rem !important; }
+  .app.ultra4k :is(.mätprotokoll-remove):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.32rem !important; }
+  .app.ultra4k :is(.mätprotokoll-hint):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.02rem !important; }
+  .app.ultra4k :is(.mätprotokoll-openpanel-filter input[type="text"]):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.14rem !important; }
+  .app.ultra4k :is(.mätprotokoll-openpanel-sort):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.mätprotokoll-openpanel-sort select):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.mätprotokoll-openpanel-sort input):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.mätprotokoll-openpanel-sortdir):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.mätprotokoll-openpanel-empty):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.mätprotokoll-container):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.mätprotokoll-container h2):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.62rem !important; }
+  .app.ultra4k :is(.mätprotokoll-container h3):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.26rem !important; }
+  .app.ultra4k :is(.mätprotokoll-container label):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.mätprotokoll-container input):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.mätprotokoll-container select):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.mätprotokoll-container textarea):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.mätprotokoll-container button):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.mätprotokoll-table):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.02rem !important; }
+  .app.ultra4k :is(.mätprotokoll-table input):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.mätprotokoll-table select):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.mätprotokoll-table textarea):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
 }

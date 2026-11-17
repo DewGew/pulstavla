@@ -4,6 +4,9 @@ Pulstavla är en webbaserad produktions- och informationsöversikt byggd med Rea
 
 ## Funktioner
 
+- **Dashboard-byggare:** widgets läggs till, flyttas, ändrar storlek och konfigureras direkt i webbläsaren (se nedan)
+- **Nyckeltal (KPI):** mål, färgstatus, trend, diagram och mätare. Värden matas in för hand eller importeras från Excel/CSV
+- Flera dashboards med automatisk rotation och egna länkar per skärm
 - Produktionsöversikt, närvaro och aktiviteter
 - Maskinchecklistor och dokument
 - Kundorder och tillverkningsorder
@@ -39,9 +42,11 @@ npm ci
 
 `npm ci` installerar exakt de beroenden som finns i `package-lock.json`. Använd det vid installation och uppdatering i stället för `npm install`.
 
-### 2. Skapa lokal konfiguration
+### 2. Lokal konfiguration (valfri)
 
-Skapa den lokala konfigurationsfilen från exemplet:
+**Från och med 2.9 behövs ingen `src/config.local.js`.** Webbläsaren använder samma adress som sidan hämtades från, och serverns port styrs med miljövariabeln `PORT` (standard 3000). Hoppa över det här steget om du inte kör bakom en särskild adress. Befintliga `config.local.js` fortsätter fungera.
+
+Vill du ändå ange adresser manuellt skapar du filen från exemplet:
 
 ```bash
 cp src/config.local.example.js src/config.local.js
@@ -187,6 +192,29 @@ Om du redan har en fungerande `puls.service` ska du behålla dess befintliga sö
 - Prova dokumentuppladdning och att öppna/ladda ner dokument.
 - Kontrollera att realtidsuppdateringar via Socket.IO fungerar.
 - Om HTTPS används: kontrollera att reverse proxyn även stöder WebSocket.
+
+## Dashboard och nyckeltal
+
+Allt görs i webbgränssnittet, ingen kod eller ombyggnad behövs.
+
+**Redigera dashboard (admin).** Öppna *Översikt* och klicka *Redigera dashboard*.
+- *Lägg till widget* öppnar en väljare med alla widgettyper (nyckeltal, diagram, mätare, nyckeltalslista, order, närvaro, text, lunch m.fl.).
+- Dra en widget för att byta plats. Dra i hörnet nere till höger för att ändra storlek, eller ange bredd (1–12) och höjd i panelen. Klicka på en widget för att ändra dess inställningar.
+- Skapa flera dashboards, byt namn, välj vilka som ingår i rotationen och hur många sekunder varje visas.
+- *Anpassa till skärmhöjd* skalar raderna så att hela tavlan syns utan scroll på en TV.
+- Klicka *Spara*. Alla öppna skärmar uppdateras direkt.
+
+**En vy per skärm.** Öppna `http://servern:3000/?dash=ID` så visas bara den dashboarden (utan flikar och rotation). ID:t är dashboardens id i inställningarna (`GET /settings`, nyckeln `dashboards`).
+
+**Nyckeltal.** *Mer ▾ → Nyckeltal*.
+- Admin skapar nyckeltal med enhet, decimaler, mål, om högt eller lågt är bra och gul zon (hur många procent från målet som räknas som gult).
+- Redigerare och admin matar in värden per dag. Ett värde per nyckeltal och dag, nytt värde skriver över.
+- *Importera Excel/CSV* (admin), två format:
+  - **Lång:** kolumnerna `Nyckeltal`, `Datum`, `Värde`.
+  - **Bred:** första kolumnen `Datum`, därefter en kolumn per nyckeltal.
+  - Svensk CSV fungerar (semikolon, decimalkomma, UTF-8 eller Windows-1252). Mallar kan laddas ner på sidan. Okända nyckeltal skapas automatiskt.
+
+Nyckeltalens data ligger i `db/kpis.db` och `db/kpiValues.db`, dashboardlayouten i inställningsdatabasen. Ta med dem i säkerhetskopian.
 
 ## Uppdatera en befintlig installation
 

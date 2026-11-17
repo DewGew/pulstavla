@@ -104,7 +104,6 @@ code {
 }
 
 .logo {
-  font-size: 2rem;
   font-weight: 600;
   display: flex;
   flex-direction: column;   /* 👈 viktigt */
@@ -150,7 +149,7 @@ h1 span{
 }
 
 .nav button {
-  font-size: 1rem;
+  font-size: .9rem;
   padding: 0.6rem 1.1rem;
   background: var(--panel);
   border: 1px solid var(--panel-border);
@@ -265,7 +264,7 @@ h1 span{
 
 /* ========== Main Content ========== */
 .content {
-  padding: 2rem;
+  padding: 0.75rem;
 }
 
 /* ========== Widget Grid ========== */
@@ -349,7 +348,6 @@ h1 span{
   }
 
 .widget-value {
-  font-size: 2rem;
   font-weight: 700;
   color: var(--accent);
 }
@@ -703,31 +701,17 @@ margin-bottom: 1rem;
 }
 
 @media (max-width: 480px) {
-  .logo {
-    font-size: 1.6rem;
-  }
+  
 
-  .logo-icon {
-    font-size: 1.8rem;
-  }
+  
 
-  .today-date {
-    font-size: 0.9rem;
-  }
+  
 
-  .nav button,
-  .theme-toggle {
-    font-size: 0.9rem;
-    padding: 0.5rem 0.8rem;
-  }
+  
 
-  .widget-value {
-    font-size: 1.5rem;
-  }
+  
 
-  .widget h3 {
-    font-size: 1rem;
-  }
+  
 
   .modal-content {
     padding: 1rem;
@@ -753,13 +737,9 @@ margin-bottom: 1rem;
     padding: 0.8rem;
   }
 
-  .widget h3 {
-    font-size: 1rem;
-  }
+  
 
-  .widget-value {
-    font-size: 1.5rem;
-  }
+  
 }
 
 @media screen and (min-width: 2560px) {
@@ -769,10 +749,8 @@ margin-bottom: 1rem;
 		height: 10vw !important;
 	}
 	.login-box h2{
-		font-size: 60px;
 	}
 	.login-box input, .login-box select, .login-button {
-		font-size: 17px;
 	}
 	.widget-grid {
 	  grid-template-columns: repeat(5, 1fr);
@@ -782,66 +760,35 @@ margin-bottom: 1rem;
 }
 
 @media screen and (min-width: 3840px) {
-	.login-box{
-		max-width: 20vw !important;
-		height: 15vw !important;
-	}
-	
-	.widget {
-		min-height: 972px;
-	}
-	
-	.widget h3 {
-		font-size: 2.5rem;
-	}
-	
-	.dashboard {
-		height: 135px;
-	}
-	.logo {
-		font-size: 4rem;
-	}
-	.logo-icon {
-		font-size: 4.4rem;
-	}
-	.today-date {
-		font-size: 2rem;
-	}
-	.nav button {
-		font-size: 2rem;
-	}
-	.btn-primary, .btn-danger, .btn-secondary {
-		font-size: 28px;
-	}
-	.widget-grid {
-	  grid-template-columns: repeat(6, 1fr);
-	}
-	.widget-meta {
-		font-size: 1.9rem;
-	}
-	.app.side h1,
-	.app.side .logo-icon {
-		font-size: 2rem;
-	}
-	.widget-top {
-	  display: block;
-	}
-	.widget-top h2 {
-		font-size: 2.5rem;
-	}
-	.pagination-dots .dot {
-	  width: 35px;
-	  height: 35px;
-	}
-	.edit-btn {
-		font-size: 2rem !important;
-	}
-	.app.side .dashboard {
-		width: 370px;
-	}
-	.sortdir {
-		font-size: 1.7rem
-	}
+  .login-box {
+    max-width: 20vw !important;
+    height: 15vw !important;
+  }
+
+  .widget {
+    min-height: 972px;
+  }
+
+  .dashboard {
+    height: 135px;
+  }
+
+  .widget-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  .widget-top {
+    display: block;
+  }
+
+  .pagination-dots .dot {
+    width: 35px;
+    height: 35px;
+  }
+
+  .app.side .dashboard {
+    width: 370px;
+  }
 }
 
 /* ================= Portrait Mode (stående skärm) ================= */
@@ -855,7 +802,6 @@ margin-bottom: 1rem;
   }
 
   .logo {
-    font-size: 1.8rem;
   }
 
   .nav {
@@ -877,12 +823,9 @@ margin-bottom: 1rem;
     padding: 0.8rem;
   }
 
-  .widget h3 {
-    font-size: 1rem;
-  }
+  
 
   .widget-value {
-    font-size: 1.6rem;
   }
 
 	.nav {
@@ -895,7 +838,6 @@ margin-bottom: 1rem;
 	}
 
   html {
-    font-size: 20px;
   }
 
 }
@@ -1110,4 +1052,454 @@ textarea:disabled {
   .modal-buttons button {
     flex: 1 1 auto;
   }
+}
+
+
+/* Kompaktare navigeringsknappar på Full HD-skärmar (t.ex. 24 tum) */
+@media screen and (min-width: 1600px) and (max-width: 2199px) and (orientation: landscape) {
+  .nav {
+    gap: 7px;
+  }
+
+  .nav button {
+    padding: .54rem .99rem;
+  }
+
+  .nav .nav-dropdown {
+    width: 144px;
+  }
+}
+
+
+/* Gemensam typografi för vanliga innehållssidor */
+.activities-container,
+.checklist-wrapper,
+.profile-box {
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.activities-container h2,
+.checklist-container .checklist-header h2,
+.profile-box h2 {
+  font-size: 1.35rem;
+  line-height: 1.25;
+  margin-bottom: 1rem;
+}
+
+.activities-container h3,
+.checklist-container h3,
+.checked-machines h3,
+.profile-box h3 {
+  font-size: 1.05rem;
+  line-height: 1.3;
+}
+
+.activities-container button,
+.activities-container input,
+.activities-container select,
+.activities-container textarea,
+.checklist-wrapper button,
+.checklist-wrapper input,
+.checklist-wrapper select,
+.checklist-wrapper textarea,
+.profile-box button,
+.profile-box input,
+.profile-box select,
+.profile-box textarea {
+  font-size: 0.9rem;
+}
+
+.activities-container p,
+.checklist-wrapper p,
+.profile-box p,
+.checklist-section li,
+.my-task-item {
+  line-height: 1.45;
+}
+
+
+/* Ultra 4K från 3200 CSS-px: flytta huvudmenyn till en fast rad längst ned */
+@media screen and (min-width: 3200px) {
+  .app.ultra4k,
+  .app.ultra4k.side {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  .app.ultra4k .dashboard,
+  .app.ultra4k.side .dashboard {
+    width: 100%;
+    height: 135px;
+    flex-shrink: 0;
+  }
+
+  .app.ultra4k .nav,
+  .app.ultra4k.side .nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1100;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 18px;
+    width: 100%;
+    min-height: 104px;
+    margin: 0;
+    padding: 14px 32px;
+    background: var(--panel);
+    border-top: 1px solid var(--panel-border);
+    box-shadow: 0 -3px 12px rgba(0, 0, 0, 0.12);
+  }
+
+  .app.ultra4k .nav button,
+  .app.ultra4k.side .nav button {
+    width: auto;
+    white-space: nowrap;
+    text-align: center;
+    font-size: 1.3rem;
+    padding: 16px 24px;
+  }
+
+  .app.ultra4k .nav .nav-dropdown-menu button {
+    font-size: 1.15rem;
+    padding: 14px 18px;
+  }
+
+  .app.ultra4k .nav .nav-dropdown,
+  .app.ultra4k.side .nav .nav-dropdown {
+    width: 160px;
+  }
+
+  .app.ultra4k .nav-dropdown-menu {
+    top: auto;
+    bottom: 100%;
+    left: 0;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+
+  .app.ultra4k .content,
+  .app.ultra4k.side .content {
+    flex: 1;
+    min-width: 0;
+    padding-bottom: 136px;
+  }
+}
+
+/* Ultra 4K text scale: 20% */
+@media screen and (min-width: 3200px) {
+  .app.ultra4k :is(.logo-icon):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 2.64rem !important; }
+  .app.ultra4k :is(.company-name):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.theme-toggle):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.2rem !important; }
+  .app.ultra4k :is(.btn-danger):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.btn-primary):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.btn-secondary):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.widget h3):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.44rem !important; }
+  .app.ultra4k :is(.widget-meta):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 14.4px !important; }
+  .app.ultra4k :is(.today-date):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.02rem !important; }
+  .app.ultra4k :is(.sortdir):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.activities-container):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.checklist-wrapper):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.profile-box):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.activities-container h2):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.62rem !important; }
+  .app.ultra4k :is(.checklist-container .checklist-header h2):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.62rem !important; }
+  .app.ultra4k :is(.profile-box h2):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.62rem !important; }
+  .app.ultra4k :is(.activities-container h3):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.26rem !important; }
+  .app.ultra4k :is(.checklist-container h3):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.26rem !important; }
+  .app.ultra4k :is(.checked-machines h3):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.26rem !important; }
+  .app.ultra4k :is(.profile-box h3):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.26rem !important; }
+  .app.ultra4k :is(.activities-container button):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.activities-container input):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.activities-container select):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.activities-container textarea):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.checklist-wrapper button):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.checklist-wrapper input):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.checklist-wrapper select):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.checklist-wrapper textarea):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.profile-box button):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.profile-box input):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.profile-box select):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+  .app.ultra4k :is(.profile-box textarea):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
+}
+
+/* Ultra 4K inherited text fallback: scale text without an explicit font-size rule.
+   Navigation and dashboard toolbar keep their existing button sizes. */
+@media screen and (min-width: 3200px) {
+  /* Basstorlek för allt innehåll. Komponenternas egna font-size-regler
+     skalas separat i respektive komponent-CSS. */
+  .app.ultra4k .content { font-size: 1.2rem !important; }
+  .app.ultra4k .nav,
+  .app.ultra4k .dash-toolbar { font-size: 1rem; }
+}
+
+
+/* Mobil navigering: tydlig toppsektion och tryckvänliga knappar (iPhone m.fl.). */
+@media screen and (max-width: 768px) {
+  .app.top .dashboard,
+  .app.side .dashboard {
+    width: 100%;
+    height: auto;
+    min-width: 0;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  .app.top .nav,
+  .app.side .nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 0.5rem;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+  }
+
+  .app.top .nav > button,
+  .app.side .nav > button,
+  .app.top .nav .nav-dropdown,
+  .app.side .nav .nav-dropdown {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 44px;
+    margin: 0;
+  }
+
+  .app.top .nav > button,
+  .app.side .nav > button,
+  .app.top .nav .nav-dropdown-button,
+  .app.side .nav .nav-dropdown-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0.6rem 0.45rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.2;
+    text-align: center;
+  }
+
+  .app.top .nav .nav-dropdown-menu,
+  .app.side .nav .nav-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    bottom: auto;
+    left: 0;
+    right: 0;
+    width: 100%;
+    min-width: 0;
+    max-height: 60vh;
+    overflow-y: auto;
+    z-index: 1200;
+  }
+
+  .app.top .nav .nav-dropdown-menu button,
+  .app.side .nav .nav-dropdown-menu button {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    padding: 0.7rem 0.75rem;
+    text-align: left;
+    white-space: normal;
+  }
+
+  .app.top .logo,
+  .app.side .logo {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .app.top .logo-row,
+  .app.side .logo-row {
+    flex-wrap: wrap;
+    min-width: 0;
+    row-gap: 0.25rem;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .app.top .dashboard,
+  .app.side .dashboard {
+    padding: 0.65rem;
+    gap: 0.65rem;
+  }
+
+  .app.top .nav,
+  .app.side .nav {
+    gap: 0.4rem;
+  }
+
+  .app.top .nav > button,
+  .app.side .nav > button,
+  .app.top .nav .nav-dropdown-button,
+  .app.side .nav .nav-dropdown-button {
+    font-size: 0.85rem;
+    padding: 0.55rem 0.35rem;
+  }
+}
+
+
+/* Mobilanpassad inloggning – förhindra automatisk zoom i iOS */
+@media (max-width: 600px) {
+  .login-wrapper {
+    box-sizing: border-box;
+    min-height: 100vh;
+    min-height: 100dvh;
+    height: auto;
+    padding: 20px 16px;
+    align-items: center;
+  }
+
+  .login-box {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 420px;
+    padding: 24px 20px;
+    gap: 14px;
+  }
+
+  .login-box input,
+  .login-box select {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 48px;
+    padding: 12px;
+    font-size: 16px;
+    line-height: 1.4;
+    border-radius: var(--control-radius, 8px);
+  }
+
+  .login-box h2 {
+    font-size: 1.35rem;
+    margin: 0 0 6px;
+  }
+
+  .login-button {
+    min-height: 48px;
+    padding: 12px;
+    font-size: 16px;
+    border-radius: var(--control-radius, 8px);
+  }
+
+  .login-error {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+}
+
+
+/* Tydlig avisering när användaren får nya interna meddelanden */
+.nav .notification-nav-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.notification-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.45rem;
+  height: 1.45rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.nav .notification-nav-button.has-new-notifications {
+  outline: 2px solid #dc2626;
+  outline-offset: 2px;
+  animation: notification-attention-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes notification-attention-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.08); }
+  50% { box-shadow: 0 0 0 6px rgba(220, 38, 38, 0.2); }
+}
+
+.new-notification-toast {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2500;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  width: min(440px, calc(100vw - 2rem));
+  box-sizing: border-box;
+  padding: 1rem;
+  border: 1px solid #fca5a5;
+  border-left: 5px solid #dc2626;
+  border-radius: 12px;
+  background: var(--panel, #fff);
+  color: var(--text, #222);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.2);
+}
+
+.new-notification-toast-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 2.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 1.35rem;
+}
+
+.new-notification-toast-copy {
+  display: grid;
+  flex: 1;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.new-notification-toast-copy strong { font-size: 0.95rem; }
+.new-notification-toast-copy span { font-size: 0.85rem; color: var(--text-muted, #666); }
+
+.new-notification-toast button {
+  border: 0;
+  border-radius: 7px;
+  padding: 0.55rem 0.75rem;
+  background: #b91c1c;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.new-notification-toast .new-notification-toast-close {
+  align-self: flex-start;
+  padding: 0.1rem 0.35rem;
+  background: transparent;
+  color: var(--text-muted, #666);
+  font-size: 1.3rem;
+}
+
+@media (max-width: 600px) {
+  .new-notification-toast {
+    top: 0.5rem;
+    right: 0.5rem;
+    width: calc(100vw - 1rem);
+    gap: 0.55rem;
+    padding: 0.75rem;
+  }
+  .new-notification-toast-icon { flex-basis: 2rem; width: 2rem; height: 2rem; }
 }
