@@ -1042,6 +1042,149 @@ matprotokollDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 260000);
 const measuringToolsDB = new Datastore({ filename: "./db/measuringTools.db", autoload: true });
 measuringToolsDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 270000);
 
+/* ---------------- AUTOMATISKA MÄTVERKTYGSAVISERINGAR ---------------- */
+
+// Kalenderdatum i svensk tidszon, oberoende av serverns lokala tidszon.
+function measuringToolsToday() {
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Europe/Stockholm",
+    year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date());
+}
+
+function measuringToolDateDiffDays(fromDate, toDate) {
+  const from = String(fromDate || "").match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
+  const to = String(toDate || "").match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
+  if (!from || !to) return null;
+  const fromUtc = Date.UTC(Number(from[1]), Number(from[2]) - 1, Number(from[3]));
+  const toUtc = Date.UTC(Number(to[1]), Number(to[2]) - 1, Number(to[3]));
+  return Math.round((toUtc - fromUtc) / 86400000);
+}
+
+function measuringToolNextControlDate(tool) {
+  if (!tool?.lastControlDate || !Number(tool.controlInterval)) return "";
+  const match = String(tool.lastControlDate).match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
+  if (!match) return "";
+  const date = new Date(Date.UTC(
+    Number(match[1]), Number(match[2]) - 1,
+    Number(match[3]) + Number(tool.controlInterval)
+  ));
+  return date.toISOString().slice(0, 10);
+}
+
+function insertMeasuringToolNoticeOnce(recipientId, sourceKey, title, message, priority = "important") {
+  if (!recipientId) return;
+  notificationsDB.findOne({ sourceKey }, (findErr, existing) => {
+    if (findErr) {
+      console.error("Kunde inte kontrollera tidigare mätverktygsavisering:", findErr);
+      return;
+    }
+    if (existing) return;
+    notificationsDB.insert({
+      recipientId, sourceKey, title, message, priority,
+      senderId: null, senderName: "Pulstavla",
+      createdAt: Date.now(), readAt: null, source: "measuring-tool",
+    }, (insertErr) => {
+      if (insertErr) console.error("Kunde inte skapa mätverktygsavisering:", insertErr);
+    });
+  });
+}
+
+let checkingMeasuringToolNotices = false;
+function notifyMeasuringToolEvents() {
+  if (checkingMeasuringToolNotices) return;
+  checkingMeasuringToolNotices = true;
+
+  const today = measuringToolsToday();
+  settingsDB.findOne({ key: "measuringToolsControlUsers" }, (settingsErr, setting) => {
+    if (settingsErr) {
+      console.error("Kunde inte läsa kontrollbehörigheter för aviseringar:", settingsErr);
+      checkingMeasuringToolNotices = false;
+      return;
+    }
+
+    const configuredIds = Array.isArray(setting?.value) ? setting.value : [];
+    usersDB.find({ role: "suAdmin" }, (suErr, suAdmins) => {
+      if (suErr) {
+        console.error("Kunde inte läsa suAdmin för mätverktygsaviseringar:", suErr);
+        checkingMeasuringToolNotices = false;
+        return;
+      }
+      const controlRecipientIds = [...new Set([
+        ...configuredIds,
+        ...suAdmins.map((user) => user._id),
+      ])];
+
+      measuringToolsDB.find({}, (toolsErr, tools) => {
+        if (toolsErr) {
+          console.error("Kunde inte läsa mätverktyg för aviseringar:", toolsErr);
+          checkingMeasuringToolNotices = false;
+          return;
+        }
+
+        tools.forEach((tool) => {
+          if (["Skrotad", "Saknad"].includes(tool.status)) return;
+          const nextControlDate = measuringToolNextControlDate(tool);
+          if (nextControlDate) {
+            const daysUntilControl = measuringToolDateDiffDays(today, nextControlDate);
+            let eventType = "";
+            let eventLabel = "";
+            if (daysUntilControl === 7) {
+              eventType = "control-upcoming";
+              eventLabel = "Kontroll närmar sig";
+            } else if (daysUntilControl === 0) {
+              eventType = "control-due";
+              eventLabel = "Kontroll förfaller";
+            } else if (daysUntilControl !== null && daysUntilControl < 0 && Math.abs(daysUntilControl) % 7 === 0) {
+              eventType = "control-overdue";
+              eventLabel = "Kontroll försenad";
+            }
+
+            if (eventType) {
+              const dateLabel = new Date(nextControlDate + "T12:00:00Z").toLocaleDateString("sv-SE", { timeZone: "Europe/Stockholm" });
+              const message = `Mätverktyg ${tool.toolNumber} – ${tool.description || tool.type} behöver lämnas till kontrollansvarig. Nästa kontrolldatum: ${dateLabel}.`;
+              controlRecipientIds.forEach((recipientId) => {
+                insertMeasuringToolNoticeOnce(
+                  recipientId,
+                  `measuring-tool:${tool._id}:${eventType}:${nextControlDate}:${recipientId}`,
+                  `${eventLabel}: mätverktyg ${tool.toolNumber}`,
+                  message
+                );
+              });
+              if (tool.reservation?.userId) {
+                insertMeasuringToolNoticeOnce(
+                  tool.reservation.userId,
+                  `measuring-tool:${tool._id}:${eventType}:${nextControlDate}:reserved:${tool.reservation.userId}`,
+                  `${eventLabel}: reserverat mätverktyg ${tool.toolNumber}`,
+                  message
+                );
+              }
+            }
+          }
+
+          const loan = tool.activeLoan;
+          const dueDate = String(loan?.dueDate || "").slice(0, 10);
+          if (loan?.borrowerId && /^\\d{4}-\\d{2}-\\d{2}$/.test(dueDate) && dueDate < today) {
+            const dateLabel = new Date(dueDate + "T12:00:00Z").toLocaleDateString("sv-SE", { timeZone: "Europe/Stockholm" });
+            insertMeasuringToolNoticeOnce(
+              loan.borrowerId,
+              `measuring-tool:${tool._id}:loan-overdue:${dueDate}:${loan.borrowerId}`,
+              `Försenad återlämning: mätverktyg ${tool.toolNumber}`,
+              `Återlämningsdatum för mätverktyg ${tool.toolNumber} (${tool.description || tool.type}) passerade ${dateLabel}. Vänligen lämna tillbaka verktyget.`
+            );
+          }
+        });
+
+        checkingMeasuringToolNotices = false;
+      });
+    });
+  });
+}
+
+// Kör vid serverstart och därefter varje timme.
+notifyMeasuringToolEvents();
+setInterval(notifyMeasuringToolEvents, 60 * 60 * 1000);
+
 /* ---------------- MÄTVERKTYG ENDPOINTS ---------------- */
 
 // Beräkna om nästa kontroll passerat. Datum hanteras som kalenderdatum i UTC.
