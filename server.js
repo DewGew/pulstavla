@@ -905,6 +905,108 @@ db.persistence.setAutocompactionInterval(5 * 60 * 1000 + 150000);
 const activitiesDB = new Datastore({ filename: "./db/activities.db", autoload: true });
 activitiesDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 180000);
 
+// Skicka en engångsavisering när en ansvarigs aktivitet passerar deadline.
+// Ansvarig i aktivitetsmodellen lagras som användarens visningsnamn.
+let checkingOverdueActivities = false;
+function notifyOverdueActivities() {
+  if (checkingOverdueActivities) return;
+  checkingOverdueActivities = true;
+
+  const today = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Europe/Stockholm",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+
+  activitiesDB.find({
+    done: { $ne: true },
+    deadline: { $exists: true, $ne: "" },
+    responsible: { $exists: true, $ne: "" },
+  }, (activityErr, activities) => {
+    if (activityErr) {
+      console.error("Kunde inte kontrollera aktivitetsdeadlines:", activityErr);
+      checkingOverdueActivities = false;
+      return;
+    }
+
+    let pending = activities.length;
+    if (!pending) {
+      checkingOverdueActivities = false;
+      return;
+    }
+
+    const finishOne = () => {
+      pending -= 1;
+      if (pending === 0) checkingOverdueActivities = false;
+    };
+
+    activities.forEach((activity) => {
+      const deadline = String(activity.deadline || "").slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(deadline) || deadline >= today) {
+        finishOne();
+        return;
+      }
+
+      usersDB.findOne({ name: activity.responsible }, (userErr, responsibleUser) => {
+        if (userErr || !responsibleUser) {
+          if (userErr) console.error("Kunde inte hitta ansvarig för aktivitet:", userErr);
+          finishOne();
+          return;
+        }
+
+        const previousNotice = activity.overdueNotification;
+        if (
+          previousNotice?.deadline === deadline &&
+          previousNotice?.recipientId === responsibleUser._id
+        ) {
+          finishOne();
+          return;
+        }
+
+        const createdAt = Date.now();
+        const dateLabel = new Date(deadline + "T00:00:00").toLocaleDateString("sv-SE", {
+          timeZone: "Europe/Stockholm",
+        });
+        const notification = {
+          recipientId: responsibleUser._id,
+          title: "Deadline passerad – aktivitet ej klar",
+          message: `Aktiviteten "${activity.title}" har passerat sin deadline (${dateLabel}) och är fortfarande inte markerad som klar. Vänligen gå in under Aktiviteter och uppdatera statusen.`,
+          priority: "important",
+          senderId: null,
+          senderName: "Pulstavla",
+          createdAt,
+          readAt: null,
+          source: "activity-deadline",
+          activityId: activity._id,
+        };
+
+        notificationsDB.insert(notification, (insertErr) => {
+          if (insertErr) {
+            console.error("Kunde inte skicka deadlineavisering:", insertErr);
+            finishOne();
+            return;
+          }
+
+          activitiesDB.update(
+            { _id: activity._id },
+            { $set: { overdueNotification: { deadline, recipientId: responsibleUser._id, sentAt: createdAt } } },
+            {},
+            (updateErr) => {
+              if (updateErr) console.error("Kunde inte spara status för deadlineavisering:", updateErr);
+              finishOne();
+            }
+          );
+        });
+      });
+    });
+  });
+}
+
+// Kontrollera direkt vid serverstart och därefter en gång i timmen.
+notifyOverdueActivities();
+const overdueActivityNotificationInterval = setInterval(notifyOverdueActivities, 60 * 60 * 1000);
+
 /* ---------------- WIDGETS DATABASE ---------------- */
 const widgetsDB = new Datastore({filename: "./db/widgets.db", autoload: true });
 widgetsDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 210000);
