@@ -65,6 +65,7 @@ export default function Notifications({ currentUser }) {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Kunde inte skicka meddelandet.");
       setStatus(`Meddelandet skickades till ${result.count} användare.`);
+      window.dispatchEvent(new Event("notificationsUpdated"));
       setTitle(""); setMessage(""); setRecipientIds([]); setSendToAll(false); setPriority("info"); setShowComposer(false);
     } catch (error) { setStatus(error.message); }
     finally { setBusy(false); }
