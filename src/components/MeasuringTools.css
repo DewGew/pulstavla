@@ -323,3 +323,42 @@
   max-width: min(260px, calc(100vw - 48px));
   box-sizing: border-box;
 }
+
+
+/* Modal för registrering och redigering av mätverktyg */
+.measuring-tool-form-modal {
+  width: min(760px, 100%);
+  box-sizing: border-box;
+}
+.measuring-tool-form-modal h3 { margin: 0 32px 18px 0; }
+.measuring-tool-form-modal .measuring-form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 18px;
+}
+.measuring-tool-form-modal .measuring-form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  font-weight: 600;
+}
+.measuring-tool-form-modal .measuring-form-grid input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--cell-radius);
+  background: var(--bg-cell);
+  color: var(--text);
+  font: inherit;
+}
+.measuring-tool-form-modal .measuring-form-grid small {
+  color: var(--muted-text);
+  font-weight: 400;
+}
+.measuring-tool-form-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 600px) {
+  .measuring-tool-form-modal { max-height: 90vh; padding: 20px 16px; }
+  .measuring-tool-form-modal .measuring-form-grid { grid-template-columns: 1fr; }
+}

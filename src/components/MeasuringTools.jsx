@@ -274,7 +274,6 @@ export default function MeasuringTools({ currentUser }) {
     });
     setEditingToolId(tool._id);
     setShowAdd(true);
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const saveControlAccess = async () => {
@@ -327,29 +326,13 @@ export default function MeasuringTools({ currentUser }) {
         <div><h2>Mätverktyg</h2><p>Verktygsregister, utlåning och återlämning</p></div>
         {(isAdmin || canRegisterControl) && <div className="measuring-header-actions">
           <button className="btn-secondary" onClick={() => setShowAccess((value) => !value)}>Behörighet kontroll</button>
-          <button className="btn-primary" onClick={() => { setEditingToolId(null); setForm({ ...emptyTool, toolNumber: nextSuggestedToolNumber }); setShowAdd((value) => !value); }}>{showAdd && !editingToolId ? "Stäng" : "＋ Registrera verktyg"}</button>
+          <button className="btn-primary" onClick={() => { setEditingToolId(null); setForm({ ...emptyTool, toolNumber: nextSuggestedToolNumber }); setShowAdd(true); }}>＋ Registrera verktyg</button>
         </div>}
       </div>
 
       {message && <div className="measuring-message" role="status">{message}<button onClick={() => setMessage("")} aria-label="Stäng">×</button></div>}
 
-      {(isAdmin || canRegisterControl) && showAdd && (
-        <form className="measuring-form" onSubmit={addTool}>
-          <h3>{editingToolId ? "Redigera mätverktyg" : "Nytt mätverktyg"}</h3>
-          <div className="measuring-form-grid">
-            <label>Verktygsnr<input required value={form.toolNumber} onChange={(e) => setForm({ ...form, toolNumber: e.target.value })} />{!editingToolId && <small>{nextSuggestedToolNumber ? `Nästa lediga nummer: ${nextSuggestedToolNumber}` : "Inga lediga nummer kvar i serien 1115-100–1115-999."}</small>}</label>
-            <label>Typ<input required value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} /></label>
-            <label>Benämning<input required value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
-            <label>Tillverkare<input value={form.manufacturer} onChange={(e) => setForm({ ...form, manufacturer: e.target.value })} /></label>
-            <label>Mätområde/Dimensioner<input value={form.range} onChange={(e) => setForm({ ...form, range: e.target.value })} /></label>
-            <label>Plats<input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} /></label>
-            <label>Kontrollintervall (dagar)<input type="number" min="0" value={form.controlInterval} onChange={(e) => setForm({ ...form, controlInterval: e.target.value })} /></label>
-            <label>Senaste kontrolldatum<input type="date" value={form.lastControlDate} onChange={(e) => setForm({ ...form, lastControlDate: e.target.value })} /></label>
-          </div>
-          <button className="btn-primary" type="submit">{editingToolId ? "Spara ändringar" : "Spara verktyg"}</button>
-          {editingToolId && <button className="btn-secondary" type="button" onClick={() => { setEditingToolId(null); setForm(emptyTool); setShowAdd(false); }}>Avbryt</button>}
-        </form>
-      )}
+
 
       {isAdmin && showAccess && (
         <section className="measuring-form">
@@ -524,6 +507,29 @@ export default function MeasuringTools({ currentUser }) {
       ) : <div className="measuring-empty-state"><strong>Inga verktyg hittades</strong><span>Prova att ändra sökningen eller välj ett annat filter.</span><button className="btn-secondary" onClick={() => { setSearch(""); setStatusFilter("Alla"); }}>Rensa sökning och filter</button></div>}
 
 
+
+      {(isAdmin || canRegisterControl) && showAdd && (
+        <div className="measuring-modal-backdrop" onClick={() => { setShowAdd(false); setEditingToolId(null); }}>
+          <form className="measuring-history measuring-tool-form-modal" onSubmit={addTool} onClick={(event) => event.stopPropagation()}>
+            <button type="button" className="measuring-close" onClick={() => { setShowAdd(false); setEditingToolId(null); }} aria-label="Stäng">×</button>
+            <h3>{editingToolId ? "Redigera mätverktyg" : "Registrera nytt mätverktyg"}</h3>
+            <div className="measuring-form-grid">
+              <label>Verktygsnr<input required value={form.toolNumber} onChange={(e) => setForm({ ...form, toolNumber: e.target.value })} />{!editingToolId && <small>{nextSuggestedToolNumber ? `Nästa lediga nummer: ${nextSuggestedToolNumber}` : "Inga lediga nummer kvar i serien 1115-100–1115-999."}</small>}</label>
+              <label>Typ<input required value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} /></label>
+              <label>Benämning<input required value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
+              <label>Tillverkare<input value={form.manufacturer} onChange={(e) => setForm({ ...form, manufacturer: e.target.value })} /></label>
+              <label>Mätområde/Dimensioner<input value={form.range} onChange={(e) => setForm({ ...form, range: e.target.value })} /></label>
+              <label>Plats<input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} /></label>
+              <label>Kontrollintervall (dagar)<input type="number" min="0" value={form.controlInterval} onChange={(e) => setForm({ ...form, controlInterval: e.target.value })} /></label>
+              <label>Senaste kontrolldatum<input type="date" value={form.lastControlDate} onChange={(e) => setForm({ ...form, lastControlDate: e.target.value })} /></label>
+            </div>
+            <div className="measuring-tool-form-actions">
+              <button className="btn-primary" type="submit">{editingToolId ? "Spara ändringar" : "Registrera verktyg"}</button>
+              <button className="btn-secondary" type="button" onClick={() => { setShowAdd(false); setEditingToolId(null); }}>Avbryt</button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {actionModal && <div className="measuring-modal-backdrop" onClick={() => setActionModal(null)}>
         <form className="measuring-history measuring-action-form" onSubmit={submitAction} onClick={(event) => event.stopPropagation()}>
