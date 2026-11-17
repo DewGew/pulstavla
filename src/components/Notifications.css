@@ -24,3 +24,22 @@
 .notification-item p { margin:0 0 .85rem; white-space:pre-wrap; overflow-wrap:anywhere; }
 .notification-item-footer { font-size:.85rem; color:var(--text-muted, #777); }
 @media (max-width:600px) { .notifications-page { padding:.5rem; } .notifications-header { align-items:flex-start; flex-direction:column; } .notifications-actions { width:100%; } .notification-item-top, .notification-item-footer { align-items:flex-start; flex-direction:column; } }
+
+
+.notifications-delete-read {
+  background: transparent;
+  border-color: #dc2626 !important;
+  color: #b91c1c;
+}
+.notifications-delete-read:hover {
+  background: #fef2f2;
+}
+.notification-item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  align-items: center;
+}
+@media (max-width: 600px) {
+  .notification-item-actions { width: 100%; }
+}
