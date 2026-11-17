@@ -1005,7 +1005,7 @@ function notifyOverdueActivities() {
 
 // Kontrollera direkt vid serverstart och därefter en gång i timmen.
 notifyOverdueActivities();
-const overdueActivityNotificationInterval = setInterval(notifyOverdueActivities, 60 * 60 * 1000);
+setInterval(notifyOverdueActivities, 60 * 60 * 1000);
 
 /* ---------------- WIDGETS DATABASE ---------------- */
 const widgetsDB = new Datastore({filename: "./db/widgets.db", autoload: true });
