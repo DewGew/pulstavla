@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useEffect, useCallback, useRef } from "react";
+import { lazy, Suspense, useState, useEffect, useCallback } from "react";
 import { useSettings } from "./components/SettingsContext";
 import Login from "./components/Login";
 import DashboardView from "./dashboard/DashboardView";
