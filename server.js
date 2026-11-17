@@ -1132,10 +1132,10 @@ function notifyMeasuringToolEvents() {
             if (daysUntilControl === 7) {
               eventType = "control-upcoming";
               eventLabel = "Kontroll närmar sig";
-            } else if (daysUntilControl === -1) {
+            } else if (daysUntilControl === 0) {
               eventType = "control-due";
-              eventLabel = "Kontroll förfaller";
-            } else if (daysUntilControl !== null && daysUntilControl <= -8 && (Math.abs(daysUntilControl) - 1) % 7 === 0) {
+              eventLabel = "Kontroll ska utföras idag";
+            } else if (daysUntilControl !== null && daysUntilControl < 0 && (Math.abs(daysUntilControl) - 1) % 7 === 0) {
               eventType = "control-overdue";
               eventLabel = "Kontroll försenad";
             }
