@@ -32,6 +32,12 @@ const T = {
     doneTag: " ✔ klar",
     goToActivities: "Gå till aktiviteter",
     noActivities: "Inga aktiviteter att visa",
+    myBorrowedTools: "Mina lånade mätverktyg",
+    myReservedTools: "Mina reserverade mätverktyg",
+    noBorrowedTools: "Du har inga mätverktyg utlånade.",
+    noReservedTools: "Du har inga mätverktyg reserverade.",
+    toolNumber: "Verktygsnr",
+    plannedReturn: "Återlämnas",
     profileUpdated: "✔️ Profil uppdaterad!",
     profileError: (err) => `❌ Fel: ${err}`,
     connectionError: "❌ Kunde inte ansluta till servern.",
@@ -81,6 +87,12 @@ const T = {
     doneTag: " ✔ done",
     goToActivities: "Go to activities",
     noActivities: "No activities to show",
+    myBorrowedTools: "My borrowed measuring tools",
+    myReservedTools: "My reserved measuring tools",
+    noBorrowedTools: "You have no borrowed measuring tools.",
+    noReservedTools: "You have no reserved measuring tools.",
+    toolNumber: "Tool no.",
+    plannedReturn: "Due back",
     profileUpdated: "✔️ Profile updated!",
     profileError: (err) => `❌ Error: ${err}`,
     connectionError: "❌ Could not connect to the server.",
@@ -119,6 +131,8 @@ export default function Profile({ user, setUser, setActiveTab }) {
   const [myTasks, setMyTasks] = useState([]);
   // Dölj klara aktiviteter som standard; användaren kan välja att visa dem.
   const [showDone, setShowDone] = useState(false);
+  const [myBorrowedTools, setMyBorrowedTools] = useState([]);
+  const [myReservedTools, setMyReservedTools] = useState([]);
   /* ---------------- HÄMTA MINA AKTIVITETER ---------------- */
   useEffect(() => {
     const loadTasks = async () => {
@@ -152,6 +166,36 @@ export default function Profile({ user, setUser, setActiveTab }) {
     else setMyTasks([]);
   }, [user.name]);
 
+  /* ---------------- HÄMTA MINA MÄTVERKTYG ---------------- */
+  useEffect(() => {
+    const loadMyMeasuringTools = async () => {
+      try {
+        const token = localStorage.getItem("token") || "";
+        const res = await apiFetch("/measuring-tools", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const tools = await res.json();
+        const userId = String(user._id || "");
+        setMyBorrowedTools(Array.isArray(tools)
+          ? tools.filter((tool) => String(tool.activeLoan?.borrowerId || "") === userId)
+          : []);
+        setMyReservedTools(Array.isArray(tools)
+          ? tools.filter((tool) => String(tool.reservation?.userId || "") === userId)
+          : []);
+      } catch (err) {
+        console.error("Kunde inte hämta användarens mätverktyg:", err);
+        setMyBorrowedTools([]);
+        setMyReservedTools([]);
+      }
+    };
+    if (user._id) loadMyMeasuringTools();
+    else {
+      setMyBorrowedTools([]);
+      setMyReservedTools([]);
+    }
+  }, [user._id]);
+
   useEffect(() => {
     setName(user.name || "");
     setEmail(user.email || "");
@@ -164,6 +208,13 @@ export default function Profile({ user, setUser, setActiveTab }) {
   const formatCreatedAt = (createdAt) => {
     if (!createdAt) return "";
     const date = new Date(createdAt);
+    return Number.isNaN(date.getTime())
+      ? ""
+      : date.toLocaleDateString(lang === "sv" ? "sv-SE" : "en-GB");
+  };
+  const formatToolDate = (value) => {
+    if (!value) return "";
+    const date = new Date(value);
     return Number.isNaN(date.getTime())
       ? ""
       : date.toLocaleDateString(lang === "sv" ? "sv-SE" : "en-GB");
@@ -321,6 +372,43 @@ export default function Profile({ user, setUser, setActiveTab }) {
                 {t.goToActivities}
               </button>
             </p>
+          )}
+        </div>
+      </div>
+
+      {/* MINA MÄTVERKTYG */}
+      <div className="profile-section">
+        <div className="my-task-list">
+          <h3>{t.myBorrowedTools}</h3>
+          {myBorrowedTools.length > 0 ? (
+            <ul className="task-ul-no-bullets">
+              {myBorrowedTools.map((tool) => (
+                <li key={tool._id} className="my-task-item">
+                  <strong>{tool.toolNumber} – {tool.description || tool.type}{tool.manufacturer ? ` · ${tool.manufacturer}` : ""}</strong>
+                  <div className="my-task-meta">
+                    {tool.activeLoan?.dueDate && (
+                      <span>{t.plannedReturn}: {formatToolDate(tool.activeLoan.dueDate)}</span>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="empty">{t.noBorrowedTools}</p>
+          )}
+        </div>
+        <div className="my-task-list profile-tool-list">
+          <h3>{t.myReservedTools}</h3>
+          {myReservedTools.length > 0 ? (
+            <ul className="task-ul-no-bullets">
+              {myReservedTools.map((tool) => (
+                <li key={tool._id} className="my-task-item">
+                  <strong>{tool.toolNumber} – {tool.description || tool.type}{tool.manufacturer ? ` · ${tool.manufacturer}` : ""}</strong>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="empty">{t.noReservedTools}</p>
           )}
         </div>
       </div>
