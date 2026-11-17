@@ -281,6 +281,10 @@ const settingsDB = new Datastore({
 });
 settingsDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 60000);
 
+/* ---------------- NOTIFICATIONS DATABASE ---------------- */
+const notificationsDB = new Datastore({ filename: "./db/notifications.db", autoload: true });
+notificationsDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 65000);
+
 
 // Läs inställningar som objekt för interna funktioner.
 // autoLogin filtreras alltid bort eftersom den gamla funktionen är avvecklad.
@@ -448,6 +452,102 @@ app.put("/settings/:key", requireAuth, requireAdmin, (req, res) => {
 
       io.emit("settingsUpdated", { key, value });
       res.json({ success: true, key, value });
+    }
+  );
+});
+
+/* ---------------- GENERELLA MEDDELANDEN / AVISERINGAR ---------------- */
+
+// Hämta den inloggade användarens inkorg.
+app.get("/notifications", requireAuth, (req, res) => {
+  notificationsDB.find({ recipientId: req.user.id }).sort({ createdAt: -1 }).exec((err, messages) => {
+    if (err) return res.status(500).json({ error: "Kunde inte läsa meddelanden." });
+    res.json(messages);
+  });
+});
+
+// Antal olästa meddelanden till menyindikatorn.
+app.get("/notifications/unread-count", requireAuth, (req, res) => {
+  notificationsDB.count({ recipientId: req.user.id, readAt: null }, (err, count) => {
+    if (err) return res.status(500).json({ error: "Kunde inte läsa aviseringar." });
+    res.json({ count });
+  });
+});
+
+// Administratörer får en begränsad lista över mottagare.
+app.get("/notifications/users", requireAuth, requireAdmin, (req, res) => {
+  usersDB.find({}, (err, users) => {
+    if (err) return res.status(500).json({ error: "Kunde inte läsa användare." });
+    res.json(users.filter((u) => u.role !== "view").map(({ _id, username, name }) => ({ _id, username, name })));
+  });
+});
+
+// Skicka ett internt meddelande till valda användare eller alla användare.
+app.post("/notifications", requireAuth, requireAdmin, (req, res) => {
+  const title = typeof req.body.title === "string" ? req.body.title.trim() : "";
+  const message = typeof req.body.message === "string" ? req.body.message.trim() : "";
+  const priority = ["info", "important", "urgent"].includes(req.body.priority) ? req.body.priority : "info";
+  const recipientIds = Array.isArray(req.body.recipientIds) ? [...new Set(req.body.recipientIds.filter((id) => typeof id === "string" && id))] : [];
+  const sendToAll = req.body.sendToAll === true;
+
+  if (!title || title.length > 120 || !message || message.length > 4000) {
+    return res.status(400).json({ error: "Ange rubrik och meddelande (max 120 respektive 4000 tecken)." });
+  }
+  if (!sendToAll && recipientIds.length === 0) {
+    return res.status(400).json({ error: "Välj minst en mottagare." });
+  }
+
+  const findRecipients = (callback) => {
+    if (sendToAll) {
+      usersDB.find({ role: { $ne: "view" } }, (err, users) => callback(err, users || []));
+    } else {
+      usersDB.find({ _id: { $in: recipientIds } }, (err, users) => callback(err, users || []));
+    }
+  };
+
+  findRecipients((err, users) => {
+    if (err) return res.status(500).json({ error: "Kunde inte hitta mottagare." });
+    if (!users.length) return res.status(400).json({ error: "Inga giltiga mottagare hittades." });
+    const createdAt = Date.now();
+    const docs = users.map((recipient) => ({
+      recipientId: recipient._id,
+      title,
+      message,
+      priority,
+      senderId: req.user.id,
+      senderName: req.user.name || req.user.username,
+      createdAt,
+      readAt: null,
+    }));
+    notificationsDB.insert(docs, (insertErr, inserted) => {
+      if (insertErr) return res.status(500).json({ error: "Kunde inte spara meddelandet." });
+      res.status(201).json({ success: true, count: inserted.length });
+    });
+  });
+});
+
+// Markera ett meddelande som läst – endast mottagaren kan ändra det.
+app.patch("/notifications/:id/read", requireAuth, (req, res) => {
+  notificationsDB.update(
+    { _id: req.params.id, recipientId: req.user.id, readAt: null },
+    { $set: { readAt: Date.now() } },
+    {},
+    (err, changed) => {
+      if (err) return res.status(500).json({ error: "Kunde inte uppdatera meddelandet." });
+      if (!changed) return res.status(404).json({ error: "Meddelandet hittades inte eller är redan läst." });
+      res.json({ success: true });
+    }
+  );
+});
+
+app.patch("/notifications/read-all", requireAuth, (req, res) => {
+  notificationsDB.update(
+    { recipientId: req.user.id, readAt: null },
+    { $set: { readAt: Date.now() } },
+    { multi: true },
+    (err, changed) => {
+      if (err) return res.status(500).json({ error: "Kunde inte uppdatera meddelandena." });
+      res.json({ success: true, count: changed });
     }
   );
 });
