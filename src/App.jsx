@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useEffect, useCallback } from "react";
+import { lazy, Suspense, useState, useEffect, useCallback, useRef } from "react";
 import { useSettings } from "./components/SettingsContext";
 import Login from "./components/Login";
 import DashboardView from "./dashboard/DashboardView";
@@ -47,6 +47,8 @@ export default function App() {
   const [openMenu, setOpenMenu] = useState(false);
   const [imageExists, setImageExists] = useState(true);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [notificationAttention, setNotificationAttention] = useState(false);
+  const [notificationToast, setNotificationToast] = useState(false);
   
   /* ------------------- FULLSCREEN ------------------- */
 	const [isFullscreen, setIsFullscreen] = useState(
@@ -142,13 +144,22 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
     let active = true;
+    let previousCount = null;
     const loadUnread = async () => {
       try {
         const token = localStorage.getItem("token");
         const response = await fetch(`${API_URL}/notifications/unread-count`, { headers: { Authorization: `Bearer ${token}` } });
         if (response.ok) {
           const data = await response.json();
-          if (active) setUnreadNotifications(Number(data.count) || 0);
+          const count = Number(data.count) || 0;
+          if (active) {
+            setUnreadNotifications(count);
+            if (previousCount !== null && count > previousCount) {
+              setNotificationAttention(true);
+              setNotificationToast(true);
+            }
+            previousCount = count;
+          }
         }
       } catch (error) { console.warn("Kunde inte hämta olästa meddelanden:", error.message); }
     };
@@ -428,13 +439,16 @@ return (
           </div>
         )}
         <button
-          className={activeTab === "notifications" ? "active" : ""}
+          className={`notification-nav-button ${activeTab === "notifications" ? "active" : ""} ${notificationAttention && unreadNotifications > 0 ? "has-new-notifications" : ""}`}
           onClick={() => {
             setActiveTab("notifications");
             setOpenMenu(false);
+            setNotificationAttention(false);
+            setNotificationToast(false);
           }}
         >
-          Meddelanden{unreadNotifications > 0 ? ` (${unreadNotifications})` : ""}
+          <span>Meddelanden</span>
+          {unreadNotifications > 0 && <span className="notification-count-badge">{unreadNotifications > 99 ? "99+" : unreadNotifications}</span>}
         </button>
 
         <button className="theme-toggle" onClick={toggleTheme}>
@@ -451,6 +465,21 @@ return (
       </nav>
     </header>
 
+    {notificationToast && unreadNotifications > 0 && activeTab !== "notifications" && (
+      <div className="new-notification-toast" role="alert">
+        <span className="new-notification-toast-icon" aria-hidden="true">✉</span>
+        <div className="new-notification-toast-copy">
+          <strong>Du har fått ett nytt meddelande</strong>
+          <span>Du har {unreadNotifications} oläst{unreadNotifications === 1 ? " meddelande" : "a meddelanden"}.</span>
+        </div>
+        <button type="button" onClick={() => {
+          setActiveTab("notifications");
+          setNotificationAttention(false);
+          setNotificationToast(false);
+        }}>Visa</button>
+        <button type="button" className="new-notification-toast-close" aria-label="Stäng avisering" onClick={() => setNotificationToast(false)}>×</button>
+      </div>
+    )}
     {/* Main Content */}
     <main className="content">
 	
