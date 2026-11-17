@@ -73,18 +73,6 @@ export default function App() {
 	  return () => document.removeEventListener("fullscreenchange", handleChange);
 	}, []);
   
-  const [navPosition, setNavPosition] = useState(
-	  localStorage.getItem("navPosition") || "top" // "top" eller "side"
-	);
-
-	useEffect(() => {
-	  localStorage.setItem("navPosition", navPosition);
-	}, [navPosition]);
-
-	function toggleNavPosition() {
-	  setNavPosition(prev => (prev === "top" ? "side" : "top"));
-	}
-
   /* ------------------- THEME ------------------- */
   const [theme, setTheme] = useState(
     localStorage.getItem("theme") || "light"
@@ -255,10 +243,6 @@ export default function App() {
   // Behandla därför stora Android-skärmar separat från äkta desktop-4K.
   const isAndroidLargeScreen = /Android/i.test(navigator.userAgent) && window.screen.width >= 1200;
 
-	/* ------------------- ORIENTATION / PAGINATION ------------------- */
-	const [isPortrait, setIsPortrait] = useState(
-	  window.matchMedia("(orientation: portrait)").matches
-	);
 	const [is4K, setIs4K] = useState(
 	  (!isAndroidLargeScreen && window.matchMedia("(min-width: 3200px)").matches)
 	);
@@ -268,41 +252,28 @@ export default function App() {
 	);
 
 	useEffect(() => {
-	  const orientationMedia = window.matchMedia("(orientation: portrait)");
 	  const fourKMedia = window.matchMedia("(min-width: 3200px)");
 	  const desktop4KMedia = window.matchMedia("(min-width: 2560px)");
 
-	  const handleOrientation = (e) => setIsPortrait(e.matches);
 	  const handle4K = (e) => setIs4K(!isAndroidLargeScreen && e.matches);
 	  const handleDesktop4K = (e) => setIsDesktop4K(!isAndroidLargeScreen && e.matches);
 
-	  orientationMedia.addEventListener("change", handleOrientation);
 	  fourKMedia.addEventListener("change", handle4K);
 	  desktop4KMedia.addEventListener("change", handleDesktop4K);
 
 	  return () => {
-		orientationMedia.removeEventListener("change", handleOrientation);
 		fourKMedia.removeEventListener("change", handle4K);
 		desktop4KMedia.removeEventListener("change", handleDesktop4K);
 	  };
 	}, []);
 
-	// FIX: i porträttläge är knappen för att växla menyläge dold (se
-	// {!isPortrait && ...} i navigeringen), så utan detta kunde en
-	// användare fastna i sidomenyn om skärmen roterades till stående
-	// medan "side" redan var valt. Tvingar alltid tillbaka till toppmeny.
-	useEffect(() => {
-	  if (isPortrait && navPosition !== "top") {
-		setNavPosition("top");
-	  }
-	}, [isPortrait, navPosition]);
   /* ------------------- LOADING / LOGIN SCREENS ------------------- */
   if (loading) return <div>Laddar inställningar…</div>;
   if (!user) return <Login onLogin={handleLogin} />;
 
   /* ------------------- DASHBOARD ------------------- */
 return (
-  <div className={`app ${navPosition}${isAndroidLargeScreen ? " android-large-screen" : ""}${is4K ? " ultra4k" : ""}`}>
+
     {/* Topbar / Sidebar */}
     <header className="dashboard">
 		<h1 className="logo">
@@ -392,15 +363,6 @@ return (
             {openMenu && (
               <div className="nav-dropdown-menu">
                 <button
-                  className={activeTab === "notifications" ? "active" : ""}
-                  onClick={() => {
-                    setActiveTab("notifications");
-                    setOpenMenu(false);
-                  }}
-                >
-                  Meddelanden{unreadNotifications > 0 ? ` (${unreadNotifications})` : ""}
-                </button>
-                <button
                   className={activeTab === "orders" ? "active" : ""}
                   onClick={() => {
                     setActiveTab("orders");
@@ -465,23 +427,15 @@ return (
             )}
           </div>
         )}
-        {user?.role === "view" && (
-          <div className="nav-dropdown">
-            <button className="nav-dropdown-button" onClick={() => setOpenMenu(!openMenu)}>
-              Mer ▾
-            </button>
-            {openMenu && (
-              <div className="nav-dropdown-menu">
-                <button
-                  className={activeTab === "notifications" ? "active" : ""}
-                  onClick={() => { setActiveTab("notifications"); setOpenMenu(false); }}
-                >
-                  Meddelanden{unreadNotifications > 0 ? ` (${unreadNotifications})` : ""}
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+        <button
+          className={activeTab === "notifications" ? "active" : ""}
+          onClick={() => {
+            setActiveTab("notifications");
+            setOpenMenu(false);
+          }}
+        >
+          Meddelanden{unreadNotifications > 0 ? ` (${unreadNotifications})` : ""}
+        </button>
 
         <button className="theme-toggle" onClick={toggleTheme}>
           {theme === "light" ? "🌙 Mörkt läge" : "☀️ Ljust läge"}
@@ -491,13 +445,6 @@ return (
 			  {isFullscreen ? "🡼 Avsluta helskärm" : "⛶ Helskärm"}
 			</button>
 		)}
-        {/* NY: växla nav-läge */}
-		{!isPortrait && !is4K && (
-			<button className="theme-toggle" onClick={toggleNavPosition}>
-			  {navPosition === "top" ? "⬅️ Sidomeny" : "⬆️ Toppmeny"}
-			</button>
-		)}
-
         <button className="theme-toggle" onClick={logout}>
           Logga ut
         </button>
