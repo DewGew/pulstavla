@@ -34,7 +34,7 @@ const T = {
     noActivities: "Inga aktiviteter att visa",
     myBorrowedTools: "Mina lånade mätverktyg",
     myReservedTools: "Mina reserverade mätverktyg",
-    noBorrowedTools: "Du har inga mätverktyg utlånade.",
+    noBorrowedTools: "Du har inga lånade mätverktyg.",
     noReservedTools: "Du har inga mätverktyg reserverade.",
     toolNumber: "Verktygsnr",
     plannedReturn: "Återlämnas",
