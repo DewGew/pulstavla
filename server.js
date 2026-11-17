@@ -1386,7 +1386,9 @@ app.post("/measuring-tools/:id/control", requireAuth, requireMeasuringControlAcc
       $set: {
         lastControlDate: date,
         controlBlocked: result !== "Godkänd",
-        ...(terminalStatus ? { status: terminalStatus } : {}),
+        // En ny kontroll kan återaktivera ett tidigare skrotat eller saknat verktyg.
+        // Underkänd kontroll återställer statusen men behåller utlåningsspärren.
+        status: terminalStatus || (["Skrotad", "Saknad"].includes(tool.status) ? "Disponibel" : tool.status),
         updatedAt: Date.now(),
       },
       $push: { controlHistory: entry },
