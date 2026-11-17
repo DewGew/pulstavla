@@ -54,6 +54,29 @@ export default function Notifications({ currentUser }) {
     } catch (error) { setStatus(error.message); }
   };
 
+  const deleteReadMessage = async (id) => {
+    if (!window.confirm("Vill du ta bort det här lästa meddelandet?")) return;
+    try {
+      const response = await apiFetch(`/notifications/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Kunde inte ta bort meddelandet.");
+      setMessages((items) => items.filter((item) => item._id !== id));
+      setStatus("Meddelandet har tagits bort.");
+    } catch (error) { setStatus(error.message); }
+  };
+
+  const deleteAllReadMessages = async () => {
+    const count = messages.filter((item) => item.readAt).length;
+    if (!count || !window.confirm(`Vill du ta bort alla ${count} lästa meddelanden? Olästa meddelanden påverkas inte.`)) return;
+    try {
+      const response = await apiFetch("/notifications/read", { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Kunde inte ta bort lästa meddelanden.");
+      setMessages((items) => items.filter((item) => !item.readAt));
+      setStatus(`${result.count || 0} lästa meddelanden har tagits bort.`);
+    } catch (error) { setStatus(error.message); }
+  };
+
   const sendMessage = async (event) => {
     event.preventDefault(); setBusy(true); setStatus("");
     try {
@@ -76,6 +99,7 @@ export default function Notifications({ currentUser }) {
       <div><h2>Meddelanden</h2><p>Din inkorg för interna meddelanden och aviseringar.</p></div>
       <div className="notifications-actions">
         {messages.some((item) => !item.readAt) && <button type="button" className="notifications-secondary" onClick={markAllRead}>Markera alla som lästa</button>}
+        {messages.some((item) => item.readAt) && <button type="button" className="notifications-delete-read" onClick={deleteAllReadMessages}>Ta bort lästa ({messages.filter((item) => item.readAt).length})</button>}
         {isAdmin && <button type="button" onClick={() => setShowComposer((value) => !value)}>{showComposer ? "Stäng" : "Nytt meddelande"}</button>}
       </div>
     </div>
@@ -95,7 +119,7 @@ export default function Notifications({ currentUser }) {
       {messages.length === 0 ? <div className="notifications-empty">Du har inga meddelanden.</div> : messages.map((item) => <article key={item._id} className={`notification-item ${item.readAt ? "is-read" : "is-unread"} priority-${item.priority}`}>
         <div className="notification-item-top"><span className="notification-priority">{priorityLabels[item.priority] || "Information"}</span><time>{formatDate(item.createdAt)}</time></div>
         <h3>{item.title}</h3><p>{item.message}</p>
-        <div className="notification-item-footer"><span>Från: {item.senderName || "Pulstavlan"}</span>{!item.readAt && <button type="button" className="notifications-secondary" onClick={() => markRead(item._id)}>Markera som läst</button>}</div>
+        <div className="notification-item-footer"><span>Från: {item.senderName || "Pulstavlan"}</span><div className="notification-item-actions">{!item.readAt && <button type="button" className="notifications-secondary" onClick={() => markRead(item._id)}>Markera som läst</button>}{!!item.readAt && <button type="button" className="notifications-delete-read" onClick={() => deleteReadMessage(item._id)}>Ta bort</button>}</div></div>
       </article>)}
     </div>
   </section>;
