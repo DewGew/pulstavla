@@ -552,6 +552,30 @@ app.patch("/notifications/read-all", requireAuth, (req, res) => {
   );
 });
 
+// Mottagaren kan endast radera sina egna meddelanden som redan är lästa.
+app.delete("/notifications/read", requireAuth, (req, res) => {
+  notificationsDB.remove(
+    { recipientId: req.user.id, readAt: { $ne: null } },
+    { multi: true },
+    (err, removed) => {
+      if (err) return res.status(500).json({ error: "Kunde inte ta bort lästa meddelanden." });
+      res.json({ success: true, count: removed });
+    }
+  );
+});
+
+app.delete("/notifications/:id", requireAuth, (req, res) => {
+  notificationsDB.remove(
+    { _id: req.params.id, recipientId: req.user.id, readAt: { $ne: null } },
+    {},
+    (err, removed) => {
+      if (err) return res.status(500).json({ error: "Kunde inte ta bort meddelandet." });
+      if (!removed) return res.status(404).json({ error: "Meddelandet hittades inte eller är inte läst." });
+      res.json({ success: true });
+    }
+  );
+});
+
 // Endpoint för att lista dokumenten
 app.get("/documents", requireAuth, (req, res) => {
   const dir = path.resolve("docs");
