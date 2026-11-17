@@ -439,7 +439,7 @@ export default function MeasuringTools({ currentUser }) {
                   )}
                   <div className="measuring-card-control">
                     <div><span>Nästa kontroll</span><strong className={overdue ? "measuring-overdue" : ""}>{next ? dateLabel(next.toISOString().slice(0, 10)) : "Ej registrerad"}</strong></div>
-                    {blocked && <p className="measuring-card-warning">{overdue ? "Kontrolldatumet har passerat – verktyget får inte lånas." : "Verktyget är spärrat efter underkänd kontroll."}</p>}
+                    {blocked && <p className="measuring-card-warning">{overdue ? "Kontrolldatumet har passerat – verktyget får inte användas." : "Verktyget är spärrat efter underkänd kontroll."}</p>}
                   </div>
                   {tool.status === "Utlånad" && (
                     <div className="measuring-card-loan">
