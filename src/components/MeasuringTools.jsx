@@ -162,7 +162,14 @@ export default function MeasuringTools({ currentUser }) {
   const openActionModal = (tool, mode) => {
     setBorrowerId(currentUser?._id || users[0]?._id || "");
     setReservationUserId("");
-    setDueDate("");
+    const defaultDueDate = new Date();
+    defaultDueDate.setDate(defaultDueDate.getDate() + 1);
+    const defaultDueDateValue = [
+      defaultDueDate.getFullYear(),
+      String(defaultDueDate.getMonth() + 1).padStart(2, "0"),
+      String(defaultDueDate.getDate()).padStart(2, "0"),
+    ].join("-");
+    setDueDate(mode === "checkout" ? defaultDueDateValue : "");
     setActionModal({ tool, mode });
   };
 
