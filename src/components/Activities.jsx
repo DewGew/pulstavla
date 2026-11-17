@@ -188,7 +188,7 @@ export default function Activities() {
       setNewTask({
         title: "",
         category: "Övrigt",
-        deadline: "",
+        deadline: getDefaultActivityDeadline(),
         responsible: "",
         description: "",
         sticky: false,
@@ -436,7 +436,7 @@ export default function Activities() {
             setNewTask({
               title: "",
               category: "Övrigt",
-              deadline: "",
+              deadline: getDefaultActivityDeadline(),
               responsible: "",
               description: "",
               sticky: false,
