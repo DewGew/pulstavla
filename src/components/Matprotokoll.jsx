@@ -80,7 +80,7 @@ const T = {
     tableHeaders: [
       "Mätpunkt", "Nominellt mått", "Tolerans",
       "Detalj 1", "Detalj 2", "Detalj 3", "Detalj 4", "Detalj 5",
-      "Bedömning", "Mätinstrument", "Kommentar", "",
+      "Kontrollmetod", "Bedömning", "Mätinstrument", "Kommentar", "",
     ],
     ph: {
       mätpunkt: "t.ex. A1 el. #1",
@@ -154,7 +154,7 @@ const T = {
     tableHeaders: [
       "Point", "Nominal size", "Tolerance",
       "Piece 1", "Piece 2", "Piece 3", "Piece 4", "Piece 5",
-      "Assessment", "Instrument", "Comment", "",
+      "Inspection method", "Assessment", "Instrument", "Comment", "",
     ],
     ph: {
       mätpunkt: "e.g. A1 or #1",
@@ -247,6 +247,10 @@ const getMeasurementStatus = (row, field) => {
 
 const emptyMeasurement = (nr = 1) => ({
   mätpunkt: String(nr),
+  kontrollmetod: "dimension",
+  gangtolkResultat: "",
+  goResultat: "",
+  noGoResultat: "",
   dimensionskrav: "",
   plustolerans: "",
   resultat_1: "",
@@ -537,9 +541,14 @@ export default function Matprotokoll() {
       row.resultat_3 || "",
       row.resultat_4 || "",
       row.resultat_5 || "",
-      ["resultat_1", "resultat_2", "resultat_3", "resultat_4", "resultat_5"]
-        .map((field, i) => row[field] ? `D${i + 1}: ${getMeasurementStatus(row, field) || "Ej bedömd"}` : "")
-        .filter(Boolean).join("\n") || "Ej bedömd",
+      row.kontrollmetod === "thread-gauge" ? "Gängtolk" : row.kontrollmetod === "go-no-go" ? "GO/NO-GO-tolk" : "Dimensionsmätning",
+      row.kontrollmetod === "thread-gauge"
+        ? (row.gangtolkResultat === "pass" ? "Godkänd" : row.gangtolkResultat === "fail" ? "Underkänd" : "Ej bedömd")
+        : row.kontrollmetod === "go-no-go"
+          ? (row.goResultat === "yes" && row.noGoResultat === "no" ? "Godkänd" : row.goResultat === "no" || row.noGoResultat === "yes" ? "Underkänd" : "Ej bedömd")
+          : (["resultat_1", "resultat_2", "resultat_3", "resultat_4", "resultat_5"]
+              .map((field, i) => row[field] ? `D${i + 1}: ${getMeasurementStatus(row, field) || "Ej bedömd"}` : "")
+              .filter(Boolean).join("\n") || "Ej bedömd"),
       [row.matinstrument, row.matinstrumentSnapshot?.lastControlDate ? `Senast kontroll: ${row.matinstrumentSnapshot.lastControlDate}` : "", row.matinstrumentSnapshot?.controlBlocked ? "SPÄRRAT VID VAL" : ""]
         .filter(Boolean).join("\n"),
       row.kommentar || "",
@@ -551,7 +560,7 @@ export default function Matprotokoll() {
       head: [[
         "Mätpunkt", "Nominellt mått", "Tolerans",
         "Detalj 1", "Detalj 2", "Detalj 3", "Detalj 4", "Detalj 5",
-        "Bedömning", "Mätinstrument", "Kommentar",
+        "Kontrollmetod", "Bedömning", "Mätinstrument", "Kommentar",
       ]],
       body: rows,
       styles: { fontSize: 8, cellPadding: 2, valign: "middle" },
@@ -564,8 +573,8 @@ export default function Matprotokoll() {
       columnStyles: {
         0: { cellWidth: 20 }, 1: { cellWidth: 20 }, 2: { cellWidth: 20 },
         3: { cellWidth: 20 }, 4: { cellWidth: 20 }, 5: { cellWidth: 20 },
-        6: { cellWidth: 18 }, 7: { cellWidth: 18 }, 8: { cellWidth: 28 },
-        9: { cellWidth: 32 }, 10: { cellWidth: "auto", minCellWidth: 35 },
+        6: { cellWidth: 18 }, 7: { cellWidth: 18 }, 8: { cellWidth: 25 },
+        9: { cellWidth: 28 }, 10: { cellWidth: 30 }, 11: { cellWidth: "auto", minCellWidth: 35 },
       },
       didDrawPage: () => {
         addPDFFooter(doc, settings);
@@ -940,7 +949,7 @@ export default function Matprotokoll() {
 
       {/* ---------------- MEASUREMENTS ---------------- */}
       <h3>{t.mätpunkter}</h3>
-      <div className="mätprotokoll-hint">Tolerans anges som ±0,05 eller +0,05/-0,02. Mätvärden bedöms automatiskt när nominellt mått och tolerans kan tolkas.</div>
+      <div className="mätprotokoll-hint">Välj kontrollmetod per mätpunkt. Dimensionsmätning bedöms mot tolerans, gängtolk bedöms som godkänd/underkänd och GO/NO-GO-tolk kräver att GO går igenom och NO-GO inte går igenom.</div>
 
       <div className="mätprotokoll-table-wrapper" style={{ overflowX: "auto", marginBottom: "15px" }}>
         <table
@@ -981,16 +990,44 @@ export default function Matprotokoll() {
                   </td>
                 ))}
 
-                <td style={{ padding: "4px", minWidth: "110px" }}>
-                  {["resultat_1", "resultat_2", "resultat_3", "resultat_4", "resultat_5"].map((field, i) => {
-                    if (!row[field]) return null;
-                    const status = getMeasurementStatus(row, field);
-                    return (
-                      <div key={field} style={{ whiteSpace: "nowrap", fontWeight: 600, color: status === "Godkänd" ? "#15803d" : status === "Underkänd" ? "#b91c1c" : "var(--text)" }}>
-                        D{i + 1}: {status || "Ej bedömd"}
-                      </div>
-                    );
-                  })}
+                <td style={{ padding: "4px", minWidth: "145px" }}>
+                  <select value={row.kontrollmetod || "dimension"} onChange={(e) => updateMeasurement(index, "kontrollmetod", e.target.value)} style={{ width: "100%" }}>
+                    <option value="dimension">Dimensionsmätning</option>
+                    <option value="thread-gauge">Gängtolk</option>
+                    <option value="go-no-go">GO/NO-GO-tolk</option>
+                  </select>
+                </td>
+                <td style={{ padding: "4px", minWidth: "150px" }}>
+                  {row.kontrollmetod === "thread-gauge" ? (
+                    <>
+                      <select value={row.gangtolkResultat || ""} onChange={(e) => updateMeasurement(index, "gangtolkResultat", e.target.value)} style={{ width: "100%" }}>
+                        <option value="">Välj resultat…</option>
+                        <option value="pass">Godkänd – tolken uppfyller kravet</option>
+                        <option value="fail">Underkänd</option>
+                      </select>
+                      {row.gangtolkResultat && <strong style={{ color: row.gangtolkResultat === "pass" ? "#15803d" : "#b91c1c" }}>{row.gangtolkResultat === "pass" ? "Godkänd" : "Underkänd"}</strong>}
+                    </>
+                  ) : row.kontrollmetod === "go-no-go" ? (
+                    <>
+                      <label style={{ display: "block", fontSize: "0.8rem" }}>GO-sida
+                        <select value={row.goResultat || ""} onChange={(e) => updateMeasurement(index, "goResultat", e.target.value)} style={{ width: "100%" }}>
+                          <option value="">Välj…</option><option value="yes">Går igenom</option><option value="no">Går inte igenom</option>
+                        </select>
+                      </label>
+                      <label style={{ display: "block", fontSize: "0.8rem" }}>NO-GO-sida
+                        <select value={row.noGoResultat || ""} onChange={(e) => updateMeasurement(index, "noGoResultat", e.target.value)} style={{ width: "100%" }}>
+                          <option value="">Välj…</option><option value="yes">Går igenom</option><option value="no">Går inte igenom</option>
+                        </select>
+                      </label>
+                      {(row.goResultat || row.noGoResultat) && <strong style={{ color: row.goResultat === "yes" && row.noGoResultat === "no" ? "#15803d" : row.goResultat === "no" || row.noGoResultat === "yes" ? "#b91c1c" : "var(--text)" }}>{row.goResultat === "yes" && row.noGoResultat === "no" ? "Godkänd" : row.goResultat === "no" || row.noGoResultat === "yes" ? "Underkänd" : "Ej bedömd"}</strong>}
+                    </>
+                  ) : (
+                    ["resultat_1", "resultat_2", "resultat_3", "resultat_4", "resultat_5"].map((field, i) => {
+                      if (!row[field]) return null;
+                      const status = getMeasurementStatus(row, field);
+                      return <div key={field} style={{ whiteSpace: "nowrap", fontWeight: 600, color: status === "Godkänd" ? "#15803d" : status === "Underkänd" ? "#b91c1c" : "var(--text)" }}>D{i + 1}: {status || "Ej bedömd"}</div>;
+                    })
+                  )}
                 </td>
 
                 {/* Mätinstrument - dropdown. Sparat värde alltid svenskt,
