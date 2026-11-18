@@ -91,6 +91,7 @@ const T = {
     },
     valjInstrument: "Välj instrument…",
     addMeasurement: "➕ Lägg till mätpunkt",
+    newReport: "🆕 Nytt protokoll",
     saveDraft: "💾 Spara utkast",
     saving: "Sparar…",
     openSaved: "📂 Öppna sparat protokoll",
@@ -164,6 +165,7 @@ const T = {
     },
     valjInstrument: "Select instrument…",
     addMeasurement: "➕ Add measurement point",
+    newReport: "🆕 New report",
     saveDraft: "💾 Save draft",
     saving: "Saving…",
     openSaved: "📂 Open saved report",
@@ -490,7 +492,7 @@ export default function Matprotokoll() {
 
     doc.setFontSize(8);
     doc.text(`Dokument: Mätprotokoll`, pageWidth - 15, 22, { align: "right" });
-    doc.text(`Rev: 4`, pageWidth - 15, 27, { align: "right" });
+    doc.text(`Rev: ${form.revision || "5"}`, pageWidth - 15, 27, { align: "right" });
 
     /* ---------------- INFORMATION ---------------- */
     autoTable(doc, {
@@ -979,6 +981,18 @@ export default function Matprotokoll() {
                   </td>
                 ))}
 
+                <td style={{ padding: "4px", minWidth: "110px" }}>
+                  {["resultat_1", "resultat_2", "resultat_3", "resultat_4", "resultat_5"].map((field, i) => {
+                    if (!row[field]) return null;
+                    const status = getMeasurementStatus(row, field);
+                    return (
+                      <div key={field} style={{ whiteSpace: "nowrap", fontWeight: 600, color: status === "Godkänd" ? "#15803d" : status === "Underkänd" ? "#b91c1c" : "var(--text)" }}>
+                        D{i + 1}: {status || "Ej bedömd"}
+                      </div>
+                    );
+                  })}
+                </td>
+
                 {/* Mätinstrument - dropdown. Sparat värde alltid svenskt,
                     visad text översätts. */}
                 <td style={{ padding: "4px" }}>
@@ -1073,6 +1087,10 @@ export default function Matprotokoll() {
 
         <button className="btn-primary" onClick={savePDF}>
           {t.savePdf}
+        </button>
+
+        <button className="btn-secondary" onClick={clearForm}>
+          {t.newReport}
         </button>
 
         <button className="btn-danger" onClick={clearForm}>
