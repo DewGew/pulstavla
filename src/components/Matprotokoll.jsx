@@ -564,8 +564,8 @@ export default function Matprotokoll() {
       columnStyles: {
         0: { cellWidth: 20 }, 1: { cellWidth: 20 }, 2: { cellWidth: 20 },
         3: { cellWidth: 20 }, 4: { cellWidth: 20 }, 5: { cellWidth: 20 },
-        6: { cellWidth: 20 }, 7: { cellWidth: 20 }, 8: { cellWidth: 26 },
-        9: { cellWidth: "auto", minCellWidth: 45 },
+        6: { cellWidth: 18 }, 7: { cellWidth: 18 }, 8: { cellWidth: 28 },
+        9: { cellWidth: 32 }, 10: { cellWidth: "auto", minCellWidth: 35 },
       },
       didDrawPage: () => {
         addPDFFooter(doc, settings);
