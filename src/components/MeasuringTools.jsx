@@ -112,7 +112,7 @@ export default function MeasuringTools({ currentUser }) {
     Alla: tools.length,
     Lediga: tools.filter((tool) => tool.status === "Disponibel" && !tool.reservation && !isToolBlocked(tool)).length,
     Reserverade: tools.filter((tool) => Boolean(tool.reservation)).length,
-    Utlånade: tools.filter((tool) => tool.status === "Utlånad").length,
+    Utlånade: tools.filter((tool) => tool.status === "Utlånad" || Boolean(tool.activeLoan)).length,
     Spärrade: tools.filter((tool) => isToolBlocked(tool)).length,
     Skrotade: tools.filter((tool) => tool.status === "Skrotad").length,
     Saknas: tools.filter((tool) => tool.status === "Saknad").length,
@@ -401,7 +401,7 @@ export default function MeasuringTools({ currentUser }) {
               const terminalStatus = isTerminalTool(tool);
               const canReturn = tool.activeLoan && (isAdmin || tool.activeLoan.borrowerId === currentUser?._id);
               const canControl = canRegisterControl;
-              const canCheckout = tool.status === "Disponibel" && !blocked && currentUser?.role !== "view" && (!tool.reservation || tool.reservation.userId === currentUser?._id || isAdmin);
+              const canCheckout = tool.status === "Disponibel" && !tool.activeLoan && !blocked && currentUser?.role !== "view" && (!tool.reservation || tool.reservation.userId === currentUser?._id || isAdmin);
               return (
                 <article className={`measuring-tool-card ${blocked || terminalStatus ? "is-blocked" : tool.status === "Utlånad" ? "is-borrowed" : tool.reservation ? "is-reserved" : "is-available"}`} key={tool._id}>
                   <div className="measuring-card-top">
@@ -434,7 +434,7 @@ export default function MeasuringTools({ currentUser }) {
                   )}
                   <div className="measuring-card-actions">
                     {canCheckout && <button className="btn-primary" onClick={() => openActionModal(tool, "checkout")}>Låna verktyg</button>}
-                    {!tool.reservation && tool.status === "Disponibel" && !blocked && canReserve && <button className="btn-secondary" onClick={() => openActionModal(tool, "reserve")}>Reservera tills vidare</button>}
+                    {!tool.reservation && tool.status === "Disponibel" && !tool.activeLoan && !blocked && canReserve && <button className="btn-secondary" onClick={() => openActionModal(tool, "reserve")}>Reservera tills vidare</button>}
                     {tool.reservation && (isAdmin || tool.reservation.userId === currentUser?._id) && <button className="btn-secondary" onClick={() => releaseReservation(tool)}>Häv reservation</button>}
                     {canReturn && <button className="btn-primary" onClick={() => returnTool(tool)}>Återlämna</button>}
                     {(canControl || isAdmin) && <details className="measuring-more-actions">
@@ -461,7 +461,7 @@ export default function MeasuringTools({ currentUser }) {
               const terminalStatus = isTerminalTool(tool);
               const canReturn = tool.activeLoan && (isAdmin || tool.activeLoan.borrowerId === currentUser?._id);
               const canControl = canRegisterControl;
-              const statusLabel = tool.status === "Utlånad"
+              const statusLabel = isLoaned
                 ? "Utlånad"
                 : terminalStatus
                   ? tool.status
@@ -470,7 +470,7 @@ export default function MeasuringTools({ currentUser }) {
                     : tool.reservation
                       ? "Reserverad"
                       : "Ledig";
-              const statusClass = tool.status === "Utlånad"
+              const statusClass = isLoaned
                 ? "borrowed"
                 : (terminalStatus || blocked)
                   ? "blocked"
@@ -492,7 +492,7 @@ export default function MeasuringTools({ currentUser }) {
                   {blocked && isLoaned && <small className="measuring-overdue">{overdue ? "Kontroll förfallen" : "Spärrat efter kontroll"}</small>}
                 </td>
                 <td className="measuring-actions">
-                  {tool.status === "Disponibel" && !blocked && currentUser?.role !== "view" && (!tool.reservation || tool.reservation.userId === currentUser?._id || isAdmin) && <button className="btn-primary" onClick={() => openActionModal(tool, "checkout")}>Låna</button>}
+                  {tool.status === "Disponibel" && !tool.activeLoan && !blocked && currentUser?.role !== "view" && (!tool.reservation || tool.reservation.userId === currentUser?._id || isAdmin) && <button className="btn-primary" onClick={() => openActionModal(tool, "checkout")}>Låna</button>}
                   {!tool.reservation && tool.status === "Disponibel" && !blocked && canReserve && <button className="btn-secondary" onClick={() => openActionModal(tool, "reserve")}>Reservera</button>}
                   {tool.reservation && (isAdmin || tool.reservation.userId === currentUser?._id) && <button className="btn-secondary" onClick={() => releaseReservation(tool)}>Häv reservation</button>}
                   {canReturn && <button className="btn-secondary" onClick={() => returnTool(tool)}>Återlämna</button>}
