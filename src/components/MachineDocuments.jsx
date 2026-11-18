@@ -234,7 +234,7 @@ export default function MachineDocuments() {
 
   // Filtrera dokument
   const displayFileName = (name) => /Ã[\x80-\xBF]|Â[\x80-\xBF]/.test(name)
-    ? Buffer.from(name, "latin1").toString("utf8")
+    ? new TextDecoder("utf-8").decode(Uint8Array.from(name, char => char.charCodeAt(0)))
     : name;
 
   const filteredDocuments = documents.filter(doc =>
