@@ -435,7 +435,7 @@ export default function MeasuringTools({ currentUser }) {
                   <div className="measuring-card-actions">
                     {canCheckout && <button className="btn-primary" onClick={() => openActionModal(tool, "checkout")}>Låna verktyg</button>}
                     {!tool.reservation && tool.status === "Disponibel" && !tool.activeLoan && !blocked && canReserve && <button className="btn-secondary" onClick={() => openActionModal(tool, "reserve")}>Reservera tills vidare</button>}
-                    {tool.reservation && (isAdmin || tool.reservation.userId === currentUser?._id) && <button className="btn-secondary" onClick={() => releaseReservation(tool)}>Häv reservation</button>}
+                    {tool.reservation && canReserve && <button className="btn-secondary" onClick={() => releaseReservation(tool)}>Häv reservation</button>}
                     {canReturn && <button className="btn-primary" onClick={() => returnTool(tool)}>Återlämna</button>}
                     {(canControl || isAdmin) && <details className="measuring-more-actions">
                       <summary>Fler åtgärder</summary>
@@ -494,7 +494,7 @@ export default function MeasuringTools({ currentUser }) {
                 <td className="measuring-actions">
                   {tool.status === "Disponibel" && !tool.activeLoan && !blocked && currentUser?.role !== "view" && (!tool.reservation || tool.reservation.userId === currentUser?._id || isAdmin) && <button className="btn-primary" onClick={() => openActionModal(tool, "checkout")}>Låna</button>}
                   {!tool.reservation && tool.status === "Disponibel" && !blocked && canReserve && <button className="btn-secondary" onClick={() => openActionModal(tool, "reserve")}>Reservera</button>}
-                  {tool.reservation && (isAdmin || tool.reservation.userId === currentUser?._id) && <button className="btn-secondary" onClick={() => releaseReservation(tool)}>Häv reservation</button>}
+                  {tool.reservation && canReserve && <button className="btn-secondary" onClick={() => releaseReservation(tool)}>Häv reservation</button>}
                   {canReturn && <button className="btn-secondary" onClick={() => returnTool(tool)}>Återlämna</button>}
                   {(canControl || isAdmin) && <details className="measuring-table-more"><summary>•••</summary><div className="measuring-more-menu">
                     {canControl && <button onClick={() => { setControlTool(tool); setControlForm({ type: "Kontroll", date: new Date().toLocaleDateString("sv-SE"), result: "Godkänd", comment: "" }); }}>Registrera kontroll</button>}
