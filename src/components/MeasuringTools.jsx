@@ -110,7 +110,7 @@ export default function MeasuringTools({ currentUser }) {
   }, [tools]);
   const statusCounts = useMemo(() => ({
     Alla: tools.length,
-    Lediga: tools.filter((tool) => tool.status === "Disponibel" && !tool.reservation && !isToolBlocked(tool)).length,
+    Lediga: tools.filter((tool) => tool.status === "Disponibel" && !tool.activeLoan && !tool.reservation && !isToolBlocked(tool)).length,
     Reserverade: tools.filter((tool) => Boolean(tool.reservation)).length,
     Utlånade: tools.filter((tool) => tool.status === "Utlånad" || Boolean(tool.activeLoan)).length,
     Spärrade: tools.filter((tool) => isToolBlocked(tool)).length,
@@ -123,7 +123,7 @@ export default function MeasuringTools({ currentUser }) {
     const haystack = [tool.toolNumber, tool.type, tool.description, tool.manufacturer, tool.range, tool.location, tool.activeLoan?.borrowerName, tool.reservation?.userName]
       .join(" ").toLocaleLowerCase("sv");
     const matchesStatus = statusFilter === "Alla" ||
-      (statusFilter === "Lediga" && tool.status === "Disponibel" && !tool.reservation && !isToolBlocked(tool)) ||
+      (statusFilter === "Lediga" && tool.status === "Disponibel" && !tool.activeLoan && !tool.reservation && !isToolBlocked(tool)) ||
       (statusFilter === "Reserverade" && Boolean(tool.reservation)) ||
       (statusFilter === "Utlånade" && (tool.status === "Utlånad" || Boolean(tool.activeLoan))) ||
       (statusFilter === "Spärrade" && isToolBlocked(tool)) ||
