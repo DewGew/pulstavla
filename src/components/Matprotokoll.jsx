@@ -980,13 +980,15 @@ export default function Matprotokoll() {
                   ["resultat_5", t.ph.resultat],
                 ].map(([field, placeholder]) => (
                   <td key={field} style={{ padding: "4px" }}>
-                    <input
-                      type="text"
-                      value={row[field]}
-                      placeholder={placeholder}
-                      onChange={(e) => updateMeasurement(index, field, e.target.value)}
-                      style={{ width: "100%", boxSizing: "border-box" }}
-                    />
+                    {field === "mätpunkt" || (row.kontrollmetod || "dimension") === "dimension" ? (
+                      <input
+                        type="text"
+                        value={row[field]}
+                        placeholder={placeholder}
+                        onChange={(e) => updateMeasurement(index, field, e.target.value)}
+                        style={{ width: "100%", boxSizing: "border-box" }}
+                      />
+                    ) : null}
                   </td>
                 ))}
 
