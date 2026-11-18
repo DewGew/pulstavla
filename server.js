@@ -633,7 +633,10 @@ app.post("/documents", requireAuth, requireAdmin, (req, res, next) => {
       cb(null, docsDir);
     },
     filename: (req, file, cb) => {
-      cb(null, path.basename(file.originalname));
+      // Busboy tolkar multipart-filnamn som Latin-1 som standard.
+      // Webbläsare skickar UTF-8-bytes, så avkoda innan filen sparas.
+      const originalName = Buffer.from(file.originalname, "latin1").toString("utf8");
+      cb(null, path.basename(originalName));
     }
   });
 
