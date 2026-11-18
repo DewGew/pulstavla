@@ -1480,15 +1480,11 @@ app.post("/measuring-tools/:id/reserve", requireAuth, requireMeasuringControlAcc
   });
 });
 
-// Reservationen kan hävas av den reserverade användaren eller administratör.
-app.delete("/measuring-tools/:id/reserve", requireAuth, requireEditor, (req, res) => {
+// Användare med behörighet för mätverktyg kan häva reservationer.
+app.delete("/measuring-tools/:id/reserve", requireAuth, requireMeasuringControlAccess, (req, res) => {
   measuringToolsDB.findOne({ _id: req.params.id }, (findErr, tool) => {
     if (findErr) return res.status(500).json({ error: "Kunde inte läsa verktyget." });
     if (!tool?.reservation) return res.status(404).json({ error: "Ingen aktiv reservation hittades." });
-    const isAdmin = ["admin", "suAdmin"].includes(req.user.role);
-    if (!isAdmin && tool.reservation.userId !== req.user.id) {
-      return res.status(403).json({ error: "Endast den reserverade användaren eller administratör kan häva reservationen." });
-    }
     const releasedAt = Date.now();
     const entry = {
       ...tool.reservation, action: "release", releasedAt,
