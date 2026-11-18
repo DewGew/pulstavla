@@ -233,10 +233,12 @@ export default function MachineDocuments() {
 	};
 
   // Filtrera dokument
+  const displayFileName = (name) => /Ã[\x80-\xBF]|Â[\x80-\xBF]/.test(name)
+    ? new TextDecoder("utf-8").decode(Uint8Array.from(name, char => char.charCodeAt(0)))
+    : name;
+
   const filteredDocuments = documents.filter(doc =>
-    doc.name
-      .toLowerCase()
-      .includes(filterText.toLowerCase())
+    displayFileName(doc.name).toLowerCase().includes(filterText.toLowerCase())
   );
 
   return (
@@ -346,14 +348,14 @@ export default function MachineDocuments() {
             {modalDoc.name.match(/\.pdf$/i) ? (
               <iframe
                 src={modalDoc.previewUrl}
-                title={modalDoc.name}
+                title={displayFileName(modalDoc.name)}
                 width="100%"
                 height="1200px"
               />
             ) : modalDoc.name.match(/\.(png|jpg|jpeg)$/i) ? (
               <img
                 src={modalDoc.previewUrl}
-                alt={modalDoc.name}
+                alt={displayFileName(modalDoc.name)}
               />
             ) : (
               <p>Förhandsvisning ej tillgänglig</p>
