@@ -125,7 +125,7 @@ export default function MeasuringTools({ currentUser }) {
     const matchesStatus = statusFilter === "Alla" ||
       (statusFilter === "Lediga" && tool.status === "Disponibel" && !tool.reservation && !isToolBlocked(tool)) ||
       (statusFilter === "Reserverade" && Boolean(tool.reservation)) ||
-      (statusFilter === "Utlånade" && tool.status === "Utlånad") ||
+      (statusFilter === "Utlånade" && (tool.status === "Utlånad" || Boolean(tool.activeLoan))) ||
       (statusFilter === "Spärrade" && isToolBlocked(tool)) ||
       (statusFilter === "Skrotade" && tool.status === "Skrotad") ||
       (statusFilter === "Saknas" && tool.status === "Saknad") ||
@@ -137,7 +137,7 @@ export default function MeasuringTools({ currentUser }) {
     const headers = ["Verktygsnr", "Typ", "Benämning", "Tillverkare", "Mätområde/Dimensioner", "Plats", "Kontrollintervall (dagar)", "Senaste kontroll", "Nästa kontroll", "Status", "Låntagare / Reservation"];
     const rows = filteredTools.map((tool) => {
       const next = nextControlDate(tool);
-      const status = tool.status === "Utlånad" ? "Utlånad" : isTerminalTool(tool) ? (tool.status === "Saknad" ? "Saknas" : tool.status) : isToolBlocked(tool) ? "Spärrad" : tool.reservation ? "Reserverad" : "Ledig";
+      const status = (tool.status === "Utlånad" || tool.activeLoan) ? "Utlånad" : isTerminalTool(tool) ? (tool.status === "Saknad" ? "Saknas" : tool.status) : isToolBlocked(tool) ? "Spärrad" : tool.reservation ? "Reserverad" : "Ledig";
       return [
         tool.toolNumber, tool.type, tool.description, tool.manufacturer, tool.range, tool.location,
         tool.controlInterval, dateLabel(tool.lastControlDate), next ? dateLabel(next.toISOString().slice(0, 10)) : "",
@@ -396,6 +396,7 @@ export default function MeasuringTools({ currentUser }) {
             {filteredTools.map((tool) => {
               const next = nextControlDate(tool);
               const overdue = isControlOverdue(tool);
+              const isLoaned = tool.status === "Utlånad" || Boolean(tool.activeLoan);
               const blocked = isToolBlocked(tool);
               const terminalStatus = isTerminalTool(tool);
               const canReturn = tool.activeLoan && (isAdmin || tool.activeLoan.borrowerId === currentUser?._id);
@@ -405,8 +406,8 @@ export default function MeasuringTools({ currentUser }) {
                 <article className={`measuring-tool-card ${blocked || terminalStatus ? "is-blocked" : tool.status === "Utlånad" ? "is-borrowed" : tool.reservation ? "is-reserved" : "is-available"}`} key={tool._id}>
                   <div className="measuring-card-top">
                     <span className="measuring-tool-number">{tool.toolNumber}</span>
-                    <span className={`measuring-status ${tool.status === "Utlånad" ? "borrowed" : blocked || terminalStatus ? "blocked" : tool.reservation ? "reserved" : "available"}`}>
-                      {tool.status === "Utlånad" ? "Utlånad" : terminalStatus ? tool.status : blocked ? "Spärrad" : tool.reservation ? "Reserverad" : "Ledig"}
+                    <span className={`measuring-status ${isLoaned ? "borrowed" : blocked || terminalStatus ? "blocked" : tool.reservation ? "reserved" : "available"}`}>
+                      {isLoaned ? "Utlånad" : terminalStatus ? tool.status : blocked ? "Spärrad" : tool.reservation ? "Reserverad" : "Ledig"}
                     </span>
                   </div>
                   <h3>{tool.description || tool.type}{tool.manufacturer ? ` · ${tool.manufacturer}` : ""}</h3>
@@ -424,7 +425,7 @@ export default function MeasuringTools({ currentUser }) {
                     <div><span>Nästa kontroll</span><strong className={overdue ? "measuring-overdue" : ""}>{next ? dateLabel(next.toISOString().slice(0, 10)) : "Ej registrerad"}</strong></div>
                     {blocked && <p className="measuring-card-warning">{overdue ? "Kontrolldatumet har passerat – verktyget får inte användas." : "Verktyget är spärrat efter underkänd kontroll."}</p>}
                   </div>
-                  {tool.status === "Utlånad" && (
+                  {isLoaned && (
                     <div className="measuring-card-loan">
                       <span>Låntagare</span><strong>{tool.activeLoan?.borrowerName || "Okänd"}</strong>
                       {tool.activeLoan?.dueDate && <small>Återlämnas {dateLabel(tool.activeLoan.dueDate)}</small>}
@@ -455,6 +456,7 @@ export default function MeasuringTools({ currentUser }) {
             <tbody>{filteredTools.map((tool) => {
               const next = nextControlDate(tool);
               const overdue = isControlOverdue(tool);
+              const isLoaned = tool.status === "Utlånad" || Boolean(tool.activeLoan);
               const blocked = isToolBlocked(tool);
               const terminalStatus = isTerminalTool(tool);
               const canReturn = tool.activeLoan && (isAdmin || tool.activeLoan.borrowerId === currentUser?._id);
@@ -484,10 +486,10 @@ export default function MeasuringTools({ currentUser }) {
                 <td><span className={overdue ? "measuring-overdue" : ""}>{next ? dateLabel(next.toISOString().slice(0, 10)) : "—"}</span></td>
                 <td>
                   <span className={`measuring-status ${statusClass}`}>{statusLabel}</span>
-                  {tool.status === "Utlånad" && <small>{tool.activeLoan?.borrowerName}</small>}
+                  {isLoaned && <small>{tool.activeLoan?.borrowerName}</small>}
                   {tool.reservation && <small className="measuring-reservation-note">Reserverat för {tool.reservation.userName}</small>}
-                  {tool.status === "Utlånad" && tool.activeLoan?.dueDate && <small>Åter: {dateLabel(tool.activeLoan.dueDate)}</small>}
-                  {blocked && tool.status === "Utlånad" && <small className="measuring-overdue">{overdue ? "Kontroll förfallen" : "Spärrat efter kontroll"}</small>}
+                  {isLoaned && tool.activeLoan?.dueDate && <small>Åter: {dateLabel(tool.activeLoan.dueDate)}</small>}
+                  {blocked && isLoaned && <small className="measuring-overdue">{overdue ? "Kontroll förfallen" : "Spärrat efter kontroll"}</small>}
                 </td>
                 <td className="measuring-actions">
                   {tool.status === "Disponibel" && !blocked && currentUser?.role !== "view" && (!tool.reservation || tool.reservation.userId === currentUser?._id || isAdmin) && <button className="btn-primary" onClick={() => openActionModal(tool, "checkout")}>Låna</button>}
