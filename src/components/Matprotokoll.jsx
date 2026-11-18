@@ -80,7 +80,7 @@ const T = {
     tableHeaders: [
       "Mätpunkt", "Nominellt mått", "Tolerans",
       "Detalj 1", "Detalj 2", "Detalj 3", "Detalj 4", "Detalj 5",
-      "Mätinstrument", "Kommentar", "",
+      "Bedömning", "Mätinstrument", "Kommentar", "",
     ],
     ph: {
       mätpunkt: "t.ex. A1 el. #1",
@@ -153,7 +153,7 @@ const T = {
     tableHeaders: [
       "Point", "Nominal size", "Tolerance",
       "Piece 1", "Piece 2", "Piece 3", "Piece 4", "Piece 5",
-      "Instrument", "Comment", "",
+      "Assessment", "Instrument", "Comment", "",
     ],
     ph: {
       mätpunkt: "e.g. A1 or #1",
@@ -216,6 +216,33 @@ const emptyForm = (currentUser) => ({
   datum: new Date().toISOString().split("T")[0],
 });
 
+const parseMeasurementNumber = (value) => {
+  const match = String(value ?? "").replace(/,/g, ".").match(/[-+]?(?:\d+(?:\.\d*)?|\.\d+)/);
+  return match ? Number(match[0]) : null;
+};
+
+const parseTolerance = (value) => {
+  const raw = String(value ?? "").trim().replace(/,/g, ".");
+  if (!raw) return null;
+  const asymmetric = raw.match(/\+\s*(\d+(?:\.\d*)?)\s*\/\s*-\s*(\d+(?:\.\d*)?)/);
+  if (asymmetric) return { plus: Number(asymmetric[1]), minus: Number(asymmetric[2]) };
+  const symmetric = raw.match(/(?:±|\+\/\-|\+\-)\s*(\d+(?:\.\d*)?|\.\d+)/);
+  if (symmetric) return { plus: Number(symmetric[1]), minus: Number(symmetric[1]) };
+  const plain = raw.match(/^\d+(?:\.\d*)?$/);
+  if (plain) return { plus: Number(plain[0]), minus: Number(plain[0]) };
+  return null;
+};
+
+const getMeasurementStatus = (row, field) => {
+  const nominal = parseMeasurementNumber(row.dimensionskrav);
+  const tolerance = parseTolerance(row.plustolerans);
+  const measured = parseMeasurementNumber(row[field]);
+  if (nominal === null || !tolerance || measured === null) return null;
+  return measured >= nominal - tolerance.minus && measured <= nominal + tolerance.plus
+    ? "Godkänd"
+    : "Underkänd";
+};
+
 const emptyMeasurement = (nr = 1) => ({
   mätpunkt: String(nr),
   dimensionskrav: "",
@@ -227,6 +254,8 @@ const emptyMeasurement = (nr = 1) => ({
   resultat_5: "",
   matinstrument: "",
   kommentar: "",
+  matinstrumentId: "",
+  matinstrumentSnapshot: null,
 });
 
 export default function Matprotokoll() {
@@ -248,6 +277,8 @@ export default function Matprotokoll() {
 
   const [form, setForm] = useState(() => emptyForm(currentUser));
   const [measurements, setMeasurements] = useState([emptyMeasurement()]);
+  const [activeRecordId, setActiveRecordId] = useState(null);
+  const [measuringTools, setMeasuringTools] = useState([]);
 
   /* ---------------- ANVÄNDARLISTA (för "Upprättad av") ---------------- */
   const [users, setUsers] = useState([]);
@@ -265,6 +296,17 @@ export default function Matprotokoll() {
         // det sparade värdet (se fallback-option nedan) istället för
         // att blockera hela formuläret.
       });
+  }, []);
+
+  useEffect(() => {
+    apiFetch("/measuring-tools", {
+      headers: localStorage.getItem("token")
+        ? { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        : {},
+    })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => setMeasuringTools(Array.isArray(data) ? data : []))
+      .catch(() => setMeasuringTools([]));
   }, []);
 
   const updateForm = (field, value) => {
@@ -289,11 +331,11 @@ export default function Matprotokoll() {
   const clearForm = () => {
     setForm(emptyForm(currentUser));
     setMeasurements([emptyMeasurement()]);
+    setActiveRecordId(null);
   };
 
   /* ---------------- SPARA / ÖPPNA (NeDB) ---------------- */
-  const getRecordId = () =>
-    `${form.ordernr.trim()}_${form.artikelnummer.trim()}`;
+  const getRecordId = () => activeRecordId || (globalThis.crypto?.randomUUID?.() || `mp-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
 
   const [isSavingDb, setIsSavingDb] = useState(false);
   const [savedList, setSavedList] = useState([]);
@@ -319,11 +361,12 @@ export default function Matprotokoll() {
     return true;
   };
 
-  const saveToDb = async ({ silent = false, pdfSaved = false } = {}) => {
+  const saveToDb = async ({ silent = false, pdfSaved = false, matprotokollId = null } = {}) => {
     if (!validateRequired()) return false;
 
     const token = localStorage.getItem("token");
-    const id = getRecordId();
+    const id = matprotokollId || getRecordId();
+    if (!activeRecordId) setActiveRecordId(id);
 
     setIsSavingDb(true);
     try {
@@ -399,6 +442,7 @@ export default function Matprotokoll() {
 
       setForm(doc.form);
       setMeasurements(doc.measurements?.length ? doc.measurements : [emptyMeasurement()]);
+      setActiveRecordId(doc.matprotokollId);
       setShowOpenPanel(false);
       setMsg({ type: "success", text: t.opened(matprotokollId) });
     } catch {
@@ -431,6 +475,8 @@ export default function Matprotokoll() {
   const savePDF = async () => {
     if (!validateRequired()) return;
 
+    const recordId = getRecordId();
+    setActiveRecordId(recordId);
     const doc = new jsPDF({
       orientation: "landscape",
       unit: "mm",
@@ -489,7 +535,11 @@ export default function Matprotokoll() {
       row.resultat_3 || "",
       row.resultat_4 || "",
       row.resultat_5 || "",
-      row.matinstrument || "",
+      ["resultat_1", "resultat_2", "resultat_3", "resultat_4", "resultat_5"]
+        .map((field, i) => row[field] ? `D${i + 1}: ${getMeasurementStatus(row, field) || "Ej bedömd"}` : "")
+        .filter(Boolean).join("\n") || "Ej bedömd",
+      [row.matinstrument, row.matinstrumentSnapshot?.lastControlDate ? `Senast kontroll: ${row.matinstrumentSnapshot.lastControlDate}` : "", row.matinstrumentSnapshot?.controlBlocked ? "SPÄRRAT VID VAL" : ""]
+        .filter(Boolean).join("\n"),
       row.kommentar || "",
     ]);
 
@@ -499,7 +549,7 @@ export default function Matprotokoll() {
       head: [[
         "Mätpunkt", "Nominellt mått", "Tolerans",
         "Detalj 1", "Detalj 2", "Detalj 3", "Detalj 4", "Detalj 5",
-        "Mätinstrument", "Kommentar",
+        "Bedömning", "Mätinstrument", "Kommentar",
       ]],
       body: rows,
       styles: { fontSize: 8, cellPadding: 2, valign: "middle" },
@@ -540,18 +590,18 @@ export default function Matprotokoll() {
 
     /* ---------------- SAVE ---------------- */
     const fileName =
-      `${form.ordernr}_${form.artikelnummer}_${form.operation}` ||
+      `${form.ordernr}_${form.artikelnummer}_${form.operation}_${recordId.slice(-8)}` ||
       form.dokumentnr ||
       "mätprotokoll";
 
     doc.save(`${fileName}_mätprotokoll.pdf`);
 
-    const saved = await saveToDb({ silent: true, pdfSaved: true });
+    const saved = await saveToDb({ silent: true, pdfSaved: true, matprotokollId: recordId });
     if (saved) {
       setMsg({ type: "success", text: t.pdfSaved });
 
       setSavedList((prev) => {
-        const id = getRecordId();
+        const id = recordId;
         const updated = {
           matprotokollId: id,
           form,
@@ -888,6 +938,7 @@ export default function Matprotokoll() {
 
       {/* ---------------- MEASUREMENTS ---------------- */}
       <h3>{t.mätpunkter}</h3>
+      <div className="mätprotokoll-hint">Tolerans anges som ±0,05 eller +0,05/-0,02. Mätvärden bedöms automatiskt när nominellt mått och tolerans kan tolkas.</div>
 
       <div className="mätprotokoll-table-wrapper" style={{ overflowX: "auto", marginBottom: "15px" }}>
         <table
@@ -932,16 +983,44 @@ export default function Matprotokoll() {
                     visad text översätts. */}
                 <td style={{ padding: "4px" }}>
                   <select
-                    value={row.matinstrument}
-                    onChange={(e) => updateMeasurement(index, "matinstrument", e.target.value)}
+                    value={row.matinstrumentId || row.matinstrument}
+                    onChange={(e) => {
+                      const selectedTool = measuringTools.find((tool) => tool._id === e.target.value);
+                      if (selectedTool) {
+                        setMeasurements((prev) => prev.map((item, i) => i === index ? {
+                          ...item,
+                          matinstrumentId: selectedTool._id,
+                          matinstrument: `${selectedTool.toolNumber} – ${selectedTool.type}`,
+                          matinstrumentSnapshot: {
+                            toolNumber: selectedTool.toolNumber,
+                            type: selectedTool.type,
+                            lastControlDate: selectedTool.lastControlDate || "",
+                            controlBlocked: Boolean(selectedTool.controlBlocked),
+                          },
+                        } : item));
+                      } else {
+                        updateMeasurement(index, "matinstrument", e.target.value);
+                        updateMeasurement(index, "matinstrumentId", "");
+                        updateMeasurement(index, "matinstrumentSnapshot", null);
+                      }
+                    }}
                     style={{ width: "100%", boxSizing: "border-box" }}
                   >
                     <option value="">{t.valjInstrument}</option>
+                    <optgroup label={lang === "sv" ? "Registrerade mätverktyg" : "Registered measuring tools"}>
+                      {measuringTools.map((tool) => (
+                        <option key={tool._id} value={tool._id}>
+                          {tool.toolNumber} – {tool.type}{tool.controlBlocked ? (lang === "sv" ? " (spärrat)" : " (blocked)") : ""}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label={lang === "sv" ? "Instrumenttyp / manuellt" : "Instrument type / manual"}>
                     {MATINSTRUMENT_OPTIONS.map((opt) => (
                       <option key={opt} value={opt}>
                         {lang === "en" ? MATINSTRUMENT_LABELS_EN[opt] || opt : opt}
                       </option>
                     ))}
+                    </optgroup>
                   </select>
                 </td>
 
