@@ -542,10 +542,8 @@ export default function Matprotokoll() {
       row.resultat_4 || "",
       row.resultat_5 || "",
       row.kontrollmetod === "thread-gauge" ? "Gängtolk" : row.kontrollmetod === "go-no-go" ? "GO/NO-GO-tolk" : "Dimensionsmätning",
-      row.kontrollmetod === "thread-gauge"
-        ? (row.gangtolkResultat === "pass" ? "Godkänd" : row.gangtolkResultat === "fail" ? "Underkänd" : "Ej bedömd")
-        : row.kontrollmetod === "go-no-go"
-          ? (row.goResultat === "yes" && row.noGoResultat === "no" ? "Godkänd" : row.goResultat === "no" || row.noGoResultat === "yes" ? "Underkänd" : "Ej bedömd")
+      row.kontrollmetod === "thread-gauge" || row.kontrollmetod === "go-no-go"
+        ? (row.goResultat === "yes" && row.noGoResultat === "no" ? "Godkänd" : row.goResultat === "no" || row.noGoResultat === "yes" ? "Underkänd" : "Ej bedömd")
           : (["resultat_1", "resultat_2", "resultat_3", "resultat_4", "resultat_5"]
               .map((field, i) => row[field] ? `D${i + 1}: ${getMeasurementStatus(row, field) || "Ej bedömd"}` : "")
               .filter(Boolean).join("\n") || "Ej bedömd"),
@@ -1000,25 +998,16 @@ export default function Matprotokoll() {
                   </select>
                 </td>
                 <td style={{ padding: "4px", minWidth: "150px" }}>
-                  {row.kontrollmetod === "thread-gauge" ? (
-                    <>
-                      <select value={row.gangtolkResultat || ""} onChange={(e) => updateMeasurement(index, "gangtolkResultat", e.target.value)} style={{ width: "100%" }}>
-                        <option value="">Välj resultat…</option>
-                        <option value="pass">Godkänd – tolken uppfyller kravet</option>
-                        <option value="fail">Underkänd</option>
-                      </select>
-                      {row.gangtolkResultat && <strong style={{ color: row.gangtolkResultat === "pass" ? "#15803d" : "#b91c1c" }}>{row.gangtolkResultat === "pass" ? "Godkänd" : "Underkänd"}</strong>}
-                    </>
-                  ) : row.kontrollmetod === "go-no-go" ? (
+                  {row.kontrollmetod === "thread-gauge" || row.kontrollmetod === "go-no-go" ? (
                     <>
                       <label style={{ display: "block", fontSize: "0.8rem" }}>GO-sida
                         <select value={row.goResultat || ""} onChange={(e) => updateMeasurement(index, "goResultat", e.target.value)} style={{ width: "100%" }}>
-                          <option value="">Välj…</option><option value="yes">Går igenom</option><option value="no">Går inte igenom</option>
+                          <option value="">Välj…</option><option value="yes">Godkänd – går enligt krav</option><option value="no">Underkänd</option>
                         </select>
                       </label>
                       <label style={{ display: "block", fontSize: "0.8rem" }}>NO-GO-sida
                         <select value={row.noGoResultat || ""} onChange={(e) => updateMeasurement(index, "noGoResultat", e.target.value)} style={{ width: "100%" }}>
-                          <option value="">Välj…</option><option value="yes">Går igenom</option><option value="no">Går inte igenom</option>
+                          <option value="">Välj…</option><option value="yes">Underkänd – går enligt krav</option><option value="no">Godkänd – går inte enligt krav</option>
                         </select>
                       </label>
                       {(row.goResultat || row.noGoResultat) && <strong style={{ color: row.goResultat === "yes" && row.noGoResultat === "no" ? "#15803d" : row.goResultat === "no" || row.noGoResultat === "yes" ? "#b91c1c" : "var(--text)" }}>{row.goResultat === "yes" && row.noGoResultat === "no" ? "Godkänd" : row.goResultat === "no" || row.noGoResultat === "yes" ? "Underkänd" : "Ej bedömd"}</strong>}
