@@ -1519,7 +1519,7 @@ app.post("/measuring-tools/:id/return", requireAuth, requireEditor, (req, res) =
       returnedBy: req.user.id, returnedByName: req.user.name || req.user.username,
       returnNote: String(req.body?.note || "").trim(),
     };
-    measuringToolsDB.update({ _id: tool._id, status: "Utlånad" }, {
+    measuringToolsDB.update({ _id: tool._id, "activeLoan.borrowerId": tool.activeLoan.borrowerId }, {
       $set: { status: "Disponibel", activeLoan: null, updatedAt: returnedAt },
       $push: { loanHistory: returnEntry },
     }, {}, (updateErr, count) => {
