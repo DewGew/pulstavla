@@ -1426,8 +1426,10 @@ app.post("/measuring-tools/:id/checkout", requireAuth, requireEditor, (req, res)
         note: String(req.body?.note || "").trim(),
       };
       measuringToolsDB.update({
-        _id: tool._id, status: "Disponibel", controlBlocked: { $ne: true },
-        $or: [{ reservation: null }, { "reservation.userId": borrower._id }],
+        _id: tool._id,
+        status: "Disponibel",
+        activeLoan: null,
+        controlBlocked: { $ne: true },
       }, {
         $set: { status: "Utlånad", activeLoan: loan, updatedAt: Date.now() },
         $push: { loanHistory: { ...loan, action: "checkout" } },
