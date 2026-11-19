@@ -358,6 +358,14 @@ export default function Matprotokoll() {
   const [measurements, setMeasurements] = useState([emptyMeasurement()]);
   const [activeRecordId, setActiveRecordId] = useState(null);
   const [measuringTools, setMeasuringTools] = useState([]);
+  const allMeasurementsHaveInstrument =
+    measurements.length > 0 &&
+    measurements.every((row) =>
+      Boolean(
+        String(row?.matinstrumentId ?? "").trim() ||
+        String(row?.matinstrument ?? "").trim()
+      )
+    );
 
   /* ---------------- ANVÄNDARLISTA (för "Upprättad av") ---------------- */
   const [users, setUsers] = useState([]);
@@ -561,7 +569,9 @@ export default function Matprotokoll() {
     if (!validateRequired()) return;
 
     const missingInstrumentIndex = measurements.findIndex(
-      (row) => !String(row.matinstrumentId || row.matinstrument || "").trim()
+      (row) =>
+        !String(row?.matinstrumentId ?? "").trim() &&
+        !String(row?.matinstrument ?? "").trim()
     );
     if (missingInstrumentIndex !== -1) {
       setMsg({
@@ -1199,7 +1209,12 @@ export default function Matprotokoll() {
           {t.openSaved}
         </button>
 
-        <button className="btn-primary" onClick={savePDF}>
+        <button
+          className="btn-primary"
+          onClick={savePDF}
+          disabled={!allMeasurementsHaveInstrument}
+          title={!allMeasurementsHaveInstrument ? t.fillInstrument : ""}
+        >
           {t.savePdf}
         </button>
 
