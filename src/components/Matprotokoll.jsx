@@ -323,7 +323,14 @@ export default function Matprotokoll() {
         : {},
     })
       .then((res) => (res.ok ? res.json() : []))
-      .then((data) => setMeasuringTools(Array.isArray(data) ? data.filter((tool) => tool.reservation?.userId === currentUser?.id || tool.activeLoan?.borrowerId === currentUser?.id) : []))
+      .then((data) => {
+        const currentUserId = currentUser?._id;
+        setMeasuringTools(
+          Array.isArray(data) && currentUserId
+            ? data.filter((tool) => tool.reservation?.userId === currentUserId || tool.activeLoan?.borrowerId === currentUserId)
+            : []
+        );
+      })
       .catch(() => setMeasuringTools([]));
   }, []);
 
