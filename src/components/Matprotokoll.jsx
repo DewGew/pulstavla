@@ -566,7 +566,7 @@ export default function Matprotokoll() {
     if (missingInstrumentIndex !== -1) {
       setMsg({
         type: "error",
-        text: `${t.fillInstrument} (${t.mätpunkter} ${missingInstrumentIndex + 1})`,
+        text: `${t.fillInstrument} (${lang === "sv" ? "Mätpunkt" : "Measurement point"} ${missingInstrumentIndex + 1})`,
       });
       return;
     }
