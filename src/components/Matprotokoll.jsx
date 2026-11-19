@@ -108,7 +108,7 @@ const T = {
     delete: "🗑 Ta bort",
     fillArtikelnummer: "Fyll i Artikelnummer först",
     fillOrdernr: "Fyll i Ordernummer först",
-    fillInstrument: "Välj ett mätinstrument för varje mätpunkt innan du sparar som PDF.",
+    fillInstrument: "Välj minst ett mätinstrument på någon av mätpunkterna innan du sparar som PDF.",
     draftSaved: "✔️ Mätprotokoll utkast sparat.",
     saveError: "❌ Kunde inte spara mätprotokollet.",
     listError: "❌ Kunde inte hämta sparade mätprotokoll.",
@@ -183,7 +183,7 @@ const T = {
     delete: "🗑 Delete",
     fillArtikelnummer: "Please fill in Article number first",
     fillOrdernr: "Please fill in Order number first",
-    fillInstrument: "Select a measuring instrument for every measurement point before saving as PDF.",
+    fillInstrument: "Select a measuring instrument for at least one measurement point before saving as PDF.",
     draftSaved: "✔️ Measurement report draft saved.",
     saveError: "❌ Could not save the measurement report.",
     listError: "❌ Could not fetch saved measurement reports.",
@@ -560,14 +560,11 @@ export default function Matprotokoll() {
   const savePDF = async () => {
     if (!validateRequired()) return;
 
-    const missingInstrumentIndex = measurements.findIndex(
-      (row) => !String(row.matinstrumentId || row.matinstrument || "").trim()
+    const hasInstrument = measurements.some(
+      (row) => String(row.matinstrumentId || row.matinstrument || "").trim()
     );
-    if (missingInstrumentIndex !== -1) {
-      setMsg({
-        type: "error",
-        text: `${t.fillInstrument} (${t.mätpunkter} ${missingInstrumentIndex + 1})`,
-      });
+    if (!hasInstrument) {
+      setMsg({ type: "error", text: t.fillInstrument });
       return;
     }
 
