@@ -12,6 +12,7 @@ import "./Matprotokoll.css";
 const MATINSTRUMENT_OPTIONS = [
   "Pinntolk",
   "Tolk",
+  "CMM/3D-Taster",
   "Bladmått",
   "Passbit",
   "Annat / Övrigt",
@@ -20,6 +21,7 @@ const MATINSTRUMENT_OPTIONS = [
 const MATINSTRUMENT_LABELS_EN = {
   "Pinntolk": "Pin gauge",
   "Tolk": "Gauge",
+  "CMM/3D-Taster": "CMM/3D probe",
   "Bladmått": "Feeler gauge",
   "Passbit": "Gauge block",
   "Annat / Övrigt": "Other",
@@ -106,6 +108,7 @@ const T = {
     delete: "🗑 Ta bort",
     fillArtikelnummer: "Fyll i Artikelnummer först",
     fillOrdernr: "Fyll i Ordernummer först",
+    fillInstrument: "Välj ett mätinstrument för varje mätpunkt innan du sparar som PDF.",
     draftSaved: "✔️ Mätprotokoll utkast sparat.",
     saveError: "❌ Kunde inte spara mätprotokollet.",
     listError: "❌ Kunde inte hämta sparade mätprotokoll.",
@@ -180,6 +183,7 @@ const T = {
     delete: "🗑 Delete",
     fillArtikelnummer: "Please fill in Article number first",
     fillOrdernr: "Please fill in Order number first",
+    fillInstrument: "Select a measuring instrument for every measurement point before saving as PDF.",
     draftSaved: "✔️ Measurement report draft saved.",
     saveError: "❌ Could not save the measurement report.",
     listError: "❌ Could not fetch saved measurement reports.",
@@ -245,8 +249,7 @@ const getISO286Tolerance = (nominal, designation) => {
     [6, 10, 9, 15, 22, 36],
     [10, 18, 11, 18, 27, 43],
     [18, 30, 13, 21, 33, 52],
-    [30, 50, 16, 25, 39, 62],
-    [50, 80, 19, 30, 46, 74],
+    [30, 50, 16, 25, 39, 62],    [50, 80, 19, 30, 46, 74],
     [80, 120, 22, 35, 54, 87],
     [120, 180, 25, 40, 63, 100],
     [180, 250, 29, 46, 72, 115],
@@ -496,7 +499,6 @@ export default function Matprotokoll() {
               doc.form?.upprattadAv === currentUser?.name &&
               doc.pdfSaved === false
           );
-
       setSavedList(visible);
     } catch {
       setMsg({ type: "error", text: t.listError });
@@ -557,6 +559,17 @@ export default function Matprotokoll() {
 
   const savePDF = async () => {
     if (!validateRequired()) return;
+
+    const missingInstrumentIndex = measurements.findIndex(
+      (row) => !String(row.matinstrumentId || row.matinstrument || "").trim()
+    );
+    if (missingInstrumentIndex !== -1) {
+      setMsg({
+        type: "error",
+        text: `${t.fillInstrument} (${t.mätpunkter} ${missingInstrumentIndex + 1})`,
+      });
+      return;
+    }
 
     const recordId = getRecordId();
     setActiveRecordId(recordId);
@@ -745,8 +758,7 @@ export default function Matprotokoll() {
 		  }
 
 		  if (openDateTo) {
-			const to = new Date(openDateTo);
-			if (docDay > to) return false;
+			const to = new Date(openDateTo);			if (docDay > to) return false;
 		  }
 		}
 
