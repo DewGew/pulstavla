@@ -1002,12 +1002,12 @@ export default function Matprotokoll() {
                     <>
                       <label style={{ display: "block", fontSize: "0.8rem" }}>GO-sida
                         <select value={row.goResultat || ""} onChange={(e) => updateMeasurement(index, "goResultat", e.target.value)} style={{ width: "100%" }}>
-                          <option value="">Välj…</option><option value="yes">Går enligt krav (godkänd)</option><option value="no">Går inte enligt krav (underkänd)</option>
+                          <option value="">Välj…</option><option value="yes">Godkänd – går enligt krav</option><option value="no">Underkänd</option>
                         </select>
                       </label>
                       <label style={{ display: "block", fontSize: "0.8rem" }}>NO-GO-sida
                         <select value={row.noGoResultat || ""} onChange={(e) => updateMeasurement(index, "noGoResultat", e.target.value)} style={{ width: "100%" }}>
-                          <option value="">Välj…</option><option value="yes">Går igenom (underkänd)</option><option value="no">Går inte igenom (godkänd)</option>
+                          <option value="">Välj…</option><option value="yes">Underkänd – går enligt krav</option><option value="no">Godkänd – går inte enligt krav</option>
                         </select>
                       </label>
                       {(row.goResultat || row.noGoResultat) && <strong style={{ color: row.goResultat === "yes" && row.noGoResultat === "no" ? "#15803d" : row.goResultat === "no" || row.noGoResultat === "yes" ? "#b91c1c" : "var(--text)" }}>{row.goResultat === "yes" && row.noGoResultat === "no" ? "Godkänd" : row.goResultat === "no" || row.noGoResultat === "yes" ? "Underkänd" : "Ej bedömd"}</strong>}
