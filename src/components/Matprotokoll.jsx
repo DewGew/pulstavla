@@ -235,7 +235,13 @@ const parseTolerance = (value) => {
   return null;
 };
 
+const isGaugeTolerance = (value) => /tolk/i.test(String(value ?? "").trim());
+
 const getMeasurementStatus = (row, field) => {
+  if (isGaugeTolerance(row.plustolerans)) {
+    if (!row[field]) return null;
+    return row[field] === "OK" ? "Godkänd" : row[field] === "Ej OK" ? "Underkänd" : null;
+  }
   const nominal = parseMeasurementNumber(row.dimensionskrav);
   const tolerance = parseTolerance(row.plustolerans);
   const measured = parseMeasurementNumber(row[field]);
@@ -243,6 +249,19 @@ const getMeasurementStatus = (row, field) => {
   return measured >= nominal - tolerance.minus && measured <= nominal + tolerance.plus
     ? "Godkänd"
     : "Underkänd";
+};
+
+const getRowAssessment = (row) => {
+  const fields = ["resultat_1", "resultat_2", "resultat_3", "resultat_4", "resultat_5"];
+  const results = fields.map((field) => row[field]).filter(Boolean);
+  if (!results.length) return "Ej bedömd";
+  if (results.some((result) => result === "Ej OK")) return "Underkänd";
+  if (isGaugeTolerance(row.plustolerans)) {
+    return results.every((result) => result === "OK") ? "Godkänd" : "Ej bedömd";
+  }
+  const statuses = fields.map((field) => getMeasurementStatus(row, field)).filter(Boolean);
+  if (statuses.includes("Underkänd")) return "Underkänd";
+  return statuses.length ? "Godkänd" : "Ej bedömd";
 };
 
 const emptyMeasurement = (nr = 1) => ({
@@ -537,9 +556,11 @@ export default function Matprotokoll() {
       row.resultat_3 || "",
       row.resultat_4 || "",
       row.resultat_5 || "",
-      ["resultat_1", "resultat_2", "resultat_3", "resultat_4", "resultat_5"]
-        .map((field, i) => row[field] ? `D${i + 1}: ${getMeasurementStatus(row, field) || "Ej bedömd"}` : "")
-        .filter(Boolean).join("\n") || "Ej bedömd",
+      isGaugeTolerance(row.plustolerans)
+        ? getRowAssessment(row)
+        : ["resultat_1", "resultat_2", "resultat_3", "resultat_4", "resultat_5"]
+            .map((field, i) => row[field] ? `D${i + 1}: ${getMeasurementStatus(row, field) || "Ej bedömd"}` : "")
+            .filter(Boolean).join("\n") || "Ej bedömd",
       [row.matinstrument, row.matinstrumentSnapshot?.lastControlDate ? `Senast kontroll: ${row.matinstrumentSnapshot.lastControlDate}` : "", row.matinstrumentSnapshot?.controlBlocked ? "SPÄRRAT VID VAL" : ""]
         .filter(Boolean).join("\n"),
       row.kommentar || "",
@@ -940,7 +961,7 @@ export default function Matprotokoll() {
 
       {/* ---------------- MEASUREMENTS ---------------- */}
       <h3>{t.mätpunkter}</h3>
-      <div className="mätprotokoll-hint">Tolerans anges som ±0,05 eller +0,05/-0,02. Mätvärden bedöms automatiskt när nominellt mått och tolerans kan tolkas.</div>
+      <div className="mätprotokoll-hint">Ange numerisk tolerans för vanlig mätning. För kontroll med gängtolk, pinntolk eller annan tolk: skriv ”tolk” i toleransfältet och välj OK/Ej OK för varje detalj.</div>
 
       <div className="mätprotokoll-table-wrapper" style={{ overflowX: "auto", marginBottom: "15px" }}>
         <table
@@ -971,26 +992,44 @@ export default function Matprotokoll() {
                   ["resultat_5", t.ph.resultat],
                 ].map(([field, placeholder]) => (
                   <td key={field} style={{ padding: "4px" }}>
-                    <input
-                      type="text"
-                      value={row[field]}
-                      placeholder={placeholder}
-                      onChange={(e) => updateMeasurement(index, field, e.target.value)}
-                      style={{ width: "100%", boxSizing: "border-box" }}
-                    />
+                    {field.startsWith("resultat_") && isGaugeTolerance(row.plustolerans) ? (
+                      <select
+                        value={row[field]}
+                        onChange={(e) => updateMeasurement(index, field, e.target.value)}
+                        style={{ width: "100%", boxSizing: "border-box" }}
+                      >
+                        <option value="">—</option>
+                        <option value="OK">OK</option>
+                        <option value="Ej OK">Ej OK</option>
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        value={row[field]}
+                        placeholder={placeholder}
+                        onChange={(e) => updateMeasurement(index, field, e.target.value)}
+                        style={{ width: "100%", boxSizing: "border-box" }}
+                      />
+                    )}
                   </td>
                 ))}
 
                 <td style={{ padding: "4px", minWidth: "110px" }}>
-                  {["resultat_1", "resultat_2", "resultat_3", "resultat_4", "resultat_5"].map((field, i) => {
-                    if (!row[field]) return null;
-                    const status = getMeasurementStatus(row, field);
-                    return (
-                      <div key={field} style={{ whiteSpace: "nowrap", fontWeight: 600, color: status === "Godkänd" ? "#15803d" : status === "Underkänd" ? "#b91c1c" : "var(--text)" }}>
-                        D{i + 1}: {status || "Ej bedömd"}
-                      </div>
-                    );
-                  })}
+                  {isGaugeTolerance(row.plustolerans) ? (
+                    <div style={{ whiteSpace: "nowrap", fontWeight: 600, color: getRowAssessment(row) === "Godkänd" ? "#15803d" : getRowAssessment(row) === "Underkänd" ? "#b91c1c" : "var(--text)" }}>
+                      {getRowAssessment(row)}
+                    </div>
+                  ) : (
+                    ["resultat_1", "resultat_2", "resultat_3", "resultat_4", "resultat_5"].map((field, i) => {
+                      if (!row[field]) return null;
+                      const status = getMeasurementStatus(row, field);
+                      return (
+                        <div key={field} style={{ whiteSpace: "nowrap", fontWeight: 600, color: status === "Godkänd" ? "#15803d" : status === "Underkänd" ? "#b91c1c" : "var(--text)" }}>
+                          D{i + 1}: {status || "Ej bedömd"}
+                        </div>
+                      );
+                    })
+                  )}
                 </td>
 
                 {/* Mätinstrument - dropdown. Sparat värde alltid svenskt,
