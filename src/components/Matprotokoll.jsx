@@ -10,29 +10,17 @@ import "./Matprotokoll.css";
 // Fördefinierad lista över vanliga mätinstrument (kanoniska/sparade värden
 // är alltid svenska — engelsk text visas bara i UI:t via MATINSTRUMENT_LABELS_EN)
 const MATINSTRUMENT_OPTIONS = [
-  "Skjutmått",
-  "Mikrometer",
-  "Höjdmätare",
-  "Gängtolk",
   "Pinntolk",
   "Tolk",
   "Bladmått",
-  "Vinkelhake",
-  "3D-mätmaskin (CMM)",
   "Passbit",
   "Annat / Övrigt",
 ];
 
 const MATINSTRUMENT_LABELS_EN = {
-  "Skjutmått": "Caliper",
-  "Mikrometer": "Micrometer",
-  "Höjdmätare": "Height gauge",
-  "Gängtolk": "Thread gauge",
   "Pinntolk": "Pin gauge",
   "Tolk": "Gauge",
   "Bladmått": "Feeler gauge",
-  "Vinkelhake": "Square",
-  "3D-mätmaskin (CMM)": "CMM (3D measuring machine)",
   "Passbit": "Gauge block",
   "Annat / Övrigt": "Other",
 };
