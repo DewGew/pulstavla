@@ -1009,7 +1009,7 @@ export default function Matprotokoll() {
 
       {/* ---------------- MEASUREMENTS ---------------- */}
       <h3>{t.mätpunkter}</h3>
-      <div className="mätprotokoll-hint">{lang === "sv" ? "Ange numerisk tolerans, t.ex. ±0,05 eller +0,10/-0,05. För ISO 286, ange H6–H9 (hål) eller h6–h9 (axel), t.ex. nominellt Ø20 och tolerans H7. Gränsmåtten räknas ut automatiskt för 1–500 mm. För tolk: skriv ”tolk” och välj OK/Ej OK." : "Enter a numerical tolerance for standard measurements, e.g. ±0.05, 0.05, +0.10/-0.05, -0.10/-0.15 or +0.10/+0.15. For inspection using a thread gauge, pin gauge or other gauge: enter “tolk” in the tolerance field and select OK/Not OK for each part."}</div>
+      <div className="mätprotokoll-hint">{lang === "sv" ? "Ange numerisk tolerans, t.ex. ±0,05 eller +0,10/-0,05. För ISO 286, ange H6–H9 (hål) eller h6–h9 (axel), t.ex. nominellt Ø20 och tolerans H7. Gränsmåtten räknas ut automatiskt för 1–500 mm. För tolk: skriv ”tolk” och välj OK/Ej OK." : "Enter a numerical tolerance for standard measurements, e.g. ±0.05, 0.05, +0.10/-0.05, -0.10/-0.15 or +0.10/+0.15. For ISO 286, enter H6–H9 (hole) or h6–h9 (shaft), e.g. nominal Ø20 and tolerance H7. Limits are calculated automatically for 1–500 mm. For inspection using a thread gauge, pin gauge or other gauge: enter “tolk” in the tolerance field and select OK/Not OK for each part."}</div>
 
       <div className="mätprotokoll-table-wrapper" style={{ overflowX: "auto", marginBottom: "15px" }}>
         <table
