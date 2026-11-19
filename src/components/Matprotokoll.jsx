@@ -263,7 +263,7 @@ const getISO286Tolerance = (nominal, designation) => {
 
   const diameterStep = Math.sqrt(range[0] * range[1]);
   const i = 0.45 * Math.cbrt(diameterStep) + 0.001 * diameterStep;
-  const it7 = Math.round(16 * i) / 1000;
+  const it7 = Math.ceil(16 * i) / 1000;
   return match[1] === "H"
     ? { upper: it7, lower: 0 }
     : { upper: 0, lower: -it7 };
