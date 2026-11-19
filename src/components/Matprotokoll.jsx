@@ -956,7 +956,7 @@ export default function Matprotokoll() {
 
       {/* ---------------- MEASUREMENTS ---------------- */}
       <h3>{t.mätpunkter}</h3>
-      <div className="mätprotokoll-hint">Ange numerisk tolerans för vanlig mätning. För kontroll med gängtolk, pinntolk eller annan tolk: skriv ”tolk” i toleransfältet och välj OK/Ej OK för varje detalj.</div>
+      <div className="mätprotokoll-hint">Ange numerisk tolerans för vanlig mätning, t.ex. ±0,05, 0,05, +0,10/-0,05, -0,10/-0,15 eller +0,10/+0,15. För kontroll med gängtolk, pinntolk eller annan tolk: skriv ”tolk” i toleransfältet och välj OK/Ej OK för varje detalj.</div>
 
       <div className="mätprotokoll-table-wrapper" style={{ overflowX: "auto", marginBottom: "15px" }}>
         <table
