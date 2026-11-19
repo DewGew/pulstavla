@@ -251,19 +251,6 @@ const getMeasurementStatus = (row, field) => {
     : "Underkänd";
 };
 
-const getRowAssessment = (row) => {
-  const fields = ["resultat_1", "resultat_2", "resultat_3", "resultat_4", "resultat_5"];
-  const results = fields.map((field) => row[field]).filter(Boolean);
-  if (!results.length) return "Ej bedömd";
-  if (results.some((result) => result === "Ej OK")) return "Underkänd";
-  if (isGaugeTolerance(row.plustolerans)) {
-    return results.every((result) => result === "OK") ? "Godkänd" : "Ej bedömd";
-  }
-  const statuses = fields.map((field) => getMeasurementStatus(row, field)).filter(Boolean);
-  if (statuses.includes("Underkänd")) return "Underkänd";
-  return statuses.length ? "Godkänd" : "Ej bedömd";
-};
-
 const emptyMeasurement = (nr = 1) => ({
   mätpunkt: String(nr),
   dimensionskrav: "",
@@ -556,11 +543,9 @@ export default function Matprotokoll() {
       row.resultat_3 || "",
       row.resultat_4 || "",
       row.resultat_5 || "",
-      isGaugeTolerance(row.plustolerans)
-        ? getRowAssessment(row)
-        : ["resultat_1", "resultat_2", "resultat_3", "resultat_4", "resultat_5"]
-            .map((field, i) => row[field] ? `D${i + 1}: ${getMeasurementStatus(row, field) || "Ej bedömd"}` : "")
-            .filter(Boolean).join("\n") || "Ej bedömd",
+      ["resultat_1", "resultat_2", "resultat_3", "resultat_4", "resultat_5"]
+        .map((field, i) => row[field] ? `D${i + 1}: ${getMeasurementStatus(row, field) || "Ej bedömd"}` : "")
+        .filter(Boolean).join("\n") || "Ej bedömd",
       [row.matinstrument, row.matinstrumentSnapshot?.lastControlDate ? `Senast kontroll: ${row.matinstrumentSnapshot.lastControlDate}` : "", row.matinstrumentSnapshot?.controlBlocked ? "SPÄRRAT VID VAL" : ""]
         .filter(Boolean).join("\n"),
       row.kommentar || "",
@@ -1015,21 +1000,15 @@ export default function Matprotokoll() {
                 ))}
 
                 <td style={{ padding: "4px", minWidth: "110px" }}>
-                  {isGaugeTolerance(row.plustolerans) ? (
-                    <div style={{ whiteSpace: "nowrap", fontWeight: 600, color: getRowAssessment(row) === "Godkänd" ? "#15803d" : getRowAssessment(row) === "Underkänd" ? "#b91c1c" : "var(--text)" }}>
-                      {getRowAssessment(row)}
-                    </div>
-                  ) : (
-                    ["resultat_1", "resultat_2", "resultat_3", "resultat_4", "resultat_5"].map((field, i) => {
-                      if (!row[field]) return null;
-                      const status = getMeasurementStatus(row, field);
-                      return (
-                        <div key={field} style={{ whiteSpace: "nowrap", fontWeight: 600, color: status === "Godkänd" ? "#15803d" : status === "Underkänd" ? "#b91c1c" : "var(--text)" }}>
-                          D{i + 1}: {status || "Ej bedömd"}
-                        </div>
-                      );
-                    })
-                  )}
+                  {["resultat_1", "resultat_2", "resultat_3", "resultat_4", "resultat_5"].map((field, i) => {
+                    if (!row[field]) return null;
+                    const status = getMeasurementStatus(row, field);
+                    return (
+                      <div key={field} style={{ whiteSpace: "nowrap", fontWeight: 600, color: status === "Godkänd" ? "#15803d" : status === "Underkänd" ? "#b91c1c" : "var(--text)" }}>
+                        D{i + 1}: {status || "Ej bedömd"}
+                      </div>
+                    );
+                  })}
                 </td>
 
                 {/* Mätinstrument - dropdown. Sparat värde alltid svenskt,
