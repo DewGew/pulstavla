@@ -245,25 +245,35 @@ const parseTolerance = (value) => {
 
 const isGaugeTolerance = (value) => /tolk/i.test(String(value ?? "").trim());
 
-// ISO 286-1: publicerade IT7-tabellvärden i µm.
-// Den här första versionen stöder H7 för hål och h7 för axlar.
+// ISO 286-1/-2: publicerade IT6–IT9-tabellvärden i µm.
+// Stöder H6–H9 för hål och h6–h9 för axlar (1–500 mm).
 const getISO286Tolerance = (nominal, designation) => {
-  const match = String(designation ?? "").trim().match(/^([Hh])7$/);
+  const match = String(designation ?? "").trim().match(/^([Hh])([6-9])$/);
   if (!match || !Number.isFinite(nominal) || nominal <= 0 || nominal > 500) return null;
 
   const ranges = [
-    [0, 3, 10], [3, 6, 12], [6, 10, 15], [10, 18, 18],
-    [18, 30, 21], [30, 50, 25], [50, 80, 30], [80, 120, 35],
-    [120, 180, 40], [180, 250, 46], [250, 315, 52],
-    [315, 400, 57], [400, 500, 63],
+    [0, 3, 6, 10, 14, 25],
+    [3, 6, 8, 12, 18, 30],
+    [6, 10, 9, 15, 22, 36],
+    [10, 18, 11, 18, 27, 43],
+    [18, 30, 13, 21, 33, 52],
+    [30, 50, 16, 25, 39, 62],
+    [50, 80, 19, 30, 46, 74],
+    [80, 120, 22, 35, 54, 87],
+    [120, 180, 25, 40, 63, 100],
+    [180, 250, 29, 46, 72, 115],
+    [250, 315, 32, 52, 81, 130],
+    [315, 400, 36, 57, 89, 140],
+    [400, 500, 40, 63, 97, 155],
   ];
   const range = ranges.find(([min, max]) => nominal > min && nominal <= max);
   if (!range) return null;
 
-  const it7 = range[2] / 1000;
+  const grade = Number(match[2]);
+  const tolerance = range[grade - 4] / 1000;
   return match[1] === "H"
-    ? { upper: it7, lower: 0 }
-    : { upper: 0, lower: -it7 };
+    ? { upper: tolerance, lower: 0 }
+    : { upper: 0, lower: -tolerance };
 };
 
 const getRowTolerance = (row) => {
@@ -999,7 +1009,7 @@ export default function Matprotokoll() {
 
       {/* ---------------- MEASUREMENTS ---------------- */}
       <h3>{t.mätpunkter}</h3>
-      <div className="mätprotokoll-hint">{lang === "sv" ? "Ange numerisk tolerans, t.ex. ±0,05 eller +0,10/-0,05. För ISO 286, ange H7 (hål) eller h7 (axel), t.ex. nominellt Ø20 och tolerans H7. Gränsmåtten räknas ut automatiskt för 1–500 mm. För tolk: skriv ”tolk” och välj OK/Ej OK." : "Enter a numerical tolerance for standard measurements, e.g. ±0.05, 0.05, +0.10/-0.05, -0.10/-0.15 or +0.10/+0.15. For inspection using a thread gauge, pin gauge or other gauge: enter “tolk” in the tolerance field and select OK/Not OK for each part."}</div>
+      <div className="mätprotokoll-hint">{lang === "sv" ? "Ange numerisk tolerans, t.ex. ±0,05 eller +0,10/-0,05. För ISO 286, ange H6–H9 (hål) eller h6–h9 (axel), t.ex. nominellt Ø20 och tolerans H7. Gränsmåtten räknas ut automatiskt för 1–500 mm. För tolk: skriv ”tolk” och välj OK/Ej OK." : "Enter a numerical tolerance for standard measurements, e.g. ±0.05, 0.05, +0.10/-0.05, -0.10/-0.15 or +0.10/+0.15. For inspection using a thread gauge, pin gauge or other gauge: enter “tolk” in the tolerance field and select OK/Not OK for each part."}</div>
 
       <div className="mätprotokoll-table-wrapper" style={{ overflowX: "auto", marginBottom: "15px" }}>
         <table
