@@ -823,7 +823,8 @@ export default function Matprotokoll() {
 			Här kan du skapa mätprotokoll. Börja med att välja <strong>Ordernummer</strong> — antingen genom att välja ett förslag ur listan (hämtas från tillverkningsordrarna) eller skriva in det manuellt.<br></br>När ett ordernummer är valt filtreras <strong>Artikelnummer</strong>-fältets förslag till artiklarna på just den ordern; väljer du en artikel fylls Benämning och Kund i automatiskt om de är tomma.<br></br>
 			När alla värden är ifyllda, klicka på Spara som PDF. Klicka på Spara utkast för att spara pågående mätning till senare. När du klickar på Spara som PDF tas protokollet bort från listan.<br></br>
 			Välj var PDF-filen ska sparas, t.ex. <i>V:\Mätprotokoll\K12324</i> och kontrollera dokumentet innan det arkiveras.<br></br>
-			Ska fler än 5 detaljer dokumenteras. Skapa nytt mätprotokoll med prefix på ordernumret t.ex. <i>K12345-2, K12345-3</i> osv.		
+			Ska fler än 5 detaljer dokumenteras. Skapa nytt mätprotokoll med prefix på ordernumret t.ex. <i>K12345-2, K12345-3</i> osv.<br></br>
+			<i>I listan för mätverktyg, kan du endast välja dina personligt reserverade eller lånade mätverkyg.</i> 
 		  </p>
 		) : (
 		  <p>
@@ -831,6 +832,7 @@ export default function Matprotokoll() {
 			When all values are filled in, click Save as PDF. Click Save draft to save the current measurement for later. When you click Save as PDF the protocol removes from the list<br></br>
 			Choose where the PDF file should be saved, e.g. <i>V:\Mätprotokoll\K12324</i> and check the document before archiving.<br></br>
 			If more than 5 details are to be documented, create a new measurement report with a prefix of the order number, e.g. <i>K12345-2, K12345-3</i> etc.<br></br>
+			<i>In the list of measuring tools, you can only select the measuring tools that are personally reserved for you or borrowed by you.</i>
 		  </p>
 		)}
       </div>
@@ -1021,7 +1023,7 @@ export default function Matprotokoll() {
 
       {/* ---------------- MEASUREMENTS ---------------- */}
       <h3>{t.mätpunkter}</h3>
-      <div className="mätprotokoll-hint">{lang === "sv" ? "Om toleransfältet lämnas tomt används ISO 2768-m automatiskt för linjära mått 0,5–4000 mm. Ange egen numerisk tolerans, t.ex. ±0,05 eller +0,10/-0,05, om ritningen anger en sådan. För ISO 286, ange H6–H9 (hål) eller h6–h9 (axel), t.ex. nominellt Ø20 och tolerans H7. För tolk: skriv ”tolk” och välj OK/Ej OK." : "If the tolerance field is left blank, ISO 2768-m is applied automatically to linear dimensions from 0.5 to 4000 mm. Enter a numerical tolerance, e.g. ±0.05 or +0.10/-0.05, when the drawing specifies one. For ISO 286, enter H6–H9 (hole) or h6–h9 (shaft), e.g. nominal Ø20 and tolerance H7. For inspection using a thread gauge, pin gauge or other gauge: enter “tolk” in the tolerance field and select OK/Not OK for each part."}</div>
+      <div className="mätprotokoll-hint">{lang === "sv" ? "Om toleransfältet lämnas tomt används ISO 2768-m automatiskt för linjära mått 0,5–4000 mm. Ange egen numerisk tolerans, t.ex. ±0,05 eller +0,10/-0,05, om ritningen anger en sådan.<br></br>För ISO 286, ange H6–H9 (hål) eller h6–h9 (axel), t.ex. nominellt Ø20 och tolerans H7. För tolk: skriv ”tolk” och välj OK/Ej OK." : "If the tolerance field is left blank, ISO 2768-m is applied automatically to linear dimensions from 0.5 to 4000 mm. Enter a numerical tolerance, e.g. ±0.05 or +0.10/-0.05, when the drawing specifies one.<br></br>For ISO 286, enter H6–H9 (hole) or h6–h9 (shaft), e.g. nominal Ø20 and tolerance H7. For inspection using a thread gauge, pin gauge or other gauge: enter “tolk” in the tolerance field and select OK/Not OK for each part."}</div>
 
       <div className="mätprotokoll-table-wrapper" style={{ overflowX: "auto", marginBottom: "15px" }}>
         <table
