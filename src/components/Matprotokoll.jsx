@@ -12,6 +12,7 @@ import "./Matprotokoll.css";
 const MATINSTRUMENT_OPTIONS = [
   "Pinntolk",
   "Tolk",
+  "CMM/3D-Taster",
   "Bladmått",
   "Passbit",
   "Annat / Övrigt",
@@ -20,6 +21,7 @@ const MATINSTRUMENT_OPTIONS = [
 const MATINSTRUMENT_LABELS_EN = {
   "Pinntolk": "Pin gauge",
   "Tolk": "Gauge",
+  "CMM/3D-Taster": "CMM/3D probe",
   "Bladmått": "Feeler gauge",
   "Passbit": "Gauge block",
   "Annat / Övrigt": "Other",
