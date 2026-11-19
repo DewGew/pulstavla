@@ -264,19 +264,43 @@ const getISO286Tolerance = (nominal, designation) => {
     : { upper: 0, lower: -tolerance };
 };
 
+// ISO 2768-1, klass m (medium): allmänna toleranser för linjära mått i mm.
+const getISO2768mTolerance = (nominal) => {
+  if (!Number.isFinite(nominal) || nominal < 0.5 || nominal > 4000) return null;
+  const ranges = [
+    [0.5, 3, 0.1],
+    [3, 6, 0.1],
+    [6, 30, 0.2],
+    [30, 120, 0.3],
+    [120, 400, 0.5],
+    [400, 1000, 0.8],
+    [1000, 2000, 1.2],
+    [2000, 4000, 2.0],
+  ];
+  const range = ranges.find(([min, max]) => nominal > min && nominal <= max);
+  if (!range) return null;
+  return { upper: range[2], lower: -range[2] };
+};
+
 const getRowTolerance = (row) => {
   const nominal = parseMeasurementNumber(row.dimensionskrav);
   if (nominal === null) return null;
-  return getISO286Tolerance(nominal, row.plustolerans) || parseTolerance(row.plustolerans);
+  const enteredTolerance = String(row.plustolerans ?? "").trim();
+  return getISO286Tolerance(nominal, enteredTolerance)
+    || parseTolerance(enteredTolerance)
+    || (!enteredTolerance ? getISO2768mTolerance(nominal) : null);
 };
 
 const formatToleranceLimits = (row) => {
   const nominal = parseMeasurementNumber(row.dimensionskrav);
-  const tolerance = getISO286Tolerance(nominal, row.plustolerans);
+  const enteredTolerance = String(row.plustolerans ?? "").trim();
+  const iso286 = getISO286Tolerance(nominal, enteredTolerance);
+  const tolerance = iso286 || (!enteredTolerance ? getISO2768mTolerance(nominal) : null);
   if (!tolerance) return "";
   const lower = nominal + tolerance.lower;
   const upper = nominal + tolerance.upper;
-  return `ISO 286: ${lower.toFixed(3).replace(".", ",")}–${upper.toFixed(3).replace(".", ",")} mm`;
+  const standard = iso286 ? "ISO 286" : "ISO 2768-m";
+  return `${standard}: ${lower.toFixed(3).replace(".", ",")}–${upper.toFixed(3).replace(".", ",")} mm`;
 };
 
 const getMeasurementStatus = (row, field) => {
@@ -997,7 +1021,7 @@ export default function Matprotokoll() {
 
       {/* ---------------- MEASUREMENTS ---------------- */}
       <h3>{t.mätpunkter}</h3>
-      <div className="mätprotokoll-hint">{lang === "sv" ? "Ange numerisk tolerans, t.ex. ±0,05 eller +0,10/-0,05. För ISO 286, ange H6–H9 (hål) eller h6–h9 (axel), t.ex. nominellt Ø20 och tolerans H7. Gränsmåtten räknas ut automatiskt för 1–500 mm. För tolk: skriv ”tolk” och välj OK/Ej OK." : "Enter a numerical tolerance for standard measurements, e.g. ±0.05, 0.05, +0.10/-0.05, -0.10/-0.15 or +0.10/+0.15. For ISO 286, enter H6–H9 (hole) or h6–h9 (shaft), e.g. nominal Ø20 and tolerance H7. Limits are calculated automatically for 1–500 mm. For inspection using a thread gauge, pin gauge or other gauge: enter “tolk” in the tolerance field and select OK/Not OK for each part."}</div>
+      <div className="mätprotokoll-hint">{lang === "sv" ? "Om toleransfältet lämnas tomt används ISO 2768-m automatiskt för linjära mått 0,5–4000 mm. Ange egen numerisk tolerans, t.ex. ±0,05 eller +0,10/-0,05, om ritningen anger en sådan. För ISO 286, ange H6–H9 (hål) eller h6–h9 (axel), t.ex. nominellt Ø20 och tolerans H7. För tolk: skriv ”tolk” och välj OK/Ej OK." : "If the tolerance field is left blank, ISO 2768-m is applied automatically to linear dimensions from 0.5 to 4000 mm. Enter a numerical tolerance, e.g. ±0.05 or +0.10/-0.05, when the drawing specifies one. For ISO 286, enter H6–H9 (hole) or h6–h9 (shaft), e.g. nominal Ø20 and tolerance H7. For inspection using a thread gauge, pin gauge or other gauge: enter “tolk” in the tolerance field and select OK/Not OK for each part."}</div>
 
       <div className="mätprotokoll-table-wrapper" style={{ overflowX: "auto", marginBottom: "15px" }}>
         <table
