@@ -245,13 +245,52 @@ const parseTolerance = (value) => {
 
 const isGaugeTolerance = (value) => /tolk/i.test(String(value ?? "").trim());
 
+// ISO 286-1: IT7 beräknas med standardens toleransenhet i.
+// Den här första versionen stöder H7 för hål och h7 för axlar.
+const getISO286Tolerance = (nominal, designation) => {
+  const match = String(designation ?? "").trim().match(/^([Hh])7$/);
+  if (!match || !Number.isFinite(nominal) || nominal < 1 || nominal > 500) return null;
+
+  const ranges = [
+    [1, 3], [3, 6], [6, 10], [10, 18], [18, 30], [30, 50],
+    [50, 80], [80, 120], [120, 180], [180, 250], [250, 315],
+    [315, 400], [400, 500],
+  ];
+  const range = ranges.find(([min, max], index) =>
+    nominal > min && nominal <= max || index === 0 && nominal >= min && nominal <= max
+  );
+  if (!range) return null;
+
+  const diameterStep = Math.sqrt(range[0] * range[1]);
+  const i = 0.45 * Math.cbrt(diameterStep) + 0.001 * diameterStep;
+  const it7 = Math.round(16 * i) / 1000;
+  return match[1] === "H"
+    ? { upper: it7, lower: 0 }
+    : { upper: 0, lower: -it7 };
+};
+
+const getRowTolerance = (row) => {
+  const nominal = parseMeasurementNumber(row.dimensionskrav);
+  if (nominal === null) return null;
+  return getISO286Tolerance(nominal, row.plustolerans) || parseTolerance(row.plustolerans);
+};
+
+const formatToleranceLimits = (row) => {
+  const nominal = parseMeasurementNumber(row.dimensionskrav);
+  const tolerance = getISO286Tolerance(nominal, row.plustolerans);
+  if (!tolerance) return "";
+  const lower = nominal + tolerance.lower;
+  const upper = nominal + tolerance.upper;
+  return `ISO 286: ${lower.toFixed(3).replace(".", ",")}–${upper.toFixed(3).replace(".", ",")} mm`;
+};
+
 const getMeasurementStatus = (row, field) => {
   if (isGaugeTolerance(row.plustolerans)) {
     if (!row[field]) return null;
     return row[field] === "OK" ? "Godkänd" : row[field] === "Ej OK" ? "Underkänd" : null;
   }
   const nominal = parseMeasurementNumber(row.dimensionskrav);
-  const tolerance = parseTolerance(row.plustolerans);
+  const tolerance = getRowTolerance(row);
   const measured = parseMeasurementNumber(row[field]);
   if (nominal === null || !tolerance || measured === null) return null;
   const lowerLimit = nominal + tolerance.lower;
@@ -554,7 +593,7 @@ export default function Matprotokoll() {
     const rows = measurements.map((row) => [
       row.mätpunkt || "",
       row.dimensionskrav || "",
-      row.plustolerans || "",
+      [row.plustolerans, formatToleranceLimits(row)].filter(Boolean).join("\n"),
       row.resultat_1 || "",
       row.resultat_2 || "",
       row.resultat_3 || "",
@@ -963,7 +1002,7 @@ export default function Matprotokoll() {
 
       {/* ---------------- MEASUREMENTS ---------------- */}
       <h3>{t.mätpunkter}</h3>
-      <div className="mätprotokoll-hint">{lang === "sv" ? "Ange numerisk tolerans för vanlig mätning, t.ex. ±0,05, 0,05, +0,10/-0,05, -0,10/-0,15 eller +0,10/+0,15. För kontroll med gängtolk, pinntolk eller annan tolk: skriv ”tolk” i toleransfältet och välj OK/Ej OK för varje detalj." : "Enter a numerical tolerance for standard measurements, e.g. ±0.05, 0.05, +0.10/-0.05, -0.10/-0.15 or +0.10/+0.15. For inspection using a thread gauge, pin gauge or other gauge: enter “tolk” in the tolerance field and select OK/Not OK for each part."}</div>
+      <div className="mätprotokoll-hint">{lang === "sv" ? "Ange numerisk tolerans, t.ex. ±0,05 eller +0,10/-0,05. För ISO 286, ange H7 (hål) eller h7 (axel), t.ex. nominellt Ø20 och tolerans H7. Gränsmåtten räknas ut automatiskt för 1–500 mm. För tolk: skriv ”tolk” och välj OK/Ej OK." : "Enter a numerical tolerance for standard measurements, e.g. ±0.05, 0.05, +0.10/-0.05, -0.10/-0.15 or +0.10/+0.15. For inspection using a thread gauge, pin gauge or other gauge: enter “tolk” in the tolerance field and select OK/Not OK for each part."}</div>
 
       <div className="mätprotokoll-table-wrapper" style={{ overflowX: "auto", marginBottom: "15px" }}>
         <table
@@ -1005,13 +1044,20 @@ export default function Matprotokoll() {
                         <option value="Ej OK">Ej OK</option>
                       </select>
                     ) : (
-                      <input
-                        type="text"
-                        value={row[field]}
-                        placeholder={placeholder}
-                        onChange={(e) => updateMeasurement(index, field, e.target.value)}
-                        style={{ width: "100%", boxSizing: "border-box" }}
-                      />
+                      <>
+                        <input
+                          type="text"
+                          value={row[field]}
+                          placeholder={placeholder}
+                          onChange={(e) => updateMeasurement(index, field, e.target.value)}
+                          style={{ width: "100%", boxSizing: "border-box" }}
+                        />
+                        {field === "plustolerans" && formatToleranceLimits(row) && (
+                          <div style={{ fontSize: "0.75rem", marginTop: "3px", color: "var(--text)", whiteSpace: "nowrap" }}>
+                            {formatToleranceLimits(row)}
+                          </div>
+                        )}
+                      </>
                     )}
                   </td>
                 ))}
