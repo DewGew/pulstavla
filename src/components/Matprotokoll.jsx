@@ -226,12 +226,20 @@ const parseMeasurementNumber = (value) => {
 const parseTolerance = (value) => {
   const raw = String(value ?? "").trim().replace(/,/g, ".");
   if (!raw) return null;
-  const asymmetric = raw.match(/\+\s*(\d+(?:\.\d*)?)\s*\/\s*-\s*(\d+(?:\.\d*)?)/);
-  if (asymmetric) return { plus: Number(asymmetric[1]), minus: Number(asymmetric[2]) };
+
+  // Asymmetrisk tolerans skrivs som övre/undre avvikelse,
+  // exempelvis +0.05/-0.02 eller -0.10/-0.15.
+  const asymmetric = raw.match(/([+-])\s*(\d+(?:\.\d*)?|\.\d+)\s*\/\s*([+-])\s*(\d+(?:\.\d*)?|\.\d+)/);
+  if (asymmetric) {
+    const upper = Number(asymmetric[2]) * (asymmetric[1] === "-" ? -1 : 1);
+    const lower = Number(asymmetric[4]) * (asymmetric[3] === "-" ? -1 : 1);
+    return { upper, lower };
+  }
+
   const symmetric = raw.match(/(?:±|\+\/\-|\+\-)\s*(\d+(?:\.\d*)?|\.\d+)/);
-  if (symmetric) return { plus: Number(symmetric[1]), minus: Number(symmetric[1]) };
+  if (symmetric) return { upper: Number(symmetric[1]), lower: -Number(symmetric[1]) };
   const plain = raw.match(/^\d+(?:\.\d*)?$/);
-  if (plain) return { plus: Number(plain[0]), minus: Number(plain[0]) };
+  if (plain) return { upper: Number(plain[0]), lower: -Number(plain[0]) };
   return null;
 };
 
@@ -246,7 +254,9 @@ const getMeasurementStatus = (row, field) => {
   const tolerance = parseTolerance(row.plustolerans);
   const measured = parseMeasurementNumber(row[field]);
   if (nominal === null || !tolerance || measured === null) return null;
-  return measured >= nominal - tolerance.minus && measured <= nominal + tolerance.plus
+  const lowerLimit = nominal + tolerance.lower;
+  const upperLimit = nominal + tolerance.upper;
+  return measured >= Math.min(lowerLimit, upperLimit) && measured <= Math.max(lowerLimit, upperLimit)
     ? "Godkänd"
     : "Underkänd";
 };
