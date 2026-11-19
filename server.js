@@ -1032,9 +1032,9 @@ const drawingsDB = new Datastore({
 drawingsDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 255000);
 
 /* ---------------- MÄTPROTOKOLL DATABASE ---------------- */
-// Sparade mätprotokoll (Matprotokoll.jsx) — id byggs som
-// "<ordernr>_<artikelnummer>", samma nyckel som PDF-filnamnet redan
-// använder, så en post här alltid går att koppla till rätt PDF.
+// Sparade mätprotokoll (Matprotokoll.jsx). Nya protokoll får unika ID:n
+// så flera protokoll kan finnas för samma order och artikel. Äldre poster
+// med order_artikel-ID fortsätter att kunna öppnas och uppdateras.
 const matprotokollDB = new Datastore({
   filename: "./db/matprotokoll.db",
   autoload: true,
@@ -2194,7 +2194,7 @@ app.get("/matprotokoll/:matprotokollId", requireAuth, (req, res) => {
   });
 });
 
-// Skapa/uppdatera protokoll (upsert på matprotokollId)
+// Skapa/uppdatera protokoll (upsert på unikt matprotokollId)
 app.put("/matprotokoll/:matprotokollId", requireAuth, requireEditor, (req, res) => {
   const { matprotokollId } = req.params;
   const { form, measurements, pdfSaved } = req.body;
