@@ -245,25 +245,22 @@ const parseTolerance = (value) => {
 
 const isGaugeTolerance = (value) => /tolk/i.test(String(value ?? "").trim());
 
-// ISO 286-1: IT7 beräknas med standardens toleransenhet i.
+// ISO 286-1: publicerade IT7-tabellvärden i µm.
 // Den här första versionen stöder H7 för hål och h7 för axlar.
 const getISO286Tolerance = (nominal, designation) => {
   const match = String(designation ?? "").trim().match(/^([Hh])7$/);
-  if (!match || !Number.isFinite(nominal) || nominal < 1 || nominal > 500) return null;
+  if (!match || !Number.isFinite(nominal) || nominal <= 0 || nominal > 500) return null;
 
   const ranges = [
-    [1, 3], [3, 6], [6, 10], [10, 18], [18, 30], [30, 50],
-    [50, 80], [80, 120], [120, 180], [180, 250], [250, 315],
-    [315, 400], [400, 500],
+    [0, 3, 10], [3, 6, 12], [6, 10, 15], [10, 18, 18],
+    [18, 30, 21], [30, 50, 25], [50, 80, 30], [80, 120, 35],
+    [120, 180, 40], [180, 250, 46], [250, 315, 52],
+    [315, 400, 57], [400, 500, 63],
   ];
-  const range = ranges.find(([min, max], index) =>
-    nominal > min && nominal <= max || index === 0 && nominal >= min && nominal <= max
-  );
+  const range = ranges.find(([min, max]) => nominal > min && nominal <= max);
   if (!range) return null;
 
-  const diameterStep = Math.sqrt(range[0] * range[1]);
-  const i = 0.45 * Math.cbrt(diameterStep) + 0.001 * diameterStep;
-  const it7 = Math.ceil(16 * i) / 1000;
+  const it7 = range[2] / 1000;
   return match[1] === "H"
     ? { upper: it7, lower: 0 }
     : { upper: 0, lower: -it7 };
