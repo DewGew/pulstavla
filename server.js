@@ -1241,6 +1241,141 @@ function isMeasuringToolControlOverdue(tool) {
   return nextDate.getTime() < todayDate;
 }
 
+// Publik utlåning via /lanamatverktyg. Anställningsnummer verifieras mot användarregistret.
+const publicLoanAttempts = new Map();
+function allowPublicLoanAttempt(key) {
+  const now = Date.now();
+  const recent = (publicLoanAttempts.get(key) || []).filter((time) => now - time < 10 * 60 * 1000);
+  if (recent.length >= 8) return false;
+  recent.push(now);
+  publicLoanAttempts.set(key, recent);
+  return true;
+}
+
+app.get("/public/measuring-tools", (req, res) => {
+  measuringToolsDB.find({}).sort({ toolNumber: 1 }).exec((err, tools) => {
+    if (err) return res.status(500).json({ error: "Kunde inte läsa verktygsregistret." });
+    const publicTools = tools
+      .filter((tool) => {
+        const blocked = Boolean(tool.controlBlocked || isMeasuringToolControlOverdue(tool));
+        const borrowed = tool.status === "Utlånad" || Boolean(tool.activeLoan);
+        const available = tool.status === "Disponibel" && !tool.activeLoan && !tool.reservation && !blocked;
+        return available || borrowed;
+      })
+      .map((tool) => ({
+        _id: tool._id,
+        toolNumber: tool.toolNumber,
+        type: tool.type,
+        description: tool.description,
+        manufacturer: tool.manufacturer || "",
+        range: tool.range || "",
+        location: tool.location || "",
+        borrowerName: tool.activeLoan?.borrowerName || "",
+        status: tool.activeLoan || tool.status === "Utlånad" ? "Utlånad" : "Disponibel",
+      }));
+    res.set("Cache-Control", "no-store");
+    res.json(publicTools);
+  });
+});
+
+app.post("/public/measuring-tools/:id/checkout", (req, res) => {
+  const employeeNumber = String(req.body?.employeeNumber || "").trim();
+  const attemptKey = String(req.ip || "unknown");
+  if (!employeeNumber || employeeNumber.length > 40) {
+    return res.status(400).json({ error: "Ange ett giltigt anställningsnummer." });
+  }
+  if (!allowPublicLoanAttempt(attemptKey)) {
+    return res.status(429).json({ error: "För många försök. Vänta en stund och försök igen." });
+  }
+  usersDB.findOne({ employeeNumber }, (userErr, borrower) => {
+    if (userErr) return res.status(500).json({ error: "Kunde inte kontrollera anställningsnumret." });
+    if (!borrower || borrower.role === "view") {
+      return res.status(400).json({ error: "Anställningsnumret kunde inte verifieras." });
+    }
+    measuringToolsDB.findOne({ _id: req.params.id }, (toolErr, tool) => {
+      if (toolErr) return res.status(500).json({ error: "Kunde inte läsa verktyget." });
+      if (!tool) return res.status(404).json({ error: "Verktyget hittades inte." });
+      if (tool.controlBlocked || isMeasuringToolControlOverdue(tool)) {
+        return res.status(409).json({ error: "Verktyget är spärrat och kan inte lånas ut." });
+      }
+      if (tool.status !== "Disponibel" || tool.activeLoan || tool.reservation) {
+        return res.status(409).json({ error: "Verktyget är inte längre ledigt." });
+      }
+      const checkedOutAt = Date.now();
+      const loan = {
+        borrowerId: borrower._id,
+        borrowerName: borrower.name || borrower.username,
+        borrowerUsername: borrower.username,
+        checkedOutAt,
+        dueDate: "",
+        checkedOutBy: "public",
+        checkedOutByName: "Publik lånesida",
+        note: "",
+      };
+      measuringToolsDB.update({
+        _id: tool._id,
+        status: "Disponibel",
+        activeLoan: null,
+        controlBlocked: { $ne: true },
+        $or: [{ reservation: { $exists: false } }, { reservation: null }],
+      }, {
+        $set: { status: "Utlånad", activeLoan: loan, updatedAt: checkedOutAt },
+        $push: { loanHistory: { ...loan, action: "checkout" } },
+      }, {}, (updateErr, count) => {
+        if (updateErr) return res.status(500).json({ error: "Kunde inte registrera utlåningen." });
+        if (!count) return res.status(409).json({ error: "Verktyget hann lånas ut av någon annan." });
+        io.emit("measuringToolsUpdated");
+        res.json({ success: true });
+      });
+    });
+  });
+});
+
+app.post("/public/measuring-tools/:id/return", (req, res) => {
+  const employeeNumber = String(req.body?.employeeNumber || "").trim();
+  const attemptKey = String(req.ip || "unknown");
+  if (!employeeNumber || employeeNumber.length > 40) {
+    return res.status(400).json({ error: "Ange ett giltigt anställningsnummer." });
+  }
+  if (!allowPublicLoanAttempt(attemptKey)) {
+    return res.status(429).json({ error: "För många försök. Vänta en stund och försök igen." });
+  }
+  usersDB.findOne({ employeeNumber }, (userErr, borrower) => {
+    if (userErr) return res.status(500).json({ error: "Kunde inte kontrollera anställningsnumret." });
+    if (!borrower || borrower.role === "view") {
+      return res.status(400).json({ error: "Anställningsnumret kunde inte verifieras." });
+    }
+    measuringToolsDB.findOne({ _id: req.params.id }, (toolErr, tool) => {
+      if (toolErr) return res.status(500).json({ error: "Kunde inte läsa verktyget." });
+      if (!tool || !tool.activeLoan) return res.status(404).json({ error: "Ingen aktiv utlåning hittades." });
+      if (tool.activeLoan.borrowerId !== borrower._id) {
+        return res.status(403).json({ error: "Anställningsnumret stämmer inte med låntagaren." });
+      }
+      const returnedAt = Date.now();
+      const returnEntry = {
+        ...tool.activeLoan,
+        action: "return",
+        returnedAt,
+        returnedBy: borrower._id,
+        returnedByName: borrower.name || borrower.username,
+        returnNote: "",
+      };
+      measuringToolsDB.update({
+        _id: tool._id,
+        "activeLoan.borrowerId": borrower._id,
+      }, {
+        $set: { status: "Disponibel", activeLoan: null, updatedAt: returnedAt },
+        $push: { loanHistory: returnEntry },
+      }, {}, (updateErr, count) => {
+        if (updateErr) return res.status(500).json({ error: "Kunde inte registrera återlämningen." });
+        if (!count) return res.status(409).json({ error: "Utlåningen har redan ändrats." });
+        io.emit("measuringToolsUpdated");
+        res.json({ success: true });
+      });
+    });
+  });
+});
+
 // Lista verktyg och aktuell utlåning. Förfallen kontroll ger automatisk spärr.
 app.get("/measuring-tools", requireAuth, (req, res) => {
   measuringToolsDB.find({}).sort({ toolNumber: 1 }).exec((err, tools) => {

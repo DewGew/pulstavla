@@ -29,6 +29,7 @@ const OrderImport = lazy(() => import("./components/OrderImport"));
 const ProductionOrderImport = lazy(() => import("./components/ProductionOrderImport"));
 const Matprotokoll = lazy(() => import("./components/Matprotokoll"));
 const MeasuringTools = lazy(() => import("./components/MeasuringTools"));
+const PublicMeasuringTools = lazy(() => import("./components/PublicMeasuringTools"));
 const KpiAdmin = lazy(() => import("./dashboard/KpiAdmin"));
 const Notifications = lazy(() => import("./components/Notifications"));
 
@@ -75,15 +76,22 @@ export default function App() {
 	  return () => document.removeEventListener("fullscreenchange", handleChange);
 	}, []);
   
+  /* Publik lånesida använder sitt eget tema och ska undantas från appens globala tema. */
+  const isPublicLoanPage = decodeURIComponent(window.location.pathname).replace(/\/+$/, "") === "/lånamätverktyg";
+
   /* ------------------- THEME ------------------- */
   const [theme, setTheme] = useState(
     localStorage.getItem("theme") || "light"
   );
 
   useEffect(() => {
+    if (isPublicLoanPage) {
+      document.documentElement.removeAttribute("data-theme");
+      return;
+    }
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("theme", theme);
-  }, [theme]);
+  }, [theme, isPublicLoanPage]);
 
   const toggleTheme = () => {
     setTheme((t) => (t === "light" ? "dark" : "light"));
@@ -277,6 +285,15 @@ export default function App() {
 		desktop4KMedia.removeEventListener("change", handleDesktop4K);
 	  };
 	}, []);
+
+  /* Publik lånesida: ska fungera utan inloggning. */
+  if (isPublicLoanPage) {
+    return (
+      <Suspense fallback={<div className="page-loading">Laddar sida…</div>}>
+        <PublicMeasuringTools />
+      </Suspense>
+    );
+  }
 
   /* ------------------- LOADING / LOGIN SCREENS ------------------- */
   if (loading) return <div>Laddar inställningar…</div>;
