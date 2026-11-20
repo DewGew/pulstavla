@@ -1270,6 +1270,7 @@ app.get("/public/measuring-tools", (req, res) => {
         manufacturer: tool.manufacturer || "",
         range: tool.range || "",
         location: tool.location || "",
+        borrowerName: tool.activeLoan?.borrowerName || "",
         status: tool.activeLoan || tool.status === "Utlånad" ? "Utlånad" : "Disponibel",
       }));
     res.set("Cache-Control", "no-store");
