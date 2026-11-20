@@ -133,6 +133,9 @@ export default function PublicMeasuringTools() {
                 </div>
                 <h2>{tool.description || tool.type || "Mätverktyg"}</h2>
                 {tool.type && <p className="public-loan-type">{tool.type}</p>}
+                {tool.status === "Utlånad" && tool.borrowerName && (
+                  <p className="public-loan-borrower">Lånad av: <strong>{tool.borrowerName}</strong></p>
+                )}
                 <dl>
                   {tool.range && <div><dt>Mätområde</dt><dd>{tool.range}</dd></div>}
                   {tool.manufacturer && <div><dt>Tillverkare</dt><dd>{tool.manufacturer}</dd></div>}
