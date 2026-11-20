@@ -1021,16 +1021,6 @@ const structuredWidgetsDB = new Datastore({
 });
 structuredWidgetsDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 240000);
 
-/* ---------------- DRAWING WIDGETS DATABASE ---------------- */
-// Handstil/anteckningar från touchpanelen (DrawingWidget) — sparas som
-// vektorstrokes (punktlistor), inte som bitmap, så de förblir skarpa
-// oavsett skärmstorlek/upplösning.
-const drawingsDB = new Datastore({
-  filename: "./db/drawings.db",
-  autoload: true,
-});
-drawingsDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 255000);
-
 /* ---------------- MÄTPROTOKOLL DATABASE ---------------- */
 // Sparade mätprotokoll (Matprotokoll.jsx). Nya protokoll får unika ID:n
 // så flera protokoll kan finnas för samma order och artikel. Äldre poster
@@ -2393,93 +2383,6 @@ app.delete("/matprotokoll/:matprotokollId", requireAuth, requireEditor, (req, re
       res.json({ success: true, removed: numRemoved });
     }
   );
-});
-
-/* ---------------- DRAWING WIDGET ENDPOINTS ---------------- */
-app.get("/drawings/:drawingId", requireAuth, (req, res) => {
-  const { drawingId } = req.params;
-
-  drawingsDB.findOne({ drawingId }, (err, doc) => {
-    if (err) return res.status(500).json({ error: "DB-fel" });
-    if (!doc) return res.status(404).json({ error: "Ritning saknas" });
-    res.json(doc);
-  });
-});
-
-app.post("/drawings", requireAuth, requireEditor, (req, res) => {
-  const { drawingId, title = "", strokes = [] } = req.body;
-
-  if (!drawingId)
-    return res.status(400).json({ error: "drawingId krävs" });
-
-  const drawing = {
-    drawingId,
-    title,
-    strokes,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  };
-
-  drawingsDB.insert(drawing, (err, doc) => {
-    if (err)
-      return res.status(500).json({ error: "Kunde inte skapa ritning" });
-
-    io.emit("drawingCreated", doc);
-    res.json(doc);
-  });
-});
-
-// FIX: no requireAuth here on purpose — touch panels drawing notes are often
-// logged in as a shared kiosk user.
-// updatedBy falls back to "Okänd" instead of relying on req.user.
-app.put("/drawings/:drawingId", requireAuth, requireEditor, (req, res) => {
-  const { drawingId } = req.params;
-  const { title, strokes } = req.body;
-
-  let updatedBy = "Okänd";
-  const authHeader = req.headers.authorization;
-  if (authHeader) {
-    try {
-      const decoded = jwt.verify(authHeader.split(" ")[1], JWT_SECRET);
-      updatedBy = decoded.name || decoded.username || updatedBy;
-    } catch {
-      // ogiltig/saknad token — spara ändå, bara utan namn
-    }
-  }
-
-  drawingsDB.update(
-    { drawingId },
-    {
-      $set: {
-        title,
-        strokes,
-        updatedBy,
-        updatedAt: Date.now(),
-      },
-    },
-    { upsert: true },
-    (err) => {
-      if (err)
-        return res.status(500).json({ error: "Kunde inte spara ritning" });
-
-      io.emit("drawingUpdated", {
-        drawingId,
-        title,
-        strokes,
-        updatedBy,
-        updatedAt: Date.now(),
-      });
-
-      res.json({ success: true });
-    }
-  );
-});
-
-app.delete("/drawings/:drawingId", requireAuth, requireAdmin, (req, res) => {
-  drawingsDB.remove({ drawingId: req.params.drawingId }, {}, (err, numRemoved) => {
-    if (err) return res.status(500).json({ error: "Kunde inte ta bort" });
-    res.json({ success: true, removed: numRemoved });
-  });
 });
 
 app.post("/activities/upload", requireAuth, requireEditor, upload.single("image"), validateUploadedFile(imageFileTypes), (req, res) => {
