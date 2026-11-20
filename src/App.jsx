@@ -287,7 +287,6 @@ export default function App() {
 	}, []);
 
   /* Publik lånesida: ska fungera utan inloggning. */
-  const isPublicLoanPage = decodeURIComponent(window.location.pathname).replace(/\/+$/, "") === "/lånamätverktyg";
   if (isPublicLoanPage) {
     return (
       <Suspense fallback={<div className="page-loading">Laddar sida…</div>}>
