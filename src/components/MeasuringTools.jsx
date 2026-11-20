@@ -326,6 +326,7 @@ export default function MeasuringTools({ currentUser }) {
         <div><h2>Mätverktyg</h2><p>Verktygsregister, utlåning och återlämning</p></div>
         {(isAdmin || canRegisterControl) && <div className="measuring-header-actions">
           <button className="btn-secondary" onClick={() => setShowAccess((value) => !value)}>Behörighet kontroll</button>
+          <button className="btn-secondary" type="button" onClick={exportFilteredCsv} disabled={!filteredTools.length}>Exportera filtrerad lista till CSV</button>
           <button className="btn-primary" onClick={() => { setEditingToolId(null); setForm({ ...emptyTool, toolNumber: nextSuggestedToolNumber }); setShowAdd(true); }}>＋ Registrera verktyg</button>
         </div>}
       </div>
@@ -350,10 +351,6 @@ export default function MeasuringTools({ currentUser }) {
         </section>
       )}
 
-
-      {(isAdmin || canRegisterControl) && <div className="measuring-export-actions">
-        <button type="button" className="btn-secondary" onClick={exportFilteredCsv} disabled={!filteredTools.length}>Exportera filtrerad lista till CSV</button>
-      </div>}
 
       <div className="measuring-list-toolbar">
         <div className="measuring-search-row">
