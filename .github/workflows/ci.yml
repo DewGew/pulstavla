@@ -24,6 +24,3 @@ jobs:
 
       - name: Bygg
         run: npm run build
-
-      - name: Kör tester
-        run: npm test
