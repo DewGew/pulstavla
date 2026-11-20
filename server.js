@@ -606,6 +606,14 @@ app.get("/documents", requireAuth, (req, res) => {
   });
 });
 
+app.get("/tool-images/:name", (req, res) => {
+  const fileName = path.basename(req.params.name);
+  if (!fileName || fileName !== req.params.name || !/^[a-zA-Z0-9._-]+\\.(png|jpe?g|webp|gif)$/i.test(fileName)) return res.sendStatus(400);
+  res.sendFile(fileName, { root: path.resolve("uploads"), dotfiles: "deny" }, (err) => {
+    if (err && !res.headersSent) res.sendStatus(err.statusCode === 404 ? 404 : 500);
+  });
+});
+
 app.get("/uploads/:name", requireAuth, (req, res) => {
   const fileName = path.basename(req.params.name);
   if (!fileName || fileName !== req.params.name) return res.sendStatus(400);
@@ -1357,6 +1365,26 @@ app.patch("/measuring-tools/:id", requireAuth, requireMeasuringControlAccess, (r
       if (!count) return res.status(404).json({ error: "Verktyget hittades inte." });
       io.emit("measuringToolsUpdated");
       res.json({ success: true });
+    });
+  });
+});
+
+// Ladda upp en egen bild till ett mätverktyg.
+app.post("/measuring-tools/:id/image", requireAuth, requireMeasuringControlAccess, (req, res) => {
+  fs.mkdirSync(uploadDir, { recursive: true });
+  upload.single("image")(req, res, (uploadErr) => {
+    if (uploadErr) {
+      const status = uploadErr.code === "LIMIT_FILE_SIZE" ? 413 : 400;
+      return res.status(status).json({ error: status === 413 ? "Bilden får vara högst 5 MB." : uploadErr.message });
+    }
+    validateUploadedFile(imageFileTypes)(req, res, () => {
+      const imageUrl = `/tool-images/${req.file.filename}`;
+      measuringToolsDB.update({ _id: req.params.id }, { $set: { imageUrl, updatedAt: Date.now() } }, {}, (updateErr, count) => {
+        if (updateErr) return res.status(500).json({ error: "Kunde inte spara verktygsbilden." });
+        if (!count) return res.status(404).json({ error: "Verktyget hittades inte." });
+        io.emit("measuringToolsUpdated");
+        res.status(201).json({ success: true, imageUrl });
+      });
     });
   });
 });
