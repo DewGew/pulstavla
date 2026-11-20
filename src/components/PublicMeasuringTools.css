@@ -1,0 +1,62 @@
+.public-loan-page {
+  min-height:100vh; background:var(--bg,#f4f6f8); color:var(--text,#17202a);
+  font-family:inherit; padding:0 18px 40px;
+}
+.public-loan-header {
+  max-width:1080px; margin:0 auto; padding:22px 0 26px;
+  border-bottom:1px solid var(--panel-border,#dce2e8);
+}
+.public-loan-brand { display:inline-flex; align-items:center; gap:9px; color:inherit; text-decoration:none; font-weight:850; letter-spacing:.08em; }
+.public-loan-brand-mark { display:grid; place-items:center; width:34px; height:34px; border-radius:9px; background:#176b49; color:white; font-size:19px; }
+.public-loan-intro { margin-top:28px; }
+.public-loan-intro h1 { margin:0; font-size:clamp(1.8rem,4vw,2.5rem); letter-spacing:-.035em; }
+.public-loan-intro p { margin:8px 0 0; color:var(--muted-text,#687582); font-size:1.02rem; }
+.public-loan-content { max-width:1080px; margin:24px auto 0; }
+.public-loan-tabs { display:flex; gap:8px; border-bottom:1px solid var(--panel-border,#dce2e8); }
+.public-loan-tabs button { display:flex; align-items:center; gap:9px; padding:12px 16px; border:0; border-bottom:3px solid transparent; background:transparent; color:var(--muted-text,#687582); font:inherit; font-weight:700; cursor:pointer; }
+.public-loan-tabs button.active { border-bottom-color:#176b49; color:var(--text,#17202a); }
+.public-loan-tabs button span { display:inline-grid; min-width:23px; height:23px; padding:0 5px; place-items:center; border-radius:20px; background:var(--panel,#fff); font-size:.8rem; }
+.public-loan-search { display:flex; align-items:center; gap:10px; margin:18px 0; padding:0 14px; border:1px solid var(--panel-border,#dce2e8); border-radius:12px; background:var(--panel,#fff); }
+.public-loan-search-icon { color:var(--muted-text,#687582); font-size:1.7rem; }
+.public-loan-search input { width:100%; min-width:0; padding:14px 0; border:0; outline:0; background:transparent; color:inherit; font:inherit; }
+.public-loan-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr)); gap:14px; }
+.public-loan-card { display:flex; flex-direction:column; min-width:0; padding:18px; border:1px solid var(--panel-border,#dce2e8); border-radius:14px; background:var(--panel,#fff); box-shadow:0 2px 8px #17202a0a; }
+.public-loan-card-top { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+.public-loan-status { display:inline-flex; align-items:center; padding:5px 9px; border-radius:20px; font-size:.78rem; font-weight:750; }
+.public-loan-status.available { color:#176b49; background:#e5f5eb; }
+.public-loan-status.borrowed { color:#875800; background:#fff0ce; }
+.public-loan-number { color:var(--muted-text,#687582); font-size:.82rem; font-weight:700; font-variant-numeric:tabular-nums; }
+.public-loan-card h2 { margin:15px 0 3px; font-size:1.12rem; }
+.public-loan-type { margin:0; color:var(--muted-text,#687582); font-size:.9rem; }
+.public-loan-card dl { display:grid; gap:8px; margin:18px 0; }
+.public-loan-card dl div { display:flex; justify-content:space-between; gap:12px; font-size:.88rem; }
+.public-loan-card dt { color:var(--muted-text,#687582); }
+.public-loan-card dd { margin:0; text-align:right; font-weight:600; }
+.public-loan-action { width:100%; margin-top:auto; padding:12px 16px; border:0; border-radius:9px; background:#176b49; color:#fff; font:inherit; font-weight:750; cursor:pointer; }
+.public-loan-action:hover { background:#12563b; }
+.public-loan-action:disabled { opacity:.55; cursor:not-allowed; }
+.public-loan-action.secondary { background:#465568; }
+.public-loan-empty { display:flex; flex-direction:column; align-items:center; gap:8px; padding:54px 18px; border:1px dashed var(--panel-border,#dce2e8); border-radius:14px; color:var(--muted-text,#687582); text-align:center; }
+.public-loan-empty > span { font-size:2rem; }
+.public-loan-empty strong { color:var(--text,#17202a); }
+.public-loan-empty p { margin:0; }
+.public-loan-footnote { margin:20px 0 0; color:var(--muted-text,#687582); font-size:.84rem; text-align:center; }
+.public-loan-notice,.public-loan-error { margin:12px 0; padding:12px 14px; border-radius:9px; font-size:.92rem; }
+.public-loan-notice { display:flex; justify-content:space-between; gap:12px; background:#e5f5eb; color:#176b49; }
+.public-loan-notice button { border:0; background:none; color:inherit; font-size:1.2rem; cursor:pointer; }
+.public-loan-error { background:#fde8e7; color:#9d2424; }
+.public-loan-modal-backdrop { position:fixed; inset:0; z-index:3000; display:grid; place-items:center; padding:18px; background:#0008; }
+.public-loan-modal { position:relative; width:min(430px,100%); padding:26px; border-radius:16px; background:var(--panel,#fff); color:var(--text,#17202a); box-shadow:0 20px 70px #0003; }
+.public-loan-modal-close { position:absolute; top:10px; right:14px; border:0; background:none; color:inherit; font-size:1.7rem; cursor:pointer; }
+.public-loan-modal h2 { margin:16px 0 4px; font-size:1.35rem; }
+.public-loan-modal-number { margin:0 0 22px; color:var(--muted-text,#687582); }
+.public-loan-modal form { display:flex; flex-direction:column; gap:10px; }
+.public-loan-modal form label { font-weight:700; font-size:.9rem; }
+.public-loan-modal form input { width:100%; box-sizing:border-box; padding:13px; border:1px solid var(--panel-border,#dce2e8); border-radius:9px; background:var(--bg-cell,#fff); color:inherit; font:inherit; }
+.public-loan-cancel { padding:10px; border:0; background:transparent; color:var(--muted-text,#687582); font:inherit; cursor:pointer; }
+@media(max-width:600px) {
+  .public-loan-page { padding-right:13px; padding-left:13px; }
+  .public-loan-header { padding-top:16px; }
+  .public-loan-intro { margin-top:23px; }
+  .public-loan-card { padding:15px; }
+}
