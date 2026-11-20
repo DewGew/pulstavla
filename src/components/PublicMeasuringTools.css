@@ -28,6 +28,8 @@
 .public-loan-number { color:var(--muted-text,#687582); font-size:.82rem; font-weight:700; font-variant-numeric:tabular-nums; }
 .public-loan-card h2 { margin:15px 0 3px; font-size:1.12rem; }
 .public-loan-type { margin:0; color:var(--muted-text,#687582); font-size:.9rem; }
+.public-loan-borrower { margin:12px 0 0; padding:9px 11px; border-radius:8px; background:var(--bg,#f4f6f8); color:var(--muted-text,#687582); font-size:.88rem; }
+.public-loan-borrower strong { color:var(--text,#17202a); }
 .public-loan-card dl { display:grid; gap:8px; margin:18px 0; }
 .public-loan-card dl div { display:flex; justify-content:space-between; gap:12px; font-size:.88rem; }
 .public-loan-card dt { color:var(--muted-text,#687582); }
