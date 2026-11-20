@@ -21,6 +21,7 @@ export default function AdminUsers({ currentUser, hideTitle = false, flat = fals
     role: "user",
     email: "",
     name: "",
+    employeeNumber: "",
   });
 
   const [editUser, setEditUser] = useState(null);
@@ -123,7 +124,7 @@ export default function AdminUsers({ currentUser, hideTitle = false, flat = fals
       if (!res.ok) throw new Error();
 
       showMsg("✔️ Ny användare skapad!");
-      setNewUser({ username: "", password: "", role: "user", email: "", name: "" });
+      setNewUser({ username: "", password: "", role: "user", email: "", name: "", employeeNumber: "" });
       loadUsers();
       return true;
     } catch {
@@ -189,6 +190,7 @@ export default function AdminUsers({ currentUser, hideTitle = false, flat = fals
         body: JSON.stringify({
           name: editUser.name,
           username: editUser.username,
+          employeeNumber: editUser.employeeNumber || "",
           email: editUser.email,
           ...(editUser.password ? { password: editUser.password } : {}),
         }),
@@ -225,6 +227,7 @@ export default function AdminUsers({ currentUser, hideTitle = false, flat = fals
         <thead>
           <tr>
             <th>Namn</th>
+            <th>Anställningsnummer</th>
             <th>Användarnamn</th>
             <th>E-post</th>
             <th>Roll</th>
@@ -238,6 +241,7 @@ export default function AdminUsers({ currentUser, hideTitle = false, flat = fals
           {users.map((u) => (
             <tr key={u._id}>
               <td>{u.name}</td>
+              <td>{u.employeeNumber || "—"}</td>
               <td>{u.username}</td>
               <td>{u.email}</td>
 
@@ -345,6 +349,12 @@ export default function AdminUsers({ currentUser, hideTitle = false, flat = fals
               onChange={(e) => setEditUser({ ...editUser, username: e.target.value })}
             />
             <input
+              type="text"
+              placeholder="Anställningsnummer"
+              value={editUser.employeeNumber || ""}
+              onChange={(e) => setEditUser({ ...editUser, employeeNumber: e.target.value })}
+            />
+            <input
               type="email"
               placeholder="E-post"
               value={editUser.email}
@@ -389,6 +399,12 @@ export default function AdminUsers({ currentUser, hideTitle = false, flat = fals
               placeholder="Användarnamn"
               value={newUser.username}
               onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+            />
+            <input
+              type="text"
+              placeholder="Anställningsnummer"
+              value={newUser.employeeNumber}
+              onChange={(e) => setNewUser({ ...newUser, employeeNumber: e.target.value })}
             />
             <input
               type="email"
