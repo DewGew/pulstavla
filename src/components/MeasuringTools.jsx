@@ -407,7 +407,10 @@ export default function MeasuringTools({ currentUser }) {
                       {isLoaned ? "Utlånad" : terminalStatus ? tool.status : blocked ? "Spärrad" : tool.reservation ? "Reserverad" : "Ledig"}
                     </span>
                   </div>
-                  <h3>{tool.description || tool.type}{tool.manufacturer ? ` · ${tool.manufacturer}` : ""}</h3>
+                  <div className="measuring-card-heading">
+                    <h3>{tool.description || tool.type}</h3>
+                    <p>{[tool.description ? tool.type : "", tool.manufacturer].filter(Boolean).join(" · ") || "Mätverktyg"}</p>
+                  </div>
                   <div className="measuring-card-facts">
                     <div><span>Mätområde</span><strong>{tool.range || "Ej angivet"}</strong></div>
                     <div><span>Placering</span><strong>{tool.location || "Ej angiven"}</strong></div>
@@ -419,6 +422,7 @@ export default function MeasuringTools({ currentUser }) {
                     </div>
                   )}
                   <div className="measuring-card-control">
+                    <div><span>Senaste kontroll</span><strong>{dateLabel(tool.lastControlDate)}</strong></div>
                     <div><span>Nästa kontroll</span><strong className={overdue ? "measuring-overdue" : ""}>{next ? dateLabel(next.toISOString().slice(0, 10)) : "Ej registrerad"}</strong></div>
                     {blocked && <p className="measuring-card-warning">{overdue ? "Kontrolldatumet har passerat – verktyget får inte användas." : "Verktyget är spärrat efter underkänd kontroll."}</p>}
                   </div>
