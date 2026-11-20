@@ -86,7 +86,6 @@ const T = {
     saving: "Sparar…",
     openSaved: "📂 Öppna sparat protokoll",
     savePdf: "📄 Spara som PDF",
-    clearForm: "🗑 Rensa formulär",
     filterPlaceholder: "🔍 Filtrera på order- eller artikelnr…",
     sortBy: "Sortera på:",
     sortAsc: "↑ Stigande",
@@ -161,7 +160,6 @@ const T = {
     saving: "Saving…",
     openSaved: "📂 Open saved report",
     savePdf: "📄 Save as PDF",
-    clearForm: "🗑 Clear form",
     filterPlaceholder: "🔍 Filter by order or article no…",
     sortBy: "Sort by:",
     sortAsc: "↑ Ascending",
@@ -836,7 +834,7 @@ export default function Matprotokoll() {
 			När alla värden är ifyllda, klicka på Spara som PDF. Klicka på Spara utkast för att spara pågående mätning till senare. När du klickar på Spara som PDF tas protokollet bort från listan.<br></br>
 			Välj var PDF-filen ska sparas, t.ex. <i>V:\Mätprotokoll\K12324</i> och kontrollera dokumentet innan det arkiveras.<br></br>
 			Ska fler än 5 detaljer dokumenteras. Skapa nytt mätprotokoll med prefix på ordernumret t.ex. <i>K12345-2, K12345-3</i> osv.<br></br>
-			<i>I listan för registrerade mätverktyg, kan du endast välja dina personligt reserverade eller lånade mätverkyg.</i> 
+			<i>I listan för registrerade mätverktyg, kan du endast välja dina personligt reserverade eller lånade mätverkyg. För att låna mätverktyg gå till Mätverktyg.</i> 
 		  </p>
 		) : (
 		  <p>
@@ -844,7 +842,7 @@ export default function Matprotokoll() {
 			When all values are filled in, click Save as PDF. Click Save draft to save the current measurement for later. When you click Save as PDF the protocol removes from the list<br></br>
 			Choose where the PDF file should be saved, e.g. <i>V:\Mätprotokoll\K12324</i> and check the document before archiving.<br></br>
 			If more than 5 details are to be documented, create a new measurement report with a prefix of the order number, e.g. <i>K12345-2, K12345-3</i> etc.<br></br>
-			<i>n the list of registered measuring tools, you can only select the measuring tools that are personally reserved for you or that you have borrowed.</i>
+			<i>In the list of registered measuring tools, you can only select measuring tools that are personally reserved for you or that you have borrowed. To borrow measuring tools, go to Measuring Tools.</i>
 		  </p>
 		)}
       </div>
@@ -1205,10 +1203,6 @@ export default function Matprotokoll() {
 
         <button className="btn-secondary" onClick={clearForm}>
           {t.newReport}
-        </button>
-
-        <button className="btn-danger" onClick={clearForm}>
-          {t.clearForm}
         </button>
       </div>
 

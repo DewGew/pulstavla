@@ -326,6 +326,7 @@ export default function MeasuringTools({ currentUser }) {
         <div><h2>Mätverktyg</h2><p>Verktygsregister, utlåning och återlämning</p></div>
         {(isAdmin || canRegisterControl) && <div className="measuring-header-actions">
           <button className="btn-secondary" onClick={() => setShowAccess((value) => !value)}>Behörighet kontroll</button>
+          <button className="btn-secondary" type="button" onClick={exportFilteredCsv} disabled={!filteredTools.length}>Exportera filtrerad lista till CSV</button>
           <button className="btn-primary" onClick={() => { setEditingToolId(null); setForm({ ...emptyTool, toolNumber: nextSuggestedToolNumber }); setShowAdd(true); }}>＋ Registrera verktyg</button>
         </div>}
       </div>
@@ -350,10 +351,6 @@ export default function MeasuringTools({ currentUser }) {
         </section>
       )}
 
-
-      {(isAdmin || canRegisterControl) && <div className="measuring-export-actions">
-        <button type="button" className="btn-secondary" onClick={exportFilteredCsv} disabled={!filteredTools.length}>Exportera filtrerad lista till CSV</button>
-      </div>}
 
       <div className="measuring-list-toolbar">
         <div className="measuring-search-row">
@@ -410,7 +407,10 @@ export default function MeasuringTools({ currentUser }) {
                       {isLoaned ? "Utlånad" : terminalStatus ? tool.status : blocked ? "Spärrad" : tool.reservation ? "Reserverad" : "Ledig"}
                     </span>
                   </div>
-                  <h3>{tool.description || tool.type}{tool.manufacturer ? ` · ${tool.manufacturer}` : ""}</h3>
+                  <div className="measuring-card-heading">
+                    <h3>{tool.description || tool.type}</h3>
+                    <p>{[tool.description ? tool.type : "", tool.manufacturer].filter(Boolean).join(" · ") || "Mätverktyg"}</p>
+                  </div>
                   <div className="measuring-card-facts">
                     <div><span>Mätområde</span><strong>{tool.range || "Ej angivet"}</strong></div>
                     <div><span>Placering</span><strong>{tool.location || "Ej angiven"}</strong></div>
@@ -422,6 +422,7 @@ export default function MeasuringTools({ currentUser }) {
                     </div>
                   )}
                   <div className="measuring-card-control">
+                    <div><span>Senaste kontroll</span><strong>{dateLabel(tool.lastControlDate)}</strong></div>
                     <div><span>Nästa kontroll</span><strong className={overdue ? "measuring-overdue" : ""}>{next ? dateLabel(next.toISOString().slice(0, 10)) : "Ej registrerad"}</strong></div>
                     {blocked && <p className="measuring-card-warning">{overdue ? "Kontrolldatumet har passerat – verktyget får inte användas." : "Verktyget är spärrat efter underkänd kontroll."}</p>}
                   </div>

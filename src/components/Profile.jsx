@@ -17,6 +17,7 @@ const T = {
     },
     name: "Namn:",
     email: "E-post:",
+    employeeNumber: "Anställningsnummer:",
     password: "Lösenord:",
     passwordPlaceholder: "Nytt lösenord (valfritt)",
     updateButton: "Uppdatera profil",
@@ -72,6 +73,7 @@ const T = {
     },
     name: "Name:",
     email: "Email:",
+    employeeNumber: "Employee number:",
     password: "Password:",
     passwordPlaceholder: "New password (optional)",
     updateButton: "Update profile",
@@ -286,6 +288,10 @@ export default function Profile({ user, setUser, setActiveTab }) {
       <div className="profile-info">
         <p>
           <strong>{t.username}</strong> {user.username}
+        </p>
+
+        <p>
+          <strong>{t.employeeNumber}</strong> {user.employeeNumber || "—"}
         </p>
 
         <p>
