@@ -1549,7 +1549,7 @@ app.get("/users", requireAuth, requireAdmin, (req, res) => {
 });
 
 app.post("/users/add", requireAuth, requireAdmin, async (req, res) => {
-  const { username, password, role, email, name } = req.body;
+  const { username, password, role, email, name, employeeNumber } = req.body;
 
   if (!username || !password || !email || !name) {
     return res.status(400).json({ error: "username, password, email och name krävs" });
@@ -1562,7 +1562,7 @@ app.post("/users/add", requireAuth, requireAdmin, async (req, res) => {
   }
   const hashedPassword = await bcrypt.hash(password, 12);
 
-  const user = { username, password: hashedPassword, role: role || "user", email, name };
+  const user = { username, password: hashedPassword, role: role || "user", email, name, employeeNumber: String(employeeNumber || "").trim() };
 
   usersDB.insert(user, (err, newUser) => {
     if (err) return res.status(500).json({ error: "Kunde inte spara användare" });
@@ -1679,13 +1679,14 @@ app.put("/users/:id", requireAuth, (req, res) => {
     return res.status(403).json({ error: "Du får bara uppdatera din egen profil." });
   }
 
-  const { name, username, email, password, role } = req.body;
+  const { name, username, email, password, role, employeeNumber } = req.body;
 
   // Skapa ett update-objekt med endast de fält som skickats
   const updateFields = {};
   if (name !== undefined) updateFields.name = name;
   if (username !== undefined) updateFields.username = username;
   if (email !== undefined) updateFields.email = email;
+  if (employeeNumber !== undefined && isAdmin) updateFields.employeeNumber = String(employeeNumber || "").trim();
   if (role !== undefined) return res.status(400).json({ error: "Ändra roll via /users/:id/role." });
   if (password !== undefined && password !== "") {
     if (password.length < 3) return res.status(400).json({ error: "Lösenord måste vara minst 3 tecken." });
