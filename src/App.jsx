@@ -29,6 +29,7 @@ const OrderImport = lazy(() => import("./components/OrderImport"));
 const ProductionOrderImport = lazy(() => import("./components/ProductionOrderImport"));
 const Matprotokoll = lazy(() => import("./components/Matprotokoll"));
 const MeasuringTools = lazy(() => import("./components/MeasuringTools"));
+const PublicMeasuringTools = lazy(() => import("./components/PublicMeasuringTools"));
 const KpiAdmin = lazy(() => import("./dashboard/KpiAdmin"));
 const Notifications = lazy(() => import("./components/Notifications"));
 
@@ -277,6 +278,16 @@ export default function App() {
 		desktop4KMedia.removeEventListener("change", handleDesktop4K);
 	  };
 	}, []);
+
+  /* Publik lånesida: ska fungera utan inloggning. */
+  const isPublicLoanPage = decodeURIComponent(window.location.pathname).replace(/\\/+$/, "") === "/lånamätverktyg";
+  if (isPublicLoanPage) {
+    return (
+      <Suspense fallback={<div className="page-loading">Laddar sida…</div>}>
+        <PublicMeasuringTools />
+      </Suspense>
+    );
+  }
 
   /* ------------------- LOADING / LOGIN SCREENS ------------------- */
   if (loading) return <div>Laddar inställningar…</div>;
