@@ -485,3 +485,41 @@
   .measuring-tool-card { transition: none; }
   .measuring-tool-card:hover { transform: none; }
 }
+
+
+/* Typbilder och egna verktygsbilder */
+.measuring-card-image-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 118px;
+  margin: 10px 0 2px;
+  overflow: hidden;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--cell-radius);
+  background: var(--bg-cell);
+}
+.measuring-card-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 9px;
+  box-sizing: border-box;
+}
+.measuring-image-upload { grid-column: 1 / -1; }
+.measuring-image-upload input[type="file"] { padding: 8px; }
+.measuring-image-upload img {
+  display: block;
+  width: min(180px, 100%);
+  height: 100px;
+  margin-top: 8px;
+  padding: 6px;
+  object-fit: contain;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--cell-radius);
+  background: var(--bg-cell);
+}
+@media (max-width: 600px) {
+  .measuring-card-image-wrap { height: 105px; }
+}
