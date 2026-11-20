@@ -12,6 +12,14 @@ export default function PublicMeasuringTools() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [theme, setTheme] = useState(() => {
+    try { return localStorage.getItem("public-loan-theme") === "dark" ? "dark" : "light"; }
+    catch { return "light"; }
+  });
+
+  useEffect(() => {
+    try { localStorage.setItem("public-loan-theme", theme); } catch { /* Lagring är valfri. */ }
+  }, [theme]);
 
   const loadTools = useCallback(async () => {
     try {
@@ -79,12 +87,21 @@ export default function PublicMeasuringTools() {
   };
 
   return (
-    <div className="public-loan-page">
+    <div className="public-loan-page" data-theme={theme}>
       <header className="public-loan-header">
-        <a className="public-loan-brand" href="/" aria-label="Pulstavlan">
-          <span className="public-loan-brand-mark">P</span>
-          <span>PULSTAVLA</span>
-        </a>
+        <div className="public-loan-header-top">
+          <a className="public-loan-brand" href="/" aria-label="Pulstavlan">
+            <span className="public-loan-brand-mark">P</span>
+            <span>PULSTAVLA</span>
+          </a>
+          <button type="button" className="public-loan-theme-toggle"
+            onClick={() => setTheme((current) => current === "light" ? "dark" : "light")}
+            aria-label={theme === "light" ? "Aktivera mörkt läge" : "Aktivera ljust läge"}
+            aria-pressed={theme === "dark"}>
+            <span aria-hidden="true">{theme === "light" ? "☾" : "☀"}</span>
+            {theme === "light" ? "Mörkt läge" : "Ljust läge"}
+          </button>
+        </div>
         <div className="public-loan-intro">
           <h1>Låna mätverktyg</h1>
           <p>Hitta ett ledigt verktyg eller återlämna ett du har lånat.</p>
