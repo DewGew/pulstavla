@@ -1,3 +1,17 @@
+.public-loan-header-top { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.public-loan-theme-toggle { display:inline-flex; align-items:center; gap:8px; padding:9px 12px; border:1px solid var(--panel-border,#dce2e8); border-radius:10px; background:var(--panel,#fff); color:var(--text,#17202a); font:inherit; font-size:.9rem; font-weight:650; cursor:pointer; }
+.public-loan-theme-toggle:hover { border-color:#176b49; }
+.public-loan-theme-toggle span { font-size:1.15rem; line-height:1; }
+.public-loan-page[data-theme="dark"] {
+  --bg:#151a20; --text:#edf2f7; --muted-text:#aab5c2; --panel:#202832;
+  --panel-border:#394552; --bg-cell:#202832;
+}
+.public-loan-page[data-theme="dark"] .public-loan-card { box-shadow:0 2px 8px #0003; }
+.public-loan-page[data-theme="dark"] .public-loan-status.available { color:#8ee0ad; background:#1d4934; }
+.public-loan-page[data-theme="dark"] .public-loan-status.borrowed { color:#ffd27a; background:#59451f; }
+.public-loan-page[data-theme="dark"] .public-loan-notice { color:#a6edbf; background:#1d4934; }
+.public-loan-page[data-theme="dark"] .public-loan-error { color:#ffb4ae; background:#542c2b; }
+.public-loan-page[data-theme="dark"] .public-loan-action.secondary { background:#536477; }
 .public-loan-page {
   min-height:100vh; background:var(--bg,#f4f6f8); color:var(--text,#17202a);
   font-family:inherit; padding:0 18px 40px;
