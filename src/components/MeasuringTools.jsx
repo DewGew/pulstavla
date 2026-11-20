@@ -137,7 +137,7 @@ export default function MeasuringTools({ currentUser }) {
     const headers = ["Verktygsnr", "Typ", "Benämning", "Tillverkare", "Mätområde/Dimensioner", "Plats", "Kontrollintervall (dagar)", "Senaste kontroll", "Nästa kontroll", "Status", "Låntagare / Reservation"];
     const rows = filteredTools.map((tool) => {
       const next = nextControlDate(tool);
-      const status = (tool.status === "Utlånad" || tool.activeLoan) ? "Utlånad" : isTerminalTool(tool) ? (tool.status === "Saknad" ? "Saknas" : tool.status) : isToolBlocked(tool) ? "Spärrad" : tool.reservation ? "Reserverad" : "Ledig";
+      const status = (tool.status === "Utlånad" || tool.activeLoan) ? "Utlånad" : isTerminalTool(tool) ? (tool.status === "Saknad" ? "Saknas" : tool.status) : isToolBlocked(tool) ? (isControlOverdue(tool) ? "Kontroll förfallen" : "Kontrollspärrad") : tool.reservation ? "Reserverad" : "Ledig";
       return [
         tool.toolNumber, tool.type, tool.description, tool.manufacturer, tool.range, tool.location,
         tool.controlInterval, dateLabel(tool.lastControlDate), next ? dateLabel(next.toISOString().slice(0, 10)) : "",
@@ -404,7 +404,7 @@ export default function MeasuringTools({ currentUser }) {
                   <div className="measuring-card-top">
                     <span className="measuring-tool-number">{tool.toolNumber}</span>
                     <span className={`measuring-status ${isLoaned ? "borrowed" : blocked || terminalStatus ? "blocked" : tool.reservation ? "reserved" : "available"}`}>
-                      {isLoaned ? "Utlånad" : terminalStatus ? tool.status : blocked ? "Spärrad" : tool.reservation ? "Reserverad" : "Ledig"}
+                      {isLoaned ? "Utlånad" : terminalStatus ? tool.status : blocked ? (overdue ? "Kontroll förfallen" : "Kontrollspärrad") : tool.reservation ? "Reserverad" : "Ledig"}
                     </span>
                   </div>
                   <div className="measuring-card-heading">
@@ -467,7 +467,7 @@ export default function MeasuringTools({ currentUser }) {
                 : terminalStatus
                   ? tool.status
                   : blocked
-                    ? "Spärrad"
+                    ? (overdue ? "Kontroll förfallen" : "Kontrollspärrad")
                     : tool.reservation
                       ? "Reserverad"
                       : "Ledig";
