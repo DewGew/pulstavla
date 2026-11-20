@@ -76,15 +76,22 @@ export default function App() {
 	  return () => document.removeEventListener("fullscreenchange", handleChange);
 	}, []);
   
+  /* Publik lånesida använder sitt eget tema och ska undantas från appens globala tema. */
+  const isPublicLoanPage = decodeURIComponent(window.location.pathname).replace(/\\/+$/, "") === "/lånamätverktyg";
+
   /* ------------------- THEME ------------------- */
   const [theme, setTheme] = useState(
     localStorage.getItem("theme") || "light"
   );
 
   useEffect(() => {
+    if (isPublicLoanPage) {
+      document.documentElement.removeAttribute("data-theme");
+      return;
+    }
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("theme", theme);
-  }, [theme]);
+  }, [theme, isPublicLoanPage]);
 
   const toggleTheme = () => {
     setTheme((t) => (t === "light" ? "dark" : "light"));
