@@ -608,8 +608,10 @@ app.get("/documents", requireAuth, (req, res) => {
 
 app.get("/tool-images/:name", (req, res) => {
   const fileName = path.basename(req.params.name);
-  if (!fileName || fileName !== req.params.name || !/^[a-zA-Z0-9._-]+\\.(png|jpe?g|webp|gif)$/i.test(fileName)) return res.sendStatus(400);
-  res.sendFile(fileName, { root: path.resolve("uploads"), dotfiles: "deny" }, (err) => {
+  if (!fileName || fileName !== req.params.name || !/^[a-zA-Z0-9._-]+\\.(svg|png|jpe?g|webp|gif)$/i.test(fileName)) return res.sendStatus(400);
+  const isDefaultImage = fileName.toLowerCase().endsWith(".svg");
+  const root = isDefaultImage ? path.resolve("dist/tool-images") : path.resolve("uploads");
+  res.sendFile(fileName, { root, dotfiles: "deny" }, (err) => {
     if (err && !res.headersSent) res.sendStatus(err.statusCode === 404 ? 404 : 500);
   });
 });
