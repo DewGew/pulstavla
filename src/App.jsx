@@ -77,7 +77,7 @@ export default function App() {
 	}, []);
   
   /* Publik lånesida använder sitt eget tema och ska undantas från appens globala tema. */
-  const isPublicLoanPage = decodeURIComponent(window.location.pathname).replace(/\\/+$/, "") === "/lånamätverktyg";
+  const isPublicLoanPage = decodeURIComponent(window.location.pathname).replace(/\/+$/, "") === "/lånamätverktyg";
 
   /* ------------------- THEME ------------------- */
   const [theme, setTheme] = useState(
