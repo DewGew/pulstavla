@@ -126,6 +126,7 @@ export default function Profile({ user, setUser, setActiveTab }) {
   const [password, setPassword] = useState("");
   const [name, setName] = useState(user.name || "");
   const [email, setEmail] = useState(user.email || "");
+  const [employeeNumber, setEmployeeNumber] = useState(user.employeeNumber || "");
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -202,6 +203,24 @@ export default function Profile({ user, setUser, setActiveTab }) {
     setName(user.name || "");
     setEmail(user.email || "");
   }, [user]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadProfile = async () => {
+      try {
+        const res = await apiFetch("/users/me", {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const profile = await res.json();
+        if (!cancelled) setEmployeeNumber(profile.employeeNumber || "");
+      } catch (err) {
+        console.error("Kunde inte hämta profiluppgifter:", err);
+      }
+    };
+    loadProfile();
+    return () => { cancelled = true; };
+  }, [user._id]);
 
   const visibleTasks = myTasks
     .filter((task) => (showDone ? true : !task.done))
@@ -291,7 +310,7 @@ export default function Profile({ user, setUser, setActiveTab }) {
         </p>
 
         <p>
-          <strong>{t.employeeNumber}</strong> {user.employeeNumber || "—"}
+          <strong>{t.employeeNumber}</strong> {employeeNumber || "—"}
         </p>
 
         <p>
