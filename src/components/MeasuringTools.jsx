@@ -297,7 +297,9 @@ export default function MeasuringTools({ currentUser }) {
       toolNumber: tool.toolNumber || "", type: tool.type || "", description: tool.description || "",
       manufacturer: tool.manufacturer || "", range: tool.range || "", location: tool.location || "",
       controlInterval: String(tool.controlInterval ?? 365), lastControlDate: tool.lastControlDate || "",
+      imageUrl: tool.imageUrl || "",
     });
+    setImageFile(null);
     setEditingToolId(tool._id);
     setShowAdd(true);
   };
