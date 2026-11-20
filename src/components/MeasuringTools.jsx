@@ -7,18 +7,6 @@ const emptyTool = {
   controlInterval: "365", lastControlDate: "",
 };
 
-function defaultToolImage(type) {
-  const value = String(type || "").toLocaleLowerCase("sv");
-  if (/skjutm[aå]tt|caliper/.test(value)) return "/tool-images/skjutmatt.svg";
-  if (/mikrometer|micrometer/.test(value)) return "/tool-images/mikrometer.svg";
-  if (/m[aä]tklocka|indikatorklock|dial/.test(value)) return "/tool-images/matklocka.svg";
-  if (/gängtolk|thread/.test(value)) return "/tool-images/gangtolk.svg";
-  if (/pinntolk|passpinne|gauge.?pin/.test(value)) return "/tool-images/pinntolk.svg";
-  if (/h[oö]jdm[aä]tare|height/.test(value)) return "/tool-images/hojdmatare.svg";
-  if (/cmm|3d.?taster|3d.?probe/.test(value)) return "/tool-images/cmm.svg";
-  return "/tool-images/standard.svg";
-}
-
 function dateLabel(value) {
   if (!value) return "—";
   const date = new Date(value);
@@ -56,7 +44,6 @@ export default function MeasuringTools({ currentUser }) {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [form, setForm] = useState(emptyTool);
-  const [imageFile, setImageFile] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
   const [borrowerId, setBorrowerId] = useState(currentUser?._id || "");
   const [reservationUserId, setReservationUserId] = useState("");
@@ -271,19 +258,6 @@ export default function MeasuringTools({ currentUser }) {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Kunde inte spara verktyget.");
-      const savedToolId = editingToolId || data._id;
-      if (imageFile && savedToolId) {
-        const imageData = new FormData();
-        imageData.append("image", imageFile);
-        const imageResponse = await apiFetch(`/measuring-tools/${savedToolId}/image`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
-          body: imageData,
-        });
-        const imageResult = await imageResponse.json();
-        if (!imageResponse.ok) throw new Error(imageResult.error || "Verktyget sparades men bilden kunde inte laddas upp.");
-      }
-      setImageFile(null);
       setForm(emptyTool);
       setShowAdd(false);
       setEditingToolId(null);
@@ -297,9 +271,7 @@ export default function MeasuringTools({ currentUser }) {
       toolNumber: tool.toolNumber || "", type: tool.type || "", description: tool.description || "",
       manufacturer: tool.manufacturer || "", range: tool.range || "", location: tool.location || "",
       controlInterval: String(tool.controlInterval ?? 365), lastControlDate: tool.lastControlDate || "",
-      imageUrl: tool.imageUrl || "",
     });
-    setImageFile(null);
     setEditingToolId(tool._id);
     setShowAdd(true);
   };
@@ -355,7 +327,7 @@ export default function MeasuringTools({ currentUser }) {
         {(isAdmin || canRegisterControl) && <div className="measuring-header-actions">
           <button className="btn-secondary" onClick={() => setShowAccess((value) => !value)}>Behörighet kontroll</button>
           <button className="btn-secondary" type="button" onClick={exportFilteredCsv} disabled={!filteredTools.length}>Exportera filtrerad lista till CSV</button>
-          <button className="btn-primary" onClick={() => { setEditingToolId(null); setForm({ ...emptyTool, toolNumber: nextSuggestedToolNumber }); setImageFile(null); setShowAdd(true); }}>＋ Registrera verktyg</button>
+          <button className="btn-primary" onClick={() => { setEditingToolId(null); setForm({ ...emptyTool, toolNumber: nextSuggestedToolNumber }); setShowAdd(true); }}>＋ Registrera verktyg</button>
         </div>}
       </div>
 
@@ -434,9 +406,6 @@ export default function MeasuringTools({ currentUser }) {
                     <span className={`measuring-status ${isLoaned ? "borrowed" : blocked || terminalStatus ? "blocked" : tool.reservation ? "reserved" : "available"}`}>
                       {isLoaned ? "Utlånad" : terminalStatus ? tool.status : blocked ? "Spärrad" : tool.reservation ? "Reserverad" : "Ledig"}
                     </span>
-                  </div>
-                  <div className="measuring-card-image-wrap">
-                    <img className="measuring-card-image" src={tool.imageUrl || defaultToolImage(tool.type)} alt={tool.type || "Mätverktyg"} loading="lazy" onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = "/tool-images/standard.svg"; }} />
                   </div>
                   <div className="measuring-card-heading">
                     <h3>{tool.description || tool.type}</h3>
@@ -556,7 +525,6 @@ export default function MeasuringTools({ currentUser }) {
               <label>Plats<input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} /></label>
               <label>Kontrollintervall (dagar)<input type="number" min="0" value={form.controlInterval} onChange={(e) => setForm({ ...form, controlInterval: e.target.value })} /></label>
               <label>Senaste kontrolldatum<input type="date" value={form.lastControlDate} onChange={(e) => setForm({ ...form, lastControlDate: e.target.value })} /></label>
-              <label className="measuring-image-upload">Egen verktygsbild<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={(e) => setImageFile(e.target.files?.[0] || null)} /><small>Valfritt. PNG, JPG, WEBP eller GIF, max 5 MB. Om ingen egen bild väljs används en standardbild baserad på verktygstyp.</small>{form.imageUrl && !imageFile && <img src={form.imageUrl} alt="Nuvarande verktygsbild" />}{imageFile && <small>Vald bild: {imageFile.name}</small>}</label>
             </div>
             <div className="measuring-tool-form-actions">
               <button className="btn-primary" type="submit">{editingToolId ? "Spara ändringar" : "Registrera verktyg"}</button>
