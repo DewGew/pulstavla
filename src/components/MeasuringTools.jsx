@@ -377,13 +377,13 @@ export default function MeasuringTools({ currentUser }) {
           <strong>{tools.length}</strong><span>Totalt antal verktyg</span>
         </div>
         <div className="measuring-summary-card available">
-          <strong>{tools.filter((tool) => tool.status === "Disponibel" && !tool.controlBlocked && !tool.reservation).length}</strong><span>Lediga – ej reserverade</span>
+          <strong>{statusCounts.Lediga}</strong><span>Lediga – ej reserverade</span>
         </div>
         <div className="measuring-summary-card blocked">
-          <strong>{tools.filter((tool) => tool.controlBlocked).length}</strong><span>Spärrade – får inte lånas</span>
+          <strong>{statusCounts.Spärrade}</strong><span>Spärrade – får inte användas</span>
         </div>
         <div className="measuring-summary-card borrowed">
-          <strong>{tools.filter((tool) => tool.status === "Utlånad").length}</strong><span>Utlånade – hos användare</span>
+          <strong>{statusCounts.Utlånade}</strong><span>Utlånade – hos användare</span>
         </div>
       </section>
 
