@@ -1541,6 +1541,15 @@ app.get("/measuring-tools/:id/history", requireAuth, requireMeasuringControlAcce
 });
 
 /* ---------------- USERS ENDPOINTS ---------------- */
+app.get("/users/me", requireAuth, (req, res) => {
+  usersDB.findOne({ _id: req.user.id }, (err, user) => {
+    if (err) return res.status(500).json({ error: "Kunde inte läsa profiluppgifter." });
+    if (!user) return res.status(404).json({ error: "Användaren hittades inte." });
+    const { password, ...safeUser } = user;
+    res.json(safeUser);
+  });
+});
+
 app.get("/users", requireAuth, requireAdmin, (req, res) => {
   usersDB.find({}, (err, docs) => {
     if (err) return res.status(500).json({ error: "Kunde inte läsa användare" });
