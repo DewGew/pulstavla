@@ -86,7 +86,6 @@ const T = {
     saving: "Sparar…",
     openSaved: "📂 Öppna sparat protokoll",
     savePdf: "📄 Spara som PDF",
-    clearForm: "🗑 Rensa formulär",
     filterPlaceholder: "🔍 Filtrera på order- eller artikelnr…",
     sortBy: "Sortera på:",
     sortAsc: "↑ Stigande",
@@ -161,7 +160,6 @@ const T = {
     saving: "Saving…",
     openSaved: "📂 Open saved report",
     savePdf: "📄 Save as PDF",
-    clearForm: "🗑 Clear form",
     filterPlaceholder: "🔍 Filter by order or article no…",
     sortBy: "Sort by:",
     sortAsc: "↑ Ascending",
@@ -1220,10 +1218,6 @@ export default function Matprotokoll() {
 
         <button className="btn-secondary" onClick={clearForm}>
           {t.newReport}
-        </button>
-
-        <button className="btn-danger" onClick={clearForm}>
-          {t.clearForm}
         </button>
       </div>
 
