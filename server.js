@@ -632,7 +632,7 @@ app.get("/documents/:name", requireAuth, (req, res) => {
 
 /* Ladda upp dokument till docs med originalnamnet */
 app.post("/documents", requireAuth, requireAdmin, (req, res, next) => {
-  const docsDir = path.resolve("docs");
+  // Use the shared application data directory.
 
   fs.mkdirSync(docsDir, { recursive: true });
 
@@ -687,7 +687,7 @@ app.post("/documents", requireAuth, requireAdmin, (req, res, next) => {
 app.delete("/documents/:name", requireAuth, requireAdmin, (req, res) => {
   const fileName = path.basename(req.params.name);
   const filePath = path.join(docsDir, fileName);
-  const docsDir = path.resolve("docs");
+  // Use the shared application data directory.
 
   // Säkerställ att filen ligger direkt i docs-mappen
   if (path.dirname(filePath) !== docsDir) {
