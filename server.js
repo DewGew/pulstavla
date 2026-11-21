@@ -625,7 +625,7 @@ app.get("/uploads/:name", requireAuth, (req, res) => {
 app.get("/documents/:name", requireAuth, (req, res) => {
   const fileName = path.basename(req.params.name);
   if (!fileName || fileName !== req.params.name) return res.sendStatus(400);
-  res.sendFile(fileName, { root: path.resolve("docs"), dotfiles: "deny" }, (err) => {
+  res.sendFile(fileName, { root: docsDir, dotfiles: "deny" }, (err) => {
     if (err && !res.headersSent) res.sendStatus(err.statusCode === 404 ? 404 : 500);
   });
 });
