@@ -426,6 +426,7 @@ function createWindow(url) {
 }
 
 app.whenReady().then(async () => {
+  installApplicationMenu();
   try {
     const { origin, firstRun, initialPassword } = await startLocalServer();
     createWindow(origin);
