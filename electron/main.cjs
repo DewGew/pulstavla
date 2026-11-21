@@ -185,7 +185,7 @@ async function inspectBackupArchive(archivePath) {
   const checksumPath = `${archivePath}.sha256`;
   if (fs.existsSync(checksumPath)) {
     const checksumText = fs.readFileSync(checksumPath, "utf8");
-    const expected = checksumText.match(/^([a-f0-9]{64})\\b/i)?.[1]?.toLowerCase();
+    const expected = checksumText.match(/^([a-f0-9]{64})\b/i)?.[1]?.toLowerCase();
     if (!expected) throw new Error("Kontrollfilen .sha256 har fel format.");
     const actual = sha256File(archivePath);
     if (actual !== expected) throw new Error("Backupens SHA-256-kontroll misslyckades. Filen kan vara skadad.");
@@ -197,12 +197,12 @@ async function inspectBackupArchive(archivePath) {
     file: archivePath,
     strict: true,
     onentry(entry) {
-      const entryPath = String(entry.path || "").replace(/\\\\/g, "/").replace(/^\\.\\//, "");
+      const entryPath = String(entry.path || "").replace(/\\/g, "/").replace(/^\.\//, "");
       if (entryPath === "db" || entryPath === "db/") {
         if (entry.type !== "Directory") throw new Error("Ogiltig katalogpost i backupen.");
         return;
       }
-      const match = entryPath.match(/^db\\/([^/]+)$/);
+      const match = entryPath.match(/^db\/([^/]+)$/);
       if (!match || !DATABASE_FILES.includes(match[1])) {
         throw new Error(`Backupen innehåller en otillåten sökväg: ${entryPath}`);
       }
@@ -233,7 +233,7 @@ function validateDatabaseFiles(dbPath) {
       throw new Error(`Databasfilen är större än tillåtna 200 MB: ${name}`);
     }
     const content = fs.readFileSync(filePath, "utf8");
-    for (const [index, line] of content.split(/\\r?\\n/).entries()) {
+    for (const [index, line] of content.split(/\r?\n/).entries()) {
       if (!line.trim()) continue;
       let record;
       try {
@@ -274,7 +274,7 @@ async function createVerifiedDatabaseBackup(dbPath, backupDir, stamp) {
   await tar.c({ gzip: true, file: archivePath, cwd: appDataPath }, ["db"]);
   await tar.t({ file: archivePath, strict: true });
   const checksum = sha256File(archivePath);
-  fs.writeFileSync(`${archivePath}.sha256`, `${checksum}  ${path.basename(archivePath)}\\n`, { flag: "wx" });
+  fs.writeFileSync(\`\${archivePath}.sha256\`, \`\${checksum}  \${path.basename(archivePath)}\n\`, { flag: "wx" });
   return archivePath;
 }
 
@@ -308,9 +308,9 @@ async function importDatabaseBackup() {
       cwd: stagePath,
       strict: true,
       filter(entryPath) {
-        const normalized = String(entryPath).replace(/\\\\/g, "/").replace(/^\\.\\//, "");
+        const normalized = String(entryPath).replace(/\\/g, "/").replace(/^\.\//, "");
         return normalized === "db" || normalized === "db/" ||
-          /^db\\/[^/]+$/.test(normalized);
+          /^db\/[^/]+$/.test(normalized);
       },
     });
     validateDatabaseFiles(stagedDbPath);
@@ -348,7 +348,7 @@ async function importDatabaseBackup() {
         type: "info",
         title: "Backupimport klar",
         message: "Databaserna har ersatts och Pulstavlan har startats om.",
-        detail: `Säkerhetskopia av tidigare Windows-data:\\n${savedArchive}\\n\\nDen importerade backupen: ${path.basename(archivePath)}`,
+        detail: \`Säkerhetskopia av tidigare Windows-data:\n\${savedArchive}\n\nDen importerade backupen: \${path.basename(archivePath)}\`,
         buttons: ["OK"],
         noLink: true,
       });
