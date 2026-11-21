@@ -1,14 +1,35 @@
-const { app, BrowserWindow, clipboard, dialog } = require("electron");
+const { app, BrowserWindow, clipboard, dialog, Menu } = require("electron");
 const { spawn } = require("node:child_process");
 const crypto = require("node:crypto");
 const fs = require("node:fs");
 const http = require("node:http");
 const net = require("node:net");
 const path = require("node:path");
+const tar = require("tar");
 
 let serverProcess;
 let mainWindow;
 let shutdownRequested = false;
+let appDataPath;
+
+const DATABASE_FILES = [
+  "users.db",
+  "presence.db",
+  "settings.db",
+  "notifications.db",
+  "orders.db",
+  "productionOrders.db",
+  "greenCross.db",
+  "activities.db",
+  "widgets.db",
+  "structuredWidgets.db",
+  "drawings.db",
+  "matprotokoll.db",
+  "measuringTools.db",
+  "checklist.db",
+  "kpis.db",
+  "kpiValues.db",
+];
 
 function loadOrCreateSecret(dataPath) {
   const secretPath = path.join(dataPath, ".jwt-secret");
@@ -95,6 +116,7 @@ function waitForServer(url, child, timeoutMs = 30000) {
 async function startLocalServer() {
   const appPath = app.getAppPath();
   const dataPath = path.join(app.getPath("userData"), "data");
+  appDataPath = dataPath;
   const dbPath = path.join(dataPath, "db");
   fs.mkdirSync(dbPath, { recursive: true });
 
@@ -145,6 +167,230 @@ async function startLocalServer() {
 
   await waitForServer(`${origin}/health`, serverProcess);
   return { origin, firstRun, initialPassword };
+}
+
+
+function sha256File(filePath) {
+  const hash = crypto.createHash("sha256");
+  hash.update(fs.readFileSync(filePath));
+  return hash.digest("hex");
+}
+
+async function inspectBackupArchive(archivePath) {
+  const stat = fs.statSync(archivePath);
+  if (!stat.isFile() || stat.size <= 0 || stat.size > 200 * 1024 * 1024) {
+    throw new Error("Backupfilen är tom eller större än tillåtna 200 MB.");
+  }
+
+  const checksumPath = `${archivePath}.sha256`;
+  if (fs.existsSync(checksumPath)) {
+    const checksumText = fs.readFileSync(checksumPath, "utf8");
+    const expected = checksumText.match(/^([a-f0-9]{64})\\b/i)?.[1]?.toLowerCase();
+    if (!expected) throw new Error("Kontrollfilen .sha256 har fel format.");
+    const actual = sha256File(archivePath);
+    if (actual !== expected) throw new Error("Backupens SHA-256-kontroll misslyckades. Filen kan vara skadad.");
+  }
+
+  const seen = new Set();
+  let totalSize = 0;
+  await tar.t({
+    file: archivePath,
+    strict: true,
+    onentry(entry) {
+      const entryPath = String(entry.path || "").replace(/\\\\/g, "/").replace(/^\\.\\//, "");
+      if (entryPath === "db" || entryPath === "db/") {
+        if (entry.type !== "Directory") throw new Error("Ogiltig katalogpost i backupen.");
+        return;
+      }
+      const match = entryPath.match(/^db\\/([^/]+)$/);
+      if (!match || !DATABASE_FILES.includes(match[1])) {
+        throw new Error(`Backupen innehåller en otillåten sökväg: ${entryPath}`);
+      }
+      if (entry.type !== "File" && entry.type !== "OldFile") {
+        throw new Error(`Otillåten filtyp i backupen: ${entryPath}`);
+      }
+      if (seen.has(match[1])) throw new Error(`Databasfilen förekommer flera gånger: ${match[1]}`);
+      seen.add(match[1]);
+      totalSize += Number(entry.size || 0);
+      if (totalSize > 200 * 1024 * 1024) throw new Error("Backupens uppackade innehåll är större än 200 MB.");
+    },
+  });
+
+  const missing = DATABASE_FILES.filter((name) => !seen.has(name));
+  if (missing.length) {
+    throw new Error(`Backupen saknar databasfiler: ${missing.join(", ")}`);
+  }
+}
+
+function validateDatabaseFiles(dbPath) {
+  for (const name of DATABASE_FILES) {
+    const filePath = path.join(dbPath, name);
+    const stat = fs.lstatSync(filePath);
+    if (!stat.isFile() || stat.isSymbolicLink()) {
+      throw new Error(`Databasfilen är inte en vanlig fil: ${name}`);
+    }
+    if (stat.size > 200 * 1024 * 1024) {
+      throw new Error(`Databasfilen är större än tillåtna 200 MB: ${name}`);
+    }
+    const content = fs.readFileSync(filePath, "utf8");
+    for (const [index, line] of content.split(/\\r?\\n/).entries()) {
+      if (!line.trim()) continue;
+      let record;
+      try {
+        record = JSON.parse(line);
+      } catch {
+        throw new Error(`Databasfilen ${name} innehåller ogiltig data på rad ${index + 1}.`);
+      }
+      if (!record || typeof record !== "object" || Array.isArray(record)) {
+        throw new Error(`Databasfilen ${name} innehåller en ogiltig post på rad ${index + 1}.`);
+      }
+    }
+  }
+}
+
+async function stopLocalServer() {
+  const child = serverProcess;
+  if (!child || child.exitCode !== null) return;
+  await new Promise((resolve) => {
+    const timeout = setTimeout(() => {
+      try { child.kill(); } catch {}
+      resolve();
+    }, 15000);
+    child.once("exit", () => {
+      clearTimeout(timeout);
+      resolve();
+    });
+    try { child.kill(); } catch {
+      clearTimeout(timeout);
+      resolve();
+    }
+  });
+  serverProcess = null;
+}
+
+async function createVerifiedDatabaseBackup(dbPath, backupDir, stamp) {
+  fs.mkdirSync(backupDir, { recursive: true });
+  const archivePath = path.join(backupDir, `pulstavla-before-import-${stamp}.tar.gz`);
+  await tar.c({ gzip: true, file: archivePath, cwd: appDataPath }, ["db"]);
+  await tar.t({ file: archivePath, strict: true });
+  const checksum = sha256File(archivePath);
+  fs.writeFileSync(`${archivePath}.sha256`, `${checksum}  ${path.basename(archivePath)}\\n`, { flag: "wx" });
+  return archivePath;
+}
+
+async function importDatabaseBackup() {
+  const selected = await dialog.showOpenDialog(mainWindow, {
+    title: "Välj Pulstavla-backup",
+    properties: ["openFile"],
+    filters: [{ name: "Pulstavla backup", extensions: ["gz", "tgz"] }],
+  });
+  if (selected.canceled || !selected.filePaths.length) return;
+
+  const archivePath = selected.filePaths[0];
+  if (!archivePath.toLowerCase().endsWith(".tar.gz") && !archivePath.toLowerCase().endsWith(".tgz")) {
+    throw new Error("Välj en backupfil med ändelsen .tar.gz eller .tgz.");
+  }
+
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const stagePath = path.join(appDataPath, `.import-stage-${stamp}`);
+  const stagedDbPath = path.join(stagePath, "db");
+  const liveDbPath = path.join(appDataPath, "db");
+  const backupDir = path.join(appDataPath, "backups");
+  const previousDbPath = path.join(backupDir, `db-before-import-${stamp}`);
+  let serverStopped = false;
+  let previousMoved = false;
+
+  try {
+    await inspectBackupArchive(archivePath);
+    fs.mkdirSync(stagePath, { recursive: true });
+    await tar.x({
+      file: archivePath,
+      cwd: stagePath,
+      strict: true,
+      filter(entryPath) {
+        const normalized = String(entryPath).replace(/\\\\/g, "/").replace(/^\\.\\//, "");
+        return normalized === "db" || normalized === "db/" ||
+          /^db\\/[^/]+$/.test(normalized);
+      },
+    });
+    validateDatabaseFiles(stagedDbPath);
+
+    const confirm = await dialog.showMessageBox(mainWindow, {
+      type: "warning",
+      title: "Ersätt Windows-databasen?",
+      message: "Alla befintliga databasuppgifter i den här Windows-installationen kommer att ersättas.",
+      detail: "En säkerhetskopia av nuvarande databas skapas automatiskt före bytet. Importen omfattar endast databaserna (db/), inte dokument eller uppladdade filer. Åtgärden kan inte ångras utan säkerhetskopian.",
+      buttons: ["Avbryt", "Säkerhetskopiera och ersätt"],
+      defaultId: 0,
+      cancelId: 0,
+      noLink: true,
+    });
+    if (confirm.response !== 1) return;
+
+    await stopLocalServer();
+    serverStopped = true;
+
+    const savedArchive = await createVerifiedDatabaseBackup(liveDbPath, backupDir, stamp);
+    fs.mkdirSync(backupDir, { recursive: true });
+    fs.renameSync(liveDbPath, previousDbPath);
+    previousMoved = true;
+    fs.renameSync(stagedDbPath, liveDbPath);
+
+    try {
+      const { origin } = await startLocalServer();
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        await mainWindow.loadURL(origin);
+      } else {
+        createWindow(origin);
+      }
+      serverStopped = false;
+      await dialog.showMessageBox(mainWindow, {
+        type: "info",
+        title: "Backupimport klar",
+        message: "Databaserna har ersatts och Pulstavlan har startats om.",
+        detail: `Säkerhetskopia av tidigare Windows-data:\\n${savedArchive}\\n\\nDen importerade backupen: ${path.basename(archivePath)}`,
+        buttons: ["OK"],
+        noLink: true,
+      });
+    } catch (restartError) {
+      await stopLocalServer();
+      const failedPath = path.join(backupDir, `db-import-failed-${stamp}`);
+      if (fs.existsSync(liveDbPath)) fs.renameSync(liveDbPath, failedPath);
+      if (previousMoved && fs.existsSync(previousDbPath)) {
+        fs.renameSync(previousDbPath, liveDbPath);
+        previousMoved = false;
+      }
+      await startLocalServer();
+      serverStopped = false;
+      throw new Error(`Den importerade databasen kunde inte startas. Den tidigare databasen har återställts. Orsak: ${restartError.message}`);
+    }
+  } finally {
+    if (serverStopped) {
+      try { await startLocalServer(); } catch (error) {
+        dialog.showErrorBox("Pulstavlan kunde inte starta igen", error.message);
+      }
+    }
+    try { fs.rmSync(stagePath, { recursive: true, force: true }); } catch {}
+  }
+}
+
+function installApplicationMenu() {
+  const template = [
+    {
+      label: "Arkiv",
+      submenu: [
+        {
+          label: "Importera backup…",
+          click: () => importDatabaseBackup().catch((error) => {
+            dialog.showErrorBox("Backupimporten misslyckades", error.message);
+          }),
+        },
+        { type: "separator" },
+        { role: "quit", label: "Avsluta" },
+      ],
+    },
+  ];
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
 function createWindow(url) {
