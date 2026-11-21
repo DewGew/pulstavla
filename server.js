@@ -199,6 +199,12 @@ function requireMeasuringControlAccess(req, res, next) {
   });
 }
 
+// Lokal hälsokontroll används av skrivbordsstartaren för att vänta in servern.
+app.get("/health", (req, res) => {
+  res.set("Cache-Control", "no-store");
+  res.json({ status: "ok" });
+});
+
 /* ---------------- HTTP SERVER + WEBSOCKET ---------------- */
 export const server = https.createServer(app);
 
