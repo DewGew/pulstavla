@@ -38,7 +38,7 @@ function createInitialPassword() {
 
 function hasExistingUsers(usersFile) {
   try {
-    const lines = fs.readFileSync(usersFile, "utf8").split(/\\r?\\n/);
+    const lines = fs.readFileSync(usersFile, "utf8").split(/\r?\n/);
     return lines.some((line) => {
       if (!line.trim()) return false;
       try {
@@ -122,7 +122,7 @@ async function startLocalServer() {
 
   const serverPath = path.join(appPath, "server.js");
   serverProcess = spawn(process.execPath, [serverPath], {
-    cwd: appPath,
+    cwd: app.getPath("userData"),
     env,
     windowsHide: true,
     stdio: "ignore",
