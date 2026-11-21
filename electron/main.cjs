@@ -334,9 +334,9 @@ async function importDatabaseBackup() {
     fs.mkdirSync(backupDir, { recursive: true });
     fs.renameSync(liveDbPath, previousDbPath);
     previousMoved = true;
-    fs.renameSync(stagedDbPath, liveDbPath);
 
     try {
+      fs.renameSync(stagedDbPath, liveDbPath);
       const { origin } = await startLocalServer();
       if (mainWindow && !mainWindow.isDestroyed()) {
         await mainWindow.loadURL(origin);
