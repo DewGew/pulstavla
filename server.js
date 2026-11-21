@@ -9,9 +9,11 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import registerKpis from "./server/kpis.js";
 
-// PORT: miljövariabel först, sedan (bakåtkompatibelt) src/config.local.js, annars 3000.
-let PORT = Number(process.env.PORT) || 0;
-if (!PORT) {
+// PORT kan vara 0 i desktop-läge för att låta operativsystemet välja en ledig port.
+let PORT;
+if (process.env.PORT !== undefined) {
+  PORT = Number(process.env.PORT);
+} else {
   try {
     ({ PORT } = await import("./src/config.local.js"));
   } catch {
@@ -198,9 +200,7 @@ function requireMeasuringControlAccess(req, res, next) {
 }
 
 /* ---------------- HTTP SERVER + WEBSOCKET ---------------- */
-const server = https.createServer(
-  app
-);
+export const server = https.createServer(app);
 
 const io = new Server(server, {
   cors: { origin: "*" },
@@ -2858,6 +2858,16 @@ process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT", () => shutdown("SIGINT"));
 
 /* ---------------- START SERVER ---------------- */
-server.listen(PORT, () =>
-  console.log("Server (HTTP + WebSocket) körs på port", PORT)
-);
+export const serverReady = new Promise((resolve, reject) => {
+  server.once("error", reject);
+  const onListening = () => {
+    server.off("error", reject);
+    console.log("Server (HTTP + WebSocket) körs på port", server.address().port);
+    resolve(server);
+  };
+  if (process.env.HOST) {
+    server.listen(PORT, process.env.HOST, onListening);
+  } else {
+    server.listen(PORT, onListening);
+  }
+});
