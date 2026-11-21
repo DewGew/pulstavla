@@ -17,7 +17,7 @@ Pulstavla är en webbaserad produktions- och informationsöversikt byggd med Rea
 
 Windows-versionen utvecklas separat på grenen `windows-version`. Den är avsedd att köras helt lokalt på en Windows-dator med ett eget fönster, en lokal Node.js-server och egna databaser. Raspberry Pi eller nätverksserver behövs inte när appen är installerad.
 
-> **Utvecklingsstatus:** Windows-paketeringen är under uppbyggnad. Electron-konfiguration och ett GitHub Actions-flöde för Windows-installation finns i grenen, men installationsfilen är ännu inte verifierad. Funktion för att importera en Pulstavla-backup och ersätta Windows-databasen är inte färdig.
+> **Utvecklingsstatus:** Windows-paketeringen är under uppbyggnad. Electron-konfiguration och ett GitHub Actions-flöde för Windows-installation finns i grenen, men installationsfilen är ännu inte verifierad. Backupimport finns nu som en menyfunktion i skrivbordsappen, men behöver verifieras i ett Windows-test innan den betraktas som färdig.
 
 ### Dataplats
 
@@ -54,7 +54,7 @@ Installationsfilen ska hamna i katalogen `release/`. Byggflödet kan även köra
 
 ### Backup och återställning
 
-Windows-versionen ska ha separata databaser och importera befintliga Pulstavla-backuper. Den planerade importen ska först skapa en säkerhetskopia av Windows-databasen och därefter ersätta databasinnehållet med den importerade backupen – aldrig slå ihop poster. **Denna importfunktion är ännu inte implementerad.** Tills den är färdig ska databaser inte ersättas manuellt via appens datakatalog.
+Windows-versionen ska ha separata databaser och importera befintliga Pulstavla-backuper. Den planerade importen ska först skapa en säkerhetskopia av Windows-databasen och därefter ersätta databasinnehållet med den importerade backupen – aldrig slå ihop poster. Välj **Arkiv → Importera backup…** i skrivbordsappen och välj en `.tar.gz`- eller `.tgz`-fil. Appen kontrollerar arkivets innehåll och eventuella `.sha256`-kontrollfil, packar upp till en separat stagingkatalog och validerar samtliga 16 kända NeDB-filer innan den frågar om bekräftelse. Därefter stoppas den lokala servern, en verifierad backup av Windows-databaserna skapas i `userData/data/backups/`, och databasuppsättningen ersätts. Om den nya databasen inte kan startas försöker appen återställa den tidigare. Importen omfattar endast `db/`, inte `docs/` eller `uploads/`. Funktionen är implementerad i källkoden men måste fortfarande provas i en faktisk Windows-installation.
 
 ---
 
