@@ -250,19 +250,24 @@ function validateDatabaseFiles(dbPath) {
 
 async function stopLocalServer() {
   const child = serverProcess;
-  if (!child || child.exitCode !== null) return;
-  await new Promise((resolve) => {
+  if (!child || child.exitCode !== null) {
+    serverProcess = null;
+    return;
+  }
+  await new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
-      try { child.kill(); } catch {}
-      resolve();
+      try { child.kill("SIGKILL"); } catch {}
+      reject(new Error("Den lokala servern stängdes inte i tid. Databaserna har inte ändrats."));
     }, 15000);
     child.once("exit", () => {
       clearTimeout(timeout);
       resolve();
     });
-    try { child.kill(); } catch {
+    try {
+      child.kill();
+    } catch (error) {
       clearTimeout(timeout);
-      resolve();
+      reject(error);
     }
   });
   serverProcess = null;
@@ -360,7 +365,8 @@ async function importDatabaseBackup() {
         fs.renameSync(previousDbPath, liveDbPath);
         previousMoved = false;
       }
-      await startLocalServer();
+      const { origin: restoredOrigin } = await startLocalServer();
+      if (mainWindow && !mainWindow.isDestroyed()) await mainWindow.loadURL(restoredOrigin);
       serverStopped = false;
       throw new Error(`Den importerade databasen kunde inte startas. Den tidigare databasen har återställts. Orsak: ${restartError.message}`);
     }
