@@ -1,0 +1,47 @@
+name: Build Windows installer
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - windows-version
+    paths:
+      - "package.json"
+      - "package-lock.json"
+      - "server.js"
+      - "server/**"
+      - "electron/**"
+      - "src/**"
+      - "index.html"
+      - "vite.config.js"
+      - ".github/workflows/windows-installer.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies and refresh lockfile in runner
+        run: npm install --no-audit --no-fund
+
+      - name: Build Windows installer
+        run: npm run dist:win
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Pulstavlan-Windows-x64
+          path: release/*.exe
+          if-no-files-found: error
+          retention-days: 14
