@@ -36,6 +36,24 @@ function createInitialPassword() {
   return crypto.randomBytes(18).toString("base64url");
 }
 
+function hasExistingUsers(usersFile) {
+  try {
+    const lines = fs.readFileSync(usersFile, "utf8").split(/\\r?\\n/);
+    return lines.some((line) => {
+      if (!line.trim()) return false;
+      try {
+        const record = JSON.parse(line);
+        return typeof record.username === "string" && Boolean(record.password);
+      } catch {
+        return false;
+      }
+    });
+  } catch (error) {
+    if (error.code === "ENOENT") return false;
+    throw error;
+  }
+}
+
 function reserveLocalPort() {
   return new Promise((resolve, reject) => {
     const probe = net.createServer();
@@ -80,7 +98,7 @@ async function startLocalServer() {
   const dbPath = path.join(dataPath, "db");
   fs.mkdirSync(dbPath, { recursive: true });
 
-  const firstRun = !fs.existsSync(path.join(dbPath, "users.db"));
+  const firstRun = !hasExistingUsers(path.join(dbPath, "users.db"));
   const jwtSecret = loadOrCreateSecret(dataPath);
   const initialPassword = firstRun ? createInitialPassword() : null;
   const port = await reserveLocalPort();
