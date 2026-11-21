@@ -10,8 +10,26 @@ let serverProcess;
 let mainWindow;
 let shutdownRequested = false;
 
-function createSecret() {
-  return crypto.randomBytes(48).toString("hex");
+function loadOrCreateSecret(dataPath) {
+  const secretPath = path.join(dataPath, ".jwt-secret");
+  try {
+    const existing = fs.readFileSync(secretPath, "utf8").trim();
+    if (existing.length >= 32) return existing;
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+  }
+
+  const secret = crypto.randomBytes(48).toString("hex");
+  const temporaryPath = `${secretPath}.tmp`;
+  fs.writeFileSync(temporaryPath, secret, { mode: 0o600, flag: "wx" });
+  try {
+    fs.renameSync(temporaryPath, secretPath);
+  } catch (error) {
+    try { fs.unlinkSync(temporaryPath); } catch {}
+    if (error.code !== "EEXIST") throw error;
+    return fs.readFileSync(secretPath, "utf8").trim();
+  }
+  return secret;
 }
 
 function createInitialPassword() {
@@ -63,7 +81,7 @@ async function startLocalServer() {
   fs.mkdirSync(dbPath, { recursive: true });
 
   const firstRun = !fs.existsSync(path.join(dbPath, "users.db"));
-  const jwtSecret = createSecret();
+  const jwtSecret = loadOrCreateSecret(dataPath);
   const initialPassword = firstRun ? createInitialPassword() : null;
   const port = await reserveLocalPort();
   const origin = `http://127.0.0.1:${port}`;
