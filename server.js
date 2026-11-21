@@ -200,9 +200,16 @@ function requireMeasuringControlAccess(req, res, next) {
 }
 
 // Lokal hälsokontroll används av skrivbordsstartaren för att vänta in servern.
-app.get("/health", (req, res) => {
+let adminBootstrapReady = Promise.resolve();
+
+app.get("/health", async (req, res) => {
   res.set("Cache-Control", "no-store");
-  res.json({ status: "ok" });
+  try {
+    await adminBootstrapReady;
+    res.json({ status: "ok" });
+  } catch {
+    res.status(503).json({ status: "starting", error: "Användardatabasen kunde inte initieras." });
+  }
 });
 
 /* ---------------- HTTP SERVER + WEBSOCKET ---------------- */
@@ -248,27 +255,47 @@ usersDB.persistence.setAutocompactionInterval(5 * 60 * 1000);
 
 // Skapa aldrig förutsägbara standardkonton. En tom databas kan bootstrappas
 // med INITIAL_ADMIN_USERNAME och INITIAL_ADMIN_PASSWORD i servermiljön.
-usersDB.count({}, async (err, count) => {
-  if (err) return console.error("Kunde inte kontrollera användardatabasen:", err);
-  if (count !== 0) return;
+adminBootstrapReady = new Promise((resolve, reject) => {
+  usersDB.count({}, async (err, count) => {
+    if (err) {
+      console.error("Kunde inte kontrollera användardatabasen:", err);
+      reject(err);
+      return;
+    }
+    if (count !== 0) {
+      resolve();
+      return;
+    }
 
-  const username = process.env.INITIAL_ADMIN_USERNAME;
-  const password = process.env.INITIAL_ADMIN_PASSWORD;
-  if (!username || !password || password.length < 12) {
-    console.warn("Inga användare finns. Ange INITIAL_ADMIN_USERNAME och INITIAL_ADMIN_PASSWORD (minst 12 tecken) för första administratören.");
-    return;
-  }
+    const username = process.env.INITIAL_ADMIN_USERNAME;
+    const password = process.env.INITIAL_ADMIN_PASSWORD;
+    if (!username || !password || password.length < 12) {
+      console.warn("Inga användare finns. Ange INITIAL_ADMIN_USERNAME och INITIAL_ADMIN_PASSWORD (minst 12 tecken) för första administratören.");
+      resolve();
+      return;
+    }
 
-  const hashedPassword = await bcrypt.hash(password, 12);
-  usersDB.insert({
-    username,
-    password: hashedPassword,
-    role: "suAdmin",
-    email: process.env.INITIAL_ADMIN_EMAIL || "",
-    name: process.env.INITIAL_ADMIN_NAME || username,
-  }, (insertErr) => {
-    if (insertErr) console.error("Kunde inte skapa första administratören:", insertErr);
-    else console.log("Första Super Admin-kontot skapades från miljövariabler.");
+    try {
+      const hashedPassword = await bcrypt.hash(password, 12);
+      usersDB.insert({
+        username,
+        password: hashedPassword,
+        role: "suAdmin",
+        email: process.env.INITIAL_ADMIN_EMAIL || "",
+        name: process.env.INITIAL_ADMIN_NAME || username,
+      }, (insertErr) => {
+        if (insertErr) {
+          console.error("Kunde inte skapa första administratören:", insertErr);
+          reject(insertErr);
+        } else {
+          console.log("Första Super Admin-kontot skapades från miljövariabler.");
+          resolve();
+        }
+      });
+    } catch (hashErr) {
+      console.error("Kunde inte lösenordshasha första administratören:", hashErr);
+      reject(hashErr);
+    }
   });
 });
 
