@@ -279,7 +279,7 @@ async function createVerifiedDatabaseBackup(dbPath, backupDir, stamp) {
   await tar.c({ gzip: true, file: archivePath, cwd: appDataPath }, ["db"]);
   await tar.t({ file: archivePath, strict: true });
   const checksum = sha256File(archivePath);
-  fs.writeFileSync(\`\${archivePath}.sha256\`, \`\${checksum}  \${path.basename(archivePath)}\n\`, { flag: "wx" });
+  fs.writeFileSync(`${archivePath}.sha256`, `${checksum}  ${path.basename(archivePath)}\n`, { flag: "wx" });
   return archivePath;
 }
 
@@ -357,7 +357,7 @@ async function importDatabaseBackup() {
         type: "info",
         title: "Backupimport klar",
         message: "Databaserna har ersatts och Pulstavlan har startats om.",
-        detail: \`Säkerhetskopia av tidigare Windows-data:\n\${savedArchive}\n\nDen importerade backupen: \${path.basename(archivePath)}\`,
+        detail: `Säkerhetskopia av tidigare Windows-data:\n${savedArchive}\n\nDen importerade backupen: ${path.basename(archivePath)}`,
         buttons: ["OK"],
         noLink: true,
       });
