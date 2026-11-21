@@ -47,6 +47,9 @@ jobs:
             git push
           }
 
+      - name: Check Electron main-process syntax
+        run: node --check electron/main.cjs
+
       - name: Build Windows installer
         run: npm run dist:win
 
