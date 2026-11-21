@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog } = require("electron");
+const { app, BrowserWindow, clipboard, dialog } = require("electron");
 const { spawn } = require("node:child_process");
 const crypto = require("node:crypto");
 const fs = require("node:fs");
@@ -175,14 +175,32 @@ app.whenReady().then(async () => {
     createWindow(origin);
 
     if (firstRun) {
-      await dialog.showMessageBox({
+      const result = await dialog.showMessageBox({
         type: "info",
         title: "Första inloggningen",
         message: "Ett administratörskonto har skapats.",
-        detail: `Användarnamn: admin\nLösenord: ${initialPassword}\n\nSpara lösenordet på en säker plats. Det visas inte igen.`,
-        buttons: ["Jag har sparat uppgifterna"],
+        detail: `Användarnamn: admin\\nLösenord: ${initialPassword}\\n\\nKlicka på ”Kopiera lösenord” för att kopiera det till urklipp. Spara det på en säker plats. Det visas inte igen.`,
+        buttons: ["Kopiera lösenord", "Stäng"],
+        defaultId: 0,
+        cancelId: 1,
         noLink: true,
       });
+
+      if (result.response === 0) {
+        try {
+          clipboard.writeText(initialPassword);
+          await dialog.showMessageBox({
+            type: "info",
+            title: "Lösenord kopierat",
+            message: "Administratörens lösenord har kopierats.",
+            detail: "Klistra in det i inloggningen och spara det på en säker plats.",
+            buttons: ["OK"],
+            noLink: true,
+          });
+        } catch (error) {
+          dialog.showErrorBox("Kunde inte kopiera lösenordet", error.message);
+        }
+      }
     }
   } catch (error) {
     dialog.showErrorBox("Pulstavlan kunde inte starta", error.message);
