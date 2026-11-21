@@ -179,7 +179,7 @@ app.whenReady().then(async () => {
         type: "info",
         title: "Första inloggningen",
         message: "Ett administratörskonto har skapats.",
-        detail: `Användarnamn: admin\\nLösenord: ${initialPassword}\\n\\nKlicka på ”Kopiera lösenord” för att kopiera det till urklipp. Spara det på en säker plats. Det visas inte igen.`,
+        detail: `Användarnamn: admin\nLösenord: ${initialPassword}\n\nKlicka på ”Kopiera lösenord” för att kopiera det till urklipp. Spara det på en säker plats. Det visas inte igen.`,
         buttons: ["Kopiera lösenord", "Stäng"],
         defaultId: 0,
         cancelId: 1,
