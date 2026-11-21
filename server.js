@@ -6,6 +6,7 @@ import { Server } from "socket.io";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from "url";
 import registerKpis from "./server/kpis.js";
 
 // PORT: miljövariabel först, sedan (bakåtkompatibelt) src/config.local.js, annars 3000.
@@ -27,12 +28,19 @@ import jwt from "jsonwebtoken";
 import { load } from "cheerio"; // ESM-kompatibel
 
 const app = express();
-const __dirname = path.dirname(
-  new URL(import.meta.url).pathname
-);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const uploadDir = path.join(__dirname, "uploads");
+// Standardläge behåller projektets nuvarande katalogstruktur. Desktop-versionen
+// anger PULSTAVLA_DATA_DIR så att all användardata hamnar utanför programfilerna.
+const DATA_DIR = path.resolve(process.env.PULSTAVLA_DATA_DIR || process.cwd());
+const DB_DIR = path.join(DATA_DIR, "db");
+const uploadDir = path.join(DATA_DIR, "uploads");
+const docsDir = path.join(DATA_DIR, "docs");
 const distDir = path.join(__dirname, "dist");
+
+for (const directory of [DB_DIR, uploadDir, docsDir]) {
+  fs.mkdirSync(directory, { recursive: true });
+}
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
@@ -137,7 +145,7 @@ app.use(express.json());
 
 // Den publika logotypen exponeras separat; dokumenten i docs är privata.
 app.get("/brand-logo", (req, res) => {
-  res.sendFile(path.resolve("docs/logo.png"), (err) => {
+  res.sendFile(path.join(__dirname, "docs", "logo.png"), (err) => {
     if (err && !res.headersSent) res.sendStatus(404);
   });
 });
@@ -229,7 +237,7 @@ io.use((socket, next) => {
 });
 
 /* ---------------- USERS DATABASE ---------------- */
-const usersDB = new Datastore({ filename: "./db/users.db", autoload: true });
+const usersDB = new Datastore({ filename: path.join(DB_DIR, "users.db"), autoload: true });
 usersDB.persistence.setAutocompactionInterval(5 * 60 * 1000);
 
 // Skapa aldrig förutsägbara standardkonton. En tom databas kan bootstrappas
@@ -259,7 +267,7 @@ usersDB.count({}, async (err, count) => {
 });
 
 /* ---------------- PRESENCE DATABASE ---------------- */
-const presenceDB = new Datastore({ filename: "./db/presence.db", autoload: true });
+const presenceDB = new Datastore({ filename: path.join(DB_DIR, "presence.db"), autoload: true });
 presenceDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 30000);
 
 // Initiera default närvaro om tom
@@ -276,13 +284,13 @@ usersDB.find({}, (err, users) => {
 
 /* ---------------- SETTINGS DATABASE ---------------- */
 const settingsDB = new Datastore({
-  filename: "./db/settings.db",
+  filename: path.join(DB_DIR, "settings.db"),
   autoload: true,
 });
 settingsDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 60000);
 
 /* ---------------- NOTIFICATIONS DATABASE ---------------- */
-const notificationsDB = new Datastore({ filename: "./db/notifications.db", autoload: true });
+const notificationsDB = new Datastore({ filename: path.join(DB_DIR, "notifications.db"), autoload: true });
 notificationsDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 65000);
 
 
@@ -392,14 +400,14 @@ import xlsx from "xlsx";
 
 /* ---------------- KUNDORDER DATABASE ---------------- */
 const ordersDB = new Datastore({
-  filename: "./db/orders.db",
+  filename: path.join(DB_DIR, "orders.db"),
   autoload: true,
 });
 ordersDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 90000);
 
 /* ---------------- TILLVERKNINGSORDER DATABASE ---------------- */
 const productionOrdersDB = new Datastore({
-  filename: "./db/productionOrders.db",
+  filename: path.join(DB_DIR, "productionOrders.db"),
   autoload: true,
 });
 productionOrdersDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 120000);
@@ -578,7 +586,7 @@ app.delete("/notifications/:id", requireAuth, (req, res) => {
 
 // Endpoint för att lista dokumenten
 app.get("/documents", requireAuth, (req, res) => {
-  const dir = path.resolve("docs");
+  const dir = docsDir;
 
   fs.readdir(dir, { withFileTypes: true }, (err, entries) => {
     if (err) {
@@ -609,7 +617,7 @@ app.get("/documents", requireAuth, (req, res) => {
 app.get("/uploads/:name", requireAuth, (req, res) => {
   const fileName = path.basename(req.params.name);
   if (!fileName || fileName !== req.params.name) return res.sendStatus(400);
-  res.sendFile(fileName, { root: path.resolve("uploads"), dotfiles: "deny" }, (err) => {
+  res.sendFile(fileName, { root: uploadDir, dotfiles: "deny" }, (err) => {
     if (err && !res.headersSent) res.sendStatus(err.statusCode === 404 ? 404 : 500);
   });
 });
@@ -678,7 +686,7 @@ app.post("/documents", requireAuth, requireAdmin, (req, res, next) => {
 /* Ta bort dokument från docs */
 app.delete("/documents/:name", requireAuth, requireAdmin, (req, res) => {
   const fileName = path.basename(req.params.name);
-  const filePath = path.resolve("docs", fileName);
+  const filePath = path.join(docsDir, fileName);
   const docsDir = path.resolve("docs");
 
   // Säkerställ att filen ligger direkt i docs-mappen
@@ -901,11 +909,11 @@ app.post("/presence", requireAuth, requireEditor, (req, res) => {
 });
 
 /* ---------------- GREEN CROSS DATABASE ---------------- */
-const db = new Datastore({ filename: "./db/greenCross.db", autoload: true });
+const db = new Datastore({ filename: path.join(DB_DIR, "greenCross.db"), autoload: true });
 db.persistence.setAutocompactionInterval(5 * 60 * 1000 + 150000);
 
 /* ---------------- ACTIVITIES DATABASE ---------------- */
-const activitiesDB = new Datastore({ filename: "./db/activities.db", autoload: true });
+const activitiesDB = new Datastore({ filename: path.join(DB_DIR, "activities.db"), autoload: true });
 activitiesDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 180000);
 
 // Skicka en engångsavisering när en ansvarigs aktivitet passerar deadline.
@@ -1011,12 +1019,12 @@ notifyOverdueActivities();
 setInterval(notifyOverdueActivities, 60 * 60 * 1000);
 
 /* ---------------- WIDGETS DATABASE ---------------- */
-const widgetsDB = new Datastore({filename: "./db/widgets.db", autoload: true });
+const widgetsDB = new Datastore({filename: path.join(DB_DIR, "widgets.db"), autoload: true });
 widgetsDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 210000);
 
 /* ---------------- STRUCTURED WIDGETS DATABASE ---------------- */
 const structuredWidgetsDB = new Datastore({
-  filename: "./db/structuredWidgets.db",
+  filename: path.join(DB_DIR, "structuredWidgets.db"),
   autoload: true,
 });
 structuredWidgetsDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 240000);
@@ -1026,13 +1034,13 @@ structuredWidgetsDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 240000
 // så flera protokoll kan finnas för samma order och artikel. Äldre poster
 // med order_artikel-ID fortsätter att kunna öppnas och uppdateras.
 const matprotokollDB = new Datastore({
-  filename: "./db/matprotokoll.db",
+  filename: path.join(DB_DIR, "matprotokoll.db"),
   autoload: true,
 });
 matprotokollDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 260000);
 
 /* ---------------- MÄTVERKTYG DATABASE ---------------- */
-const measuringToolsDB = new Datastore({ filename: "./db/measuringTools.db", autoload: true });
+const measuringToolsDB = new Datastore({ filename: path.join(DB_DIR, "measuringTools.db"), autoload: true });
 measuringToolsDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 270000);
 
 /* ---------------- AUTOMATISKA MÄTVERKTYGSAVISERINGAR ---------------- */
@@ -2398,7 +2406,7 @@ app.post("/activities/upload", requireAuth, requireEditor, upload.single("image"
 });
 
 /* ---------------- CHECKLIST DATABASE ---------------- */
-const checklistDB = new Datastore({ filename: "./db/checklist.db", autoload: true });
+const checklistDB = new Datastore({ filename: path.join(DB_DIR, "checklist.db"), autoload: true });
 checklistDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 270000);
 
 /* ---------------- CHECKLIST ENDPOINTS ---------------- */
@@ -2792,7 +2800,7 @@ app.get("/production-orders", requireAuth, (req, res) => {
 
 /* ---------------- NYCKELTAL (KPI) ---------------- */
 registerKpis({
-  app, io, Datastore, xlsx, fs,
+  app, io, Datastore, xlsx, fs, dbDir: DB_DIR,
   requireAuth, requireAdmin, requireEditor,
   upload, validateUploadedFile, kpiImportFileTypes,
 });
