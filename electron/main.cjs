@@ -306,18 +306,22 @@ async function importDatabaseBackup() {
   let previousMoved = false;
 
   try {
+    const inspectedArchiveHash = sha256File(archivePath);
     await inspectBackupArchive(archivePath);
     fs.mkdirSync(stagePath, { recursive: true });
     await tar.x({
       file: archivePath,
       cwd: stagePath,
       strict: true,
-      filter(entryPath) {
+      filter(entryPath, entry) {
         const normalized = String(entryPath).replace(/\\/g, "/").replace(/^\.\//, "");
-        return normalized === "db" || normalized === "db/" ||
-          /^db\/[^/]+$/.test(normalized);
+        if (normalized === "db" || normalized === "db/") return entry?.type === "Directory";
+        return /^db\/[^/]+$/.test(normalized) && (entry?.type === "File" || entry?.type === "OldFile");
       },
     });
+    if (sha256File(archivePath) !== inspectedArchiveHash) {
+      throw new Error("Backupfilen ändrades under importkontrollen. Ingen databas har ersatts.");
+    }
     validateDatabaseFiles(stagedDbPath);
 
     const confirm = await dialog.showMessageBox(mainWindow, {
