@@ -4,6 +4,7 @@ const crypto = require("node:crypto");
 const fs = require("node:fs");
 const http = require("node:http");
 const net = require("node:net");
+const os = require("node:os");
 const path = require("node:path");
 const tar = require("tar");
 
@@ -13,6 +14,8 @@ let shutdownRequested = false;
 let serverStopRequested = false;
 let appDataPath;
 let serverOrigin;
+let serverPort;
+let networkAccessEnabled = false;
 
 const DATABASE_FILES = [
   "users.db",
@@ -77,6 +80,34 @@ function hasExistingUsers(usersFile) {
   }
 }
 
+function getLanAddresses() {
+  const interfaces = os.networkInterfaces();
+  return [...new Set(Object.values(interfaces).flat().filter((item) =>
+    item && item.family === "IPv4" && !item.internal
+  ).map((item) => item.address))];
+}
+
+function loadNetworkAccessSetting() {
+  const settingPath = path.join(app.getPath("userData"), "network-access.json");
+  try {
+    const parsed = JSON.parse(fs.readFileSync(settingPath, "utf8"));
+    networkAccessEnabled = parsed.enabled === true;
+  } catch (error) {
+    if (error.code !== "ENOENT") {
+      console.error("Kunde inte läsa nätverksinställningen:", error);
+    }
+    networkAccessEnabled = false;
+  }
+}
+
+function saveNetworkAccessSetting(enabled) {
+  const settingPath = path.join(app.getPath("userData"), "network-access.json");
+  const temporaryPath = settingPath + ".tmp";
+  fs.writeFileSync(temporaryPath, JSON.stringify({ enabled }), { flag: "w" });
+  fs.renameSync(temporaryPath, settingPath);
+  networkAccessEnabled = enabled;
+}
+
 function reserveLocalPort() {
   return new Promise((resolve, reject) => {
     const probe = net.createServer();
@@ -128,6 +159,9 @@ async function startLocalServer() {
   const port = await reserveLocalPort();
   const origin = `http://127.0.0.1:${port}`;
   serverOrigin = origin;
+  serverPort = port;
+  const lanAddresses = networkAccessEnabled ? getLanAddresses() : [];
+  const allowedOrigins = [origin, ...lanAddresses.map((address) => `http://${address}:${port}`)];
 
   const env = {
     ...process.env,
@@ -135,8 +169,8 @@ async function startLocalServer() {
     PULSTAVLA_DATA_DIR: dataPath,
     JWT_SECRET: jwtSecret,
     PORT: String(port),
-    HOST: "127.0.0.1",
-    CORS_ORIGINS: origin,
+    HOST: networkAccessEnabled ? "0.0.0.0" : "127.0.0.1",
+    CORS_ORIGINS: allowedOrigins.join(","),
   };
 
   if (firstRun) {
@@ -392,6 +426,41 @@ async function importDatabaseBackup() {
   }
 }
 
+async function setNetworkAccessEnabled(enabled) {
+  const previous = networkAccessEnabled;
+  try {
+    saveNetworkAccessSetting(enabled);
+    await stopLocalServer();
+    const { origin } = await startLocalServer();
+    if (mainWindow && !mainWindow.isDestroyed()) await mainWindow.loadURL(origin);
+    const addresses = getLanAddresses();
+    const details = enabled
+      ? (addresses.length
+        ? `Andra enheter på nätverket kan använda:\\n${addresses.map((address) => `http://${address}:${serverPort}`).join("\\n")}\\n\\nOm Windows-brandväggen frågar, tillåt åtkomst på privata nätverk.`
+        : "Ingen aktiv IPv4-adress hittades. Kontrollera att datorn är ansluten till nätverket.")
+      : "Pulstavlan är nu endast tillgänglig från den här datorn.";
+    await dialog.showMessageBox(mainWindow, {
+      type: "info",
+      title: "Nätverksinställning ändrad",
+      message: enabled ? "Åtkomst från lokalt nätverk är aktiverad." : "Åtkomst från lokalt nätverk är avstängd.",
+      detail: details,
+      buttons: ["OK"],
+      noLink: true,
+    });
+  } catch (error) {
+    try {
+      await stopLocalServer();
+      saveNetworkAccessSetting(previous);
+      const { origin } = await startLocalServer();
+      if (mainWindow && !mainWindow.isDestroyed()) await mainWindow.loadURL(origin);
+    } catch (restoreError) {
+      dialog.showErrorBox("Kunde inte återställa Pulstavlan", restoreError.message);
+      app.quit();
+    }
+    dialog.showErrorBox("Kunde inte ändra nätverksinställningen", error.message);
+  }
+}
+
 function installApplicationMenu() {
   const template = [
     {
@@ -405,6 +474,17 @@ function installApplicationMenu() {
         },
         { type: "separator" },
         { role: "quit", label: "Avsluta" },
+      ],
+    },
+    {
+      label: "Inställningar",
+      submenu: [
+        {
+          label: "Tillåt åtkomst från lokalt nätverk",
+          type: "checkbox",
+          checked: networkAccessEnabled,
+          click: (item) => setNetworkAccessEnabled(item.checked),
+        },
       ],
     },
     {
@@ -465,6 +545,7 @@ function createWindow(url) {
 }
 
 app.whenReady().then(async () => {
+  loadNetworkAccessSetting();
   installApplicationMenu();
   try {
     const { origin, firstRun, initialPassword } = await startLocalServer();
