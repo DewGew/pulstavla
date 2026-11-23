@@ -71,6 +71,12 @@
     "asarUnpack": [
       "**/*.node"
     ],
+    "extraResources": [
+      {
+        "from": "electron/create-certificates.ps1",
+        "to": "electron/create-certificates.ps1"
+      }
+    ],
     "win": {
       "target": [
         {
