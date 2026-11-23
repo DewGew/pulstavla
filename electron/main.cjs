@@ -517,7 +517,7 @@ function installApplicationMenu() {
           label: "Öppna Låna mätverktyg",
           click: () => {
             if (serverOrigin) {
-              const loanUrl = new URL("/lånamätverktyg", getPreferredAccessOrigin()).toString();
+              const loanUrl = new URL("/låna", getPreferredAccessOrigin()).toString();
               shell.openExternal(loanUrl).catch((error) => {
                 dialog.showErrorBox("Kunde inte öppna Låna mätverktyg", error.message);
               });
