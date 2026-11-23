@@ -46,6 +46,7 @@ export default function PublicMeasuringTools() {
 
     let cancelled = false;
     let scanner;
+    let startPromise;
     let started = false;
 
     const startScanner = async () => {
@@ -57,7 +58,7 @@ export default function PublicMeasuringTools() {
       try {
         scanner = new Html5Qrcode("public-loan-qr-reader");
         scannerRef.current = scanner;
-        await scanner.start(
+        startPromise = scanner.start(
           { facingMode: "environment" },
           { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1 },
           (decodedText) => {
@@ -73,6 +74,7 @@ export default function PublicMeasuringTools() {
           },
           () => {}
         );
+        await startPromise;
         started = true;
         if (cancelled) {
           await scanner.stop();
@@ -91,6 +93,8 @@ export default function PublicMeasuringTools() {
       if (scannerRef.current === scanner) scannerRef.current = null;
       if (scanner && started) {
         scanner.stop().then(() => scanner.clear()).catch(() => {});
+      } else if (scanner && startPromise) {
+        startPromise.then(() => scanner.stop()).then(() => scanner.clear()).catch(() => {});
       } else if (scanner) {
         scanner.clear();
       }
