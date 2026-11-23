@@ -102,9 +102,7 @@ function loadNetworkAccessSetting() {
 
 function saveNetworkAccessSetting(enabled) {
   const settingPath = path.join(app.getPath("userData"), "network-access.json");
-  const temporaryPath = settingPath + ".tmp";
-  fs.writeFileSync(temporaryPath, JSON.stringify({ enabled }), { flag: "w" });
-  fs.renameSync(temporaryPath, settingPath);
+  fs.writeFileSync(settingPath, JSON.stringify({ enabled }), { mode: 0o600 });
   networkAccessEnabled = enabled;
 }
 
@@ -461,6 +459,14 @@ async function setNetworkAccessEnabled(enabled) {
   }
 }
 
+function getPreferredAccessOrigin() {
+  if (networkAccessEnabled && serverPort) {
+    const address = getLanAddresses()[0];
+    if (address) return `http://${address}:${serverPort}`;
+  }
+  return serverOrigin;
+}
+
 function installApplicationMenu() {
   const template = [
     {
@@ -493,7 +499,8 @@ function installApplicationMenu() {
         {
           label: "Öppna webbgränssnitt",
           click: () => {
-            if (serverOrigin) shell.openExternal(serverOrigin).catch((error) => {
+            const accessOrigin = getPreferredAccessOrigin();
+            if (accessOrigin) shell.openExternal(accessOrigin).catch((error) => {
               dialog.showErrorBox("Kunde inte öppna Pulstavlan", error.message);
             });
           },
@@ -501,7 +508,8 @@ function installApplicationMenu() {
         {
           label: "Kopiera adress till webbgränssnitt",
           click: () => {
-            if (serverOrigin) clipboard.writeText(serverOrigin);
+            const accessOrigin = getPreferredAccessOrigin();
+            if (accessOrigin) clipboard.writeText(accessOrigin);
           },
         },
         { type: "separator" },
@@ -509,7 +517,7 @@ function installApplicationMenu() {
           label: "Öppna Låna mätverktyg",
           click: () => {
             if (serverOrigin) {
-              const loanUrl = new URL("/lånamätverktyg", serverOrigin).toString();
+              const loanUrl = new URL("/lånamätverktyg", getPreferredAccessOrigin()).toString();
               shell.openExternal(loanUrl).catch((error) => {
                 dialog.showErrorBox("Kunde inte öppna Låna mätverktyg", error.message);
               });
