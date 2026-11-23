@@ -10,6 +10,7 @@ const tar = require("tar");
 let serverProcess;
 let mainWindow;
 let shutdownRequested = false;
+let serverStopRequested = false;
 let appDataPath;
 
 const DATABASE_FILES = [
@@ -143,6 +144,7 @@ async function startLocalServer() {
   }
 
   const serverPath = path.join(appPath, "server.js");
+  serverStopRequested = false;
   serverProcess = spawn(process.execPath, [serverPath], {
     cwd: app.getPath("userData"),
     env,
@@ -156,13 +158,15 @@ async function startLocalServer() {
   });
 
   serverProcess.once("exit", (code) => {
-    if (!shutdownRequested && code !== 0) {
+    const expectedStop = serverStopRequested;
+    if (!shutdownRequested && !expectedStop && code !== 0) {
       dialog.showErrorBox(
         "Pulstavlans server stängdes",
         `Den lokala servern avslutades oväntat (kod ${code}).`
       );
       app.quit();
     }
+    if (expectedStop) serverStopRequested = false;
   });
 
   await waitForServer(`${origin}/health`, serverProcess);
@@ -254,6 +258,7 @@ async function stopLocalServer() {
     serverProcess = null;
     return;
   }
+  serverStopRequested = true;
   await new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       try { child.kill("SIGKILL"); } catch {}
@@ -270,6 +275,7 @@ async function stopLocalServer() {
       reject(error);
     }
   });
+  serverStopRequested = false;
   serverProcess = null;
 }
 
