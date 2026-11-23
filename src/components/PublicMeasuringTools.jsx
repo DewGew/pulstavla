@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { API_URL } from "../config";
+import { Html5Qrcode } from "html5-qrcode";
 import "./PublicMeasuringTools.css";
 
 export default function PublicMeasuringTools() {
@@ -14,7 +15,7 @@ export default function PublicMeasuringTools() {
   const [notice, setNotice] = useState("");
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scannerError, setScannerError] = useState("");
-  const videoRef = useRef(null);
+  const scannerRef = useRef(null);
   const [theme, setTheme] = useState(() => {
     try { return localStorage.getItem("public-loan-theme") === "dark" ? "dark" : "light"; }
     catch { return "light"; }
@@ -42,77 +43,59 @@ export default function PublicMeasuringTools() {
 
   useEffect(() => {
     if (!scannerOpen) return undefined;
-    let stopped = false;
-    let stream;
-    let frameId;
-    let detector;
 
-    const stopScanner = () => {
-      stopped = true;
-      if (frameId) cancelAnimationFrame(frameId);
-      if (stream) stream.getTracks().forEach((track) => track.stop());
-      if (videoRef.current) videoRef.current.srcObject = null;
-    };
-
-    const scan = async () => {
-      if (stopped || !videoRef.current || videoRef.current.readyState < 2) {
-        if (!stopped) frameId = requestAnimationFrame(scan);
-        return;
-      }
-      try {
-        const codes = await detector.detect(videoRef.current);
-        if (stopped) return;
-        const value = codes.find((code) => code.rawValue?.trim())?.rawValue?.trim();
-        if (value) {
-          setSearch(value);
-          const matchedTool = tools.find((tool) =>
-            String(tool.toolNumber || "").trim().toLocaleLowerCase("sv") === value.toLocaleLowerCase("sv")
-          );
-          setActiveTab(matchedTool?.status === "Utlånad" ? "borrowed" : "available");
-          setScannerOpen(false);
-          return;
-        }
-      } catch {
-        // Enstaka misslyckade bildrutor är normala under skanning.
-      }
-      if (!stopped) frameId = requestAnimationFrame(scan);
-    };
+    let cancelled = false;
+    let scanner;
+    let started = false;
 
     const startScanner = async () => {
       if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
         setScannerError("Kameran kräver HTTPS. Öppna sidan via produktionsadressen med https://.");
         return;
       }
-      if (!("BarcodeDetector" in window)) {
-        setScannerError("QR-skanning stöds inte av den här webbläsaren. Prova Chrome på Android eller använd sökfältet.");
-        return;
-      }
+
       try {
-        detector = new window.BarcodeDetector({ formats: ["qr_code"] });
-        stream = await navigator.mediaDevices.getUserMedia({
-          audio: false,
-          video: { facingMode: { ideal: "environment" } },
-        });
-        if (stopped) {
-          stream.getTracks().forEach((track) => track.stop());
-          return;
-        }
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play();
-          frameId = requestAnimationFrame(scan);
+        scanner = new Html5Qrcode("public-loan-qr-reader");
+        scannerRef.current = scanner;
+        await scanner.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1 },
+          (decodedText) => {
+            if (cancelled) return;
+            const value = decodedText.trim();
+            if (!value) return;
+            const matchedTool = tools.find((tool) =>
+              String(tool.toolNumber || "").trim().toLocaleLowerCase("sv") === value.toLocaleLowerCase("sv")
+            );
+            setSearch(value);
+            setActiveTab(matchedTool?.status === "Utlånad" ? "borrowed" : "available");
+            setScannerOpen(false);
+          },
+          () => {}
+        );
+        started = true;
+        if (cancelled) {
+          await scanner.stop();
+          scanner.clear();
         }
       } catch (err) {
-        if (!stopped) {
-          setScannerError(err.name === "NotAllowedError"
-            ? "Kamerabehörighet saknas. Tillåt kameraåtkomst i webbläsaren."
-            : "Kunde inte starta kameran. Kontrollera att den inte används av en annan app.");
+        if (!cancelled) {
+          setScannerError(err?.message || "Kunde inte starta QR-skannern. Kontrollera kamerabehörigheten.");
         }
       }
     };
+
     startScanner();
-    return stopScanner;
-  }, [scannerOpen]);
+    return () => {
+      cancelled = true;
+      if (scannerRef.current === scanner) scannerRef.current = null;
+      if (scanner && started) {
+        scanner.stop().then(() => scanner.clear()).catch(() => {});
+      } else if (scanner) {
+        scanner.clear();
+      }
+    };
+  }, [scannerOpen, tools]);
 
   const availableTools = useMemo(
     () => tools.filter((tool) => tool.status === "Disponibel"),
@@ -259,7 +242,7 @@ export default function PublicMeasuringTools() {
               onClick={() => setScannerOpen(false)} aria-label="Stäng">×</button>
             <h2 id="public-loan-scanner-title">Skanna mätverktygets QR-kod</h2>
             <p>Rikta mobilens kamera mot QR-koden. Verktygsnumret fylls i automatiskt.</p>
-            <video ref={videoRef} className="public-loan-scanner-video" muted playsInline />
+            <div id="public-loan-qr-reader" className="public-loan-scanner-reader" />
             {scannerError && <div className="public-loan-error" role="alert">{scannerError}</div>}
             <button type="button" className="public-loan-cancel" onClick={() => setScannerOpen(false)}>Stäng skannern</button>
           </section>
