@@ -517,6 +517,24 @@ function installApplicationMenu() {
       label: "Hjälp",
       submenu: [
         {
+          label: "Visa certifikat för mobil",
+          click: async () => {
+            if (!mobileCertificatePath || !fs.existsSync(mobileCertificatePath)) {
+              dialog.showErrorBox("Certifikatet saknas", "Starta om Pulstavlan och försök igen.");
+              return;
+            }
+            shell.showItemInFolder(mobileCertificatePath);
+            await dialog.showMessageBox(mainWindow, {
+              type: "info",
+              title: "Installera Pulstavlans certifikat",
+              message: "Överför filen pulstavla-root.cer till mobilen och installera den.",
+              detail: "På iPhone: öppna certifikatfilen och följ installationsanvisningen under Inställningar → Allmänt → VPN och enhetshantering. Gå sedan till Inställningar → Allmänt → Om → Inställningar för certifikattillit och aktivera full tillit för Pulstavlans rotcertifikat.",
+              buttons: ["OK"],
+              noLink: true,
+            });
+          },
+        },
+        {
           label: "Öppna webbgränssnitt",
           click: () => {
             const accessOrigin = getPreferredAccessOrigin();
