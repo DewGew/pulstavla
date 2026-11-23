@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { API_URL } from "../config";
 import "./PublicMeasuringTools.css";
 
@@ -12,6 +12,9 @@ export default function PublicMeasuringTools() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scannerError, setScannerError] = useState("");
+  const videoRef = useRef(null);
   const [theme, setTheme] = useState(() => {
     try { return localStorage.getItem("public-loan-theme") === "dark" ? "dark" : "light"; }
     catch { return "light"; }
@@ -36,6 +39,77 @@ export default function PublicMeasuringTools() {
   }, []);
 
   useEffect(() => { loadTools(); }, [loadTools]);
+
+  useEffect(() => {
+    if (!scannerOpen) return undefined;
+    let stopped = false;
+    let stream;
+    let frameId;
+    let detector;
+
+    const stopScanner = () => {
+      stopped = true;
+      if (frameId) cancelAnimationFrame(frameId);
+      if (stream) stream.getTracks().forEach((track) => track.stop());
+      if (videoRef.current) videoRef.current.srcObject = null;
+    };
+
+    const scan = async () => {
+      if (stopped || !videoRef.current || videoRef.current.readyState < 2) {
+        if (!stopped) frameId = requestAnimationFrame(scan);
+        return;
+      }
+      try {
+        const codes = await detector.detect(videoRef.current);
+        if (stopped) return;
+        const value = codes.find((code) => code.rawValue?.trim())?.rawValue?.trim();
+        if (value) {
+          setSearch(value);
+          setActiveTab("available");
+          setScannerOpen(false);
+          return;
+        }
+      } catch {
+        // Enstaka misslyckade bildrutor är normala under skanning.
+      }
+      if (!stopped) frameId = requestAnimationFrame(scan);
+    };
+
+    const startScanner = async () => {
+      if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+        setScannerError("Kameran kräver HTTPS. Öppna sidan via produktionsadressen med https://.");
+        return;
+      }
+      if (!("BarcodeDetector" in window)) {
+        setScannerError("QR-skanning stöds inte av den här webbläsaren. Prova Chrome på Android eller använd sökfältet.");
+        return;
+      }
+      try {
+        detector = new window.BarcodeDetector({ formats: ["qr_code"] });
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: { facingMode: { ideal: "environment" } },
+        });
+        if (stopped) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+          frameId = requestAnimationFrame(scan);
+        }
+      } catch (err) {
+        if (!stopped) {
+          setScannerError(err.name === "NotAllowedError"
+            ? "Kamerabehörighet saknas. Tillåt kameraåtkomst i webbläsaren."
+            : "Kunde inte starta kameran. Kontrollera att den inte används av en annan app.");
+        }
+      }
+    };
+    startScanner();
+    return stopScanner;
+  }, [scannerOpen]);
 
   const availableTools = useMemo(
     () => tools.filter((tool) => tool.status === "Disponibel"),
@@ -122,11 +196,17 @@ export default function PublicMeasuringTools() {
           </button>
         </div>
 
-        <label className="public-loan-search">
+        <div className="public-loan-search-row">
+          <label className="public-loan-search">
           <span className="public-loan-search-icon" aria-hidden="true">⌕</span>
           <input value={search} onChange={(event) => setSearch(event.target.value)}
             placeholder="Sök verktygsnummer, namn eller typ…" />
-        </label>
+          </label>
+          <button type="button" className="public-loan-scan-button"
+            onClick={() => { setScannerError(""); setScannerOpen(true); }}>
+            <span aria-hidden="true">▦</span> Skanna QR-kod
+          </button>
+        </div>
 
         {notice && <div className="public-loan-notice" role="status">{notice}<button type="button" onClick={() => setNotice("")} aria-label="Stäng">×</button></div>}
         {error && !selectedTool && <div className="public-loan-error" role="alert">{error}</div>}
@@ -168,6 +248,20 @@ export default function PublicMeasuringTools() {
         )}
         <p className="public-loan-footnote">Ange ditt anställningsnummer för att registrera lån eller återlämning.</p>
       </main>
+
+      {scannerOpen && (
+        <div className="public-loan-modal-backdrop" role="presentation">
+          <section className="public-loan-modal public-loan-scanner" role="dialog" aria-modal="true" aria-labelledby="public-loan-scanner-title">
+            <button type="button" className="public-loan-modal-close"
+              onClick={() => setScannerOpen(false)} aria-label="Stäng">×</button>
+            <h2 id="public-loan-scanner-title">Skanna mätverktygets QR-kod</h2>
+            <p>Rikta mobilens kamera mot QR-koden. Verktygsnumret fylls i automatiskt.</p>
+            <video ref={videoRef} className="public-loan-scanner-video" muted playsInline />
+            {scannerError && <div className="public-loan-error" role="alert">{scannerError}</div>}
+            <button type="button" className="public-loan-cancel" onClick={() => setScannerOpen(false)}>Stäng skannern</button>
+          </section>
+        </div>
+      )}
 
       {selectedTool && (
         <div className="public-loan-modal-backdrop" role="presentation" onMouseDown={(event) => {
