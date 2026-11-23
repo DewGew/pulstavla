@@ -65,7 +65,10 @@ export default function PublicMeasuringTools() {
         const value = codes.find((code) => code.rawValue?.trim())?.rawValue?.trim();
         if (value) {
           setSearch(value);
-          setActiveTab("available");
+          const matchedTool = tools.find((tool) =>
+            String(tool.toolNumber || "").trim().toLocaleLowerCase("sv") === value.toLocaleLowerCase("sv")
+          );
+          setActiveTab(matchedTool?.status === "Utlånad" ? "borrowed" : "available");
           setScannerOpen(false);
           return;
         }
