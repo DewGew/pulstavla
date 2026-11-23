@@ -1,4 +1,4 @@
-const { app, BrowserWindow, clipboard, dialog, Menu } = require("electron");
+const { app, BrowserWindow, clipboard, dialog, Menu, shell } = require("electron");
 const { spawn } = require("node:child_process");
 const crypto = require("node:crypto");
 const fs = require("node:fs");
@@ -12,6 +12,7 @@ let mainWindow;
 let shutdownRequested = false;
 let serverStopRequested = false;
 let appDataPath;
+let serverOrigin;
 
 const DATABASE_FILES = [
   "users.db",
@@ -126,6 +127,7 @@ async function startLocalServer() {
   const initialPassword = firstRun ? createInitialPassword() : null;
   const port = await reserveLocalPort();
   const origin = `http://127.0.0.1:${port}`;
+  serverOrigin = origin;
 
   const env = {
     ...process.env,
@@ -403,6 +405,37 @@ function installApplicationMenu() {
         },
         { type: "separator" },
         { role: "quit", label: "Avsluta" },
+      ],
+    },
+    {
+      label: "Hjälp",
+      submenu: [
+        {
+          label: "Öppna webbgränssnitt",
+          click: () => {
+            if (serverOrigin) shell.openExternal(serverOrigin).catch((error) => {
+              dialog.showErrorBox("Kunde inte öppna Pulstavlan", error.message);
+            });
+          },
+        },
+        {
+          label: "Kopiera adress till webbgränssnitt",
+          click: () => {
+            if (serverOrigin) clipboard.writeText(serverOrigin);
+          },
+        },
+        { type: "separator" },
+        {
+          label: "Öppna Låna mätverktyg",
+          click: () => {
+            if (serverOrigin) {
+              const loanUrl = new URL("/lånamätverktyg", serverOrigin).toString();
+              shell.openExternal(loanUrl).catch((error) => {
+                dialog.showErrorBox("Kunde inte öppna Låna mätverktyg", error.message);
+              });
+            }
+          },
+        },
       ],
     },
   ];
