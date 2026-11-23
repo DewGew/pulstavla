@@ -60,7 +60,20 @@ export default function PublicMeasuringTools() {
         scannerRef.current = scanner;
         startPromise = scanner.start(
           { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1 },
+          {
+            fps: 15,
+            // Använd kamerans naturliga bildformat på iPhone; kvadratiskt
+            // aspectRatio kan göra att Safari avvisar kamerastarten.
+            qrbox: (viewfinderWidth, viewfinderHeight) => {
+              const edge = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.8);
+              return { width: edge, height: edge };
+            },
+            videoConstraints: {
+              facingMode: { ideal: "environment" },
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+            },
+          },
           (decodedText) => {
             if (cancelled) return;
             const value = decodedText.trim();
@@ -76,6 +89,21 @@ export default function PublicMeasuringTools() {
         );
         await startPromise;
         started = true;
+
+        // Begär kontinuerlig autofokus när iPhone-kameran erbjuder det.
+        // Stöd varierar mellan modeller och Safari-versioner, så misslyckad
+        // constraint ska inte stoppa QR-skanningen.
+        try {
+          const capabilities = scanner.getRunningTrackCapabilities();
+          if (capabilities.focusMode?.includes("continuous")) {
+            await scanner.applyVideoConstraints({
+              advanced: [{ focusMode: "continuous" }],
+            });
+          }
+        } catch {
+          // Kameran använder då sina automatiska standardinställningar.
+        }
+
         if (cancelled) {
           await scanner.stop();
           scanner.clear();
@@ -253,7 +281,7 @@ export default function PublicMeasuringTools() {
             <button type="button" className="public-loan-modal-close"
               onClick={() => setScannerOpen(false)} aria-label="Stäng">×</button>
             <h2 id="public-loan-scanner-title">Skanna mätverktygets QR-kod</h2>
-            <p>Rikta mobilens kamera mot QR-koden. Verktygsnumret fylls i automatiskt.</p>
+            <p>Håll kameran nära QR-koden, ungefär 5–10 cm bort. Se till att koden är väl belyst och håll telefonen stilla medan kameran fokuserar.</p>
             <div id="public-loan-qr-reader" className="public-loan-scanner-reader" />
             {scannerError && <div className="public-loan-error" role="alert">{scannerError}</div>}
             <button type="button" className="public-loan-cancel" onClick={() => setScannerOpen(false)}>Stäng skannern</button>
