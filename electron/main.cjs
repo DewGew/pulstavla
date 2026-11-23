@@ -3,6 +3,8 @@ const { spawn } = require("node:child_process");
 const crypto = require("node:crypto");
 const fs = require("node:fs");
 const http = require("node:http");
+const https = require("node:https");
+const { execFileSync } = require("node:child_process");
 const net = require("node:net");
 const os = require("node:os");
 const path = require("node:path");
@@ -15,6 +17,7 @@ let serverStopRequested = false;
 let appDataPath;
 let serverOrigin;
 let serverPort;
+let mobileCertificatePath;
 let networkAccessEnabled = false;
 
 const DATABASE_FILES = [
@@ -106,6 +109,20 @@ function saveNetworkAccessSetting(enabled) {
   networkAccessEnabled = enabled;
 }
 
+function ensureTlsCertificates(addresses) {
+  const dir = path.join(app.getPath("userData"), "certificates");
+  fs.mkdirSync(dir, { recursive: true });
+  const passPath = path.join(dir, ".pfx-password");
+  let passphrase;
+  try { passphrase = fs.readFileSync(passPath, "utf8").trim(); }
+  catch (error) { if (error.code !== "ENOENT") throw error; passphrase = crypto.randomBytes(32).toString("base64url"); fs.writeFileSync(passPath, passphrase, { flag: "wx", mode: 0o600 }); }
+  const pfxPath = path.join(dir, "server.pfx");
+  mobileCertificatePath = path.join(dir, "pulstavla-root.cer");
+  const script = path.join(app.getAppPath(), "electron", "create-certificates.ps1");
+  execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", script, "-CertificateDir", dir, "-IpAddresses", ["127.0.0.1", ...addresses].join(","), "-Passphrase", passphrase], { windowsHide: true, stdio: "pipe" });
+  return { pfxPath, passphrase };
+}
+
 function reserveLocalPort() {
   return new Promise((resolve, reject) => {
     const probe = net.createServer();
@@ -125,7 +142,7 @@ function waitForServer(url, child, timeoutMs = 30000) {
         reject(new Error("Pulstavlans lokala server avslutades under uppstart."));
         return;
       }
-      const request = http.get(url, (response) => {
+      const request = https.get(url, { rejectUnauthorized: false }, (response) => {
         response.resume();
         if (response.statusCode === 200) return resolve();
         retry();
@@ -155,11 +172,12 @@ async function startLocalServer() {
   const jwtSecret = loadOrCreateSecret(dataPath);
   const initialPassword = firstRun ? createInitialPassword() : null;
   const port = await reserveLocalPort();
-  const origin = `http://127.0.0.1:${port}`;
+  const lanAddresses = networkAccessEnabled ? getLanAddresses() : [];
+  const certificates = ensureTlsCertificates(lanAddresses);
+  const origin = `https://127.0.0.1:${port}`;
   serverOrigin = origin;
   serverPort = port;
-  const lanAddresses = networkAccessEnabled ? getLanAddresses() : [];
-  const allowedOrigins = [origin, ...lanAddresses.map((address) => `http://${address}:${port}`)];
+  const allowedOrigins = [origin, ...lanAddresses.map((address) => `https://${address}:${port}`)];
 
   const env = {
     ...process.env,
@@ -169,6 +187,8 @@ async function startLocalServer() {
     PORT: String(port),
     HOST: networkAccessEnabled ? "0.0.0.0" : "127.0.0.1",
     CORS_ORIGINS: allowedOrigins.join(","),
+    TLS_PFX_PATH: certificates.pfxPath,
+    TLS_PFX_PASSPHRASE: certificates.passphrase,
   };
 
   if (firstRun) {
@@ -434,7 +454,7 @@ async function setNetworkAccessEnabled(enabled) {
     const addresses = getLanAddresses();
     const details = enabled
       ? (addresses.length
-        ? `Andra enheter på nätverket kan använda:\n${addresses.map((address) => `http://${address}:${serverPort}`).join("\n")}\n\nOm Windows-brandväggen frågar, tillåt åtkomst på privata nätverk.`
+        ? `Andra enheter på nätverket kan använda:\n${addresses.map((address) => `https://${address}:${serverPort}`).join("\n")}\n\nOm Windows-brandväggen frågar, tillåt åtkomst på privata nätverk.`
         : "Ingen aktiv IPv4-adress hittades. Kontrollera att datorn är ansluten till nätverket.")
       : "Pulstavlan är nu endast tillgänglig från den här datorn.";
     await dialog.showMessageBox(mainWindow, {
@@ -462,7 +482,7 @@ async function setNetworkAccessEnabled(enabled) {
 function getPreferredAccessOrigin() {
   if (networkAccessEnabled && serverPort) {
     const address = getLanAddresses()[0];
-    if (address) return `http://${address}:${serverPort}`;
+    if (address) return `https://${address}:${serverPort}`;
   }
   return serverOrigin;
 }
@@ -551,6 +571,13 @@ function createWindow(url) {
   });
   mainWindow.loadURL(url);
 }
+
+app.on("certificate-error", (event, url, error, certificate, callback) => {
+  let parsed;
+  try { parsed = new URL(url); } catch { callback(false); return; }
+  if (parsed.protocol === "https:" && parsed.hostname === "127.0.0.1" && Number(parsed.port) === serverPort) { event.preventDefault(); callback(true); }
+  else callback(false);
+});
 
 app.whenReady().then(async () => {
   loadNetworkAccessSetting();
