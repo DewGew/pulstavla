@@ -434,7 +434,7 @@ async function setNetworkAccessEnabled(enabled) {
     const addresses = getLanAddresses();
     const details = enabled
       ? (addresses.length
-        ? `Andra enheter på nätverket kan använda:\\n${addresses.map((address) => `http://${address}:${serverPort}`).join("\\n")}\\n\\nOm Windows-brandväggen frågar, tillåt åtkomst på privata nätverk.`
+        ? `Andra enheter på nätverket kan använda:\n${addresses.map((address) => `http://${address}:${serverPort}`).join("\n")}\n\nOm Windows-brandväggen frågar, tillåt åtkomst på privata nätverk.`
         : "Ingen aktiv IPv4-adress hittades. Kontrollera att datorn är ansluten till nätverket.")
       : "Pulstavlan är nu endast tillgänglig från den här datorn.";
     await dialog.showMessageBox(mainWindow, {
