@@ -118,7 +118,9 @@ function ensureTlsCertificates(addresses) {
   catch (error) { if (error.code !== "ENOENT") throw error; passphrase = crypto.randomBytes(32).toString("base64url"); fs.writeFileSync(passPath, passphrase, { flag: "wx", mode: 0o600 }); }
   const pfxPath = path.join(dir, "server.pfx");
   mobileCertificatePath = path.join(dir, "pulstavla-root.cer");
-  const script = path.join(app.getAppPath(), "electron", "create-certificates.ps1");
+  const script = app.isPackaged
+    ? path.join(process.resourcesPath, "electron", "create-certificates.ps1")
+    : path.join(app.getAppPath(), "electron", "create-certificates.ps1");
   execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", script, "-CertificateDir", dir, "-IpAddresses", ["127.0.0.1", ...addresses].join(","), "-Passphrase", passphrase], { windowsHide: true, stdio: "pipe" });
   return { pfxPath, passphrase };
 }
