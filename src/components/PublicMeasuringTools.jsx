@@ -187,11 +187,19 @@ export default function PublicMeasuringTools() {
         </div>
 
         <div className="public-loan-search-row">
-          <label className="public-loan-search">
-          <span className="public-loan-search-icon" aria-hidden="true">⌕</span>
-          <input value={search} onChange={(event) => setSearch(event.target.value)}
-            placeholder="Sök verktygsnummer, namn eller typ…" />
-          </label>
+          <div className="public-loan-search-control">
+            <label className="public-loan-search">
+              <span className="public-loan-search-icon" aria-hidden="true">⌕</span>
+              <input value={search} onChange={(event) => setSearch(event.target.value)}
+                placeholder="Sök verktygsnummer, namn eller typ…" />
+            </label>
+            {search && (
+              <button type="button" className="public-loan-clear-button"
+                onClick={() => setSearch("")} aria-label="Rensa sökfältet" title="Rensa sökfältet">
+                ×
+              </button>
+            )}
+          </div>
           <button type="button" className="public-loan-scan-button"
             onClick={() => { setScannerError(""); setScannerOpen(true); }}>
             <span aria-hidden="true">▦</span> Skanna QR-kod
