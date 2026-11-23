@@ -78,6 +78,11 @@
 }
 
 .public-loan-search-row { display:flex; align-items:stretch; gap:10px; margin:18px 0; }
+.public-loan-search-control { display:flex; align-items:stretch; flex:1; min-width:0; gap:6px; }
+.public-loan-search-control .public-loan-search { flex:1; min-width:0; }
+.public-loan-clear-button { flex:0 0 42px; align-self:stretch; border:1px solid var(--panel-border,#dce2e8); border-radius:12px; background:var(--panel,#fff); color:var(--muted-text,#687582); font-size:1.6rem; line-height:1; cursor:pointer; }
+.public-loan-clear-button:hover { color:inherit; background:var(--hover-bg,#f1f4f7); }
+.public-loan-clear-button:focus-visible { outline:2px solid var(--accent,#477fc1); outline-offset:2px; }
 .public-loan-search-row .public-loan-search { flex:1; min-width:0; margin:0; }
 .public-loan-scan-button { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:0 16px; border:1px solid var(--panel-border,#dce2e8); border-radius:12px; background:var(--panel,#fff); color:var(--text,#17202a); font:inherit; font-weight:700; white-space:nowrap; cursor:pointer; }
 .public-loan-scan-button:hover { border-color:#176b49; }
