@@ -1,7 +1,8 @@
 import express from "express";
 import Datastore from "nedb";
 import cors from "cors";
-import https from "http";
+import http from "node:http";
+import https from "node:https";
 import { Server } from "socket.io";
 import multer from "multer";
 import path from "path";
@@ -213,7 +214,12 @@ app.get("/health", async (req, res) => {
 });
 
 /* ---------------- HTTP SERVER + WEBSOCKET ---------------- */
-export const server = https.createServer(app);
+export const server = process.env.TLS_PFX_PATH
+  ? https.createServer({
+      pfx: fs.readFileSync(process.env.TLS_PFX_PATH),
+      passphrase: process.env.TLS_PFX_PASSPHRASE,
+    }, app)
+  : http.createServer(app);
 
 const io = new Server(server, {
   cors: { origin: "*" },
