@@ -105,13 +105,15 @@ function cleanKpi(body, { partial = false } = {}) {
   return out;
 }
 
+import path from "path";
+
 export default function registerKpis({
-  app, io, Datastore, xlsx, fs,
+  app, io, Datastore, xlsx, fs, dbDir,
   requireAuth, requireAdmin, requireEditor,
   upload, validateUploadedFile, kpiImportFileTypes,
 }) {
-  const kpisDB = new Datastore({ filename: "./db/kpis.db", autoload: true });
-  const valuesDB = new Datastore({ filename: "./db/kpiValues.db", autoload: true });
+  const kpisDB = new Datastore({ filename: path.join(dbDir, "kpis.db"), autoload: true });
+  const valuesDB = new Datastore({ filename: path.join(dbDir, "kpiValues.db"), autoload: true });
   kpisDB.persistence.setAutocompactionInterval(10 * 60 * 1000);
   valuesDB.persistence.setAutocompactionInterval(10 * 60 * 1000 + 15000);
   valuesDB.ensureIndex({ fieldName: "kpiId" });

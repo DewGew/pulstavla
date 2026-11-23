@@ -13,6 +13,51 @@ Pulstavla är en webbaserad produktions- och informationsöversikt byggd med Rea
 - Användarhantering och behörighetsroller
 - JWT-skyddade API- och Socket.IO-anslutningar
 
+## Windows-version (fristående skrivbordsapp)
+
+Windows-versionen utvecklas separat på grenen `windows-version`. Den är avsedd att köras helt lokalt på en Windows-dator med ett eget fönster, en lokal Node.js-server och egna databaser. Raspberry Pi eller nätverksserver behövs inte när appen är installerad.
+
+> **Utvecklingsstatus:** Windows-paketeringen är under uppbyggnad. Electron-konfiguration och ett GitHub Actions-flöde för Windows-installation finns i grenen, men installationsfilen är ännu inte verifierad. Backupimport finns nu som en menyfunktion i skrivbordsappen, men behöver verifieras i ett Windows-test innan den betraktas som färdig.
+
+### Dataplats
+
+Appens data lagras separat från installationsfilerna i Electron-appens användarspecifika `userData/data`-katalog. Där skapas:
+
+- `db/` – appens egna NeDB-databaser
+- `uploads/` – uppladdade filer
+- `docs/` – dokument
+- `.jwt-secret` – lokal JWT-hemlighet som skapas automatiskt
+
+En befintlig Raspberry Pi-installations databas används inte direkt och delas inte med Windows-versionen.
+
+### Bygga och starta från källkod
+
+Kräver Windows 10/11, Git och Node.js 22.12 eller senare i 22.x (eller en kompatibel aktuell Node-version). Klona den särskilda grenen:
+
+```powershell
+git clone --branch windows-version https://github.com/DewGew/pulstavla.git
+cd pulstavla
+npm install
+npm run build
+npm run electron
+```
+
+Vid första starten skapas ett administratörskonto automatiskt. Appen visar ett slumpmässigt lösenord en gång i ett dialogfönster. Spara lösenordet säkert innan dialogen stängs.
+
+### Skapa installationsfil (.exe)
+
+```powershell
+npm run dist:win
+```
+
+Installationsfilen ska hamna i katalogen `release/`. Byggflödet kan även köras från GitHub Actions på grenen `windows-version` (eller manuellt via fliken Actions). När ett bygge lyckas publiceras installationsfilen som en workflow-artifact med namnet `Pulstavlan-Windows-x64`.
+
+### Backup och återställning
+
+Windows-versionen ska ha separata databaser och importera befintliga Pulstavla-backuper. Den planerade importen ska först skapa en säkerhetskopia av Windows-databasen och därefter ersätta databasinnehållet med den importerade backupen – aldrig slå ihop poster. Välj **Arkiv → Importera backup…** i skrivbordsappen och välj en `.tar.gz`- eller `.tgz`-fil. Appen kontrollerar arkivets innehåll och eventuella `.sha256`-kontrollfil, packar upp till en separat stagingkatalog och validerar samtliga 16 kända NeDB-filer innan den frågar om bekräftelse. Därefter stoppas den lokala servern, en verifierad backup av Windows-databaserna skapas i `userData/data/backups/`, och databasuppsättningen ersätts. Om den nya databasen inte kan startas försöker appen återställa den tidigare. Importen omfattar endast `db/`, inte `docs/` eller `uploads/`. Funktionen är implementerad i källkoden men måste fortfarande provas i en faktisk Windows-installation.
+
+---
+
 ## Systemkrav
 
 - Raspberry Pi eller annan Linux-server
