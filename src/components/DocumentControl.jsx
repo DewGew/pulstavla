@@ -248,6 +248,7 @@ export default function DocumentControl() {
             </thead>
             <tbody>
               {visibleDocuments.map((doc) => (
+                <>
                 <tr key={doc.documentId}>
                   <td>{doc.documentNumber || "—"}</td>
                   <td>{doc.title}</td>
@@ -297,6 +298,7 @@ export default function DocumentControl() {
                     </td>
                   </tr>
                 )}
+                </>
               ))}
               {visibleDocuments.length === 0 && (
                 <tr><td colSpan="7" className="document-control-empty">Inga registrerade dokument hittades.</td></tr>
