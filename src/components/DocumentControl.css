@@ -88,3 +88,49 @@
   .document-control-form-grid { grid-template-columns: 1fr; }
   .document-control-table { min-width: 700px; }
 }
+
+.document-control-revisions {
+  padding: 14px;
+  background: var(--bg-cell);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--control-radius);
+}
+.document-control-revision-list {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 18px;
+}
+.document-control-revision {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--cell-radius);
+  background: var(--bg);
+}
+.document-control-revision small { color: var(--muted-text); overflow-wrap: anywhere; }
+.document-control-revision-form {
+  display: grid;
+  gap: 10px;
+  max-width: 680px;
+  padding-top: 12px;
+  border-top: 1px solid var(--panel-border);
+}
+.document-control-revision-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-weight: 600;
+}
+.document-control-revision-form input,
+.document-control-revision-form textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 9px 10px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--cell-radius);
+  font: inherit;
+}
+.document-control-revision-form button { justify-self: start; }
