@@ -15,9 +15,9 @@ Pulstavla är en webbaserad produktions- och informationsöversikt byggd med Rea
 
 ## Windows-version (fristående skrivbordsapp)
 
-Windows-versionen utvecklas separat på grenen `windows-version`. Den är avsedd att köras helt lokalt på en Windows-dator med ett eget fönster, en lokal Node.js-server och egna databaser. Raspberry Pi eller nätverksserver behövs inte när appen är installerad.
+Windows-versionen ingår nu i grenen `development`. Den körs som en fristående Electron-app på Windows med ett eget fönster, en lokal Node.js/Express-server och egna databaser. Raspberry Pi eller nätverksserver behövs inte när appen är installerad.
 
-> **Utvecklingsstatus:** Windows-paketeringen är under uppbyggnad. Electron-konfiguration och ett GitHub Actions-flöde för Windows-installation finns i grenen, men installationsfilen är ännu inte verifierad. Backupimport finns nu som en menyfunktion i skrivbordsappen, men behöver verifieras i ett Windows-test innan den betraktas som färdig.
+> **Windows-version:** Appen kan byggas som en Windows x64-installation. GitHub Actions bygger automatiskt en installerare när relevanta filer pushas till `development`, och installationsfilen finns som workflow-artifact. Backupimporten har testats. Appen kan även ge åtkomst från det lokala nätverket via HTTPS, så att exempelvis mobiltelefoner kan använda QR-skanningen.
 
 ### Dataplats
 
@@ -32,12 +32,12 @@ En befintlig Raspberry Pi-installations databas används inte direkt och delas i
 
 ### Bygga och starta från källkod
 
-Kräver Windows 10/11, Git och Node.js 22.12 eller senare i 22.x (eller en kompatibel aktuell Node-version). Klona den särskilda grenen:
+Kräver Windows 10/11, Git och Node.js 22.12 eller senare i 22.x (eller en kompatibel aktuell Node-version). Klona utvecklingsgrenen:
 
 ```powershell
-git clone --branch windows-version https://github.com/DewGew/pulstavla.git
+git clone --branch development https://github.com/DewGew/pulstavla.git
 cd pulstavla
-npm install
+npm ci
 npm run build
 npm run electron
 ```
@@ -54,7 +54,17 @@ Installationsfilen ska hamna i katalogen `release/`. Byggflödet kan även köra
 
 ### Backup och återställning
 
-Windows-versionen ska ha separata databaser och importera befintliga Pulstavla-backuper. Den planerade importen ska först skapa en säkerhetskopia av Windows-databasen och därefter ersätta databasinnehållet med den importerade backupen – aldrig slå ihop poster. Välj **Arkiv → Importera backup…** i skrivbordsappen och välj en `.tar.gz`- eller `.tgz`-fil. Appen kontrollerar arkivets innehåll och eventuella `.sha256`-kontrollfil, packar upp till en separat stagingkatalog och validerar samtliga 16 kända NeDB-filer innan den frågar om bekräftelse. Därefter stoppas den lokala servern, en verifierad backup av Windows-databaserna skapas i `userData/data/backups/`, och databasuppsättningen ersätts. Om den nya databasen inte kan startas försöker appen återställa den tidigare. Importen omfattar endast `db/`, inte `docs/` eller `uploads/`. Funktionen är implementerad i källkoden men måste fortfarande provas i en faktisk Windows-installation.
+Windows-versionen har separata databaser och importera befintliga Pulstavla-backuper. Den planerade importen ska först skapa en säkerhetskopia av Windows-databasen och därefter ersätta databasinnehållet med den importerade backupen – aldrig slå ihop poster. Välj **Arkiv → Importera backup…** i skrivbordsappen och välj en `.tar.gz`- eller `.tgz`-fil. Appen kontrollerar arkivets innehåll och eventuella `.sha256`-kontrollfil, packar upp till en separat stagingkatalog och validerar samtliga 16 kända NeDB-filer innan den frågar om bekräftelse. Därefter stoppas den lokala servern, en verifierad backup av Windows-databaserna skapas i `userData/data/backups/`, och databasuppsättningen ersätts. Om den nya databasen inte kan startas försöker appen återställa den tidigare. Importen omfattar endast `db/`, inte `docs/` eller `uploads/`. Funktionen har testats i Windows-versionen.
+
+---
+
+### HTTPS och åtkomst från mobil
+
+Windows-appen använder HTTPS även för den lokala webbservern. Om du vill öppna Pulstavlan från en mobil eller annan dator aktiverar du **Inställningar → Tillåt åtkomst från lokalt nätverk** i appen. Windows visar då de HTTPS-adresser som kan användas.
+
+För att webbläsaren på mobilen ska lita på anslutningen behöver Pulstavlans publika rotcertifikat installeras en gång på varje enhet. I Windows-appen väljer du **Hjälp → Visa certifikat för mobil** och överför filen `pulstavla-root.cer` till mobilen. Installera certifikatet och aktivera full tillit för det i enhetens certifikatinställningar. Dela aldrig filerna `server.pfx` eller `.pfx-password`.
+
+När certifikatet är betrott kan QR-skanningen på sidan **Låna mätverktyg** använda mobilens kamera. Tillåt kameraåtkomst i webbläsaren.
 
 ---
 
