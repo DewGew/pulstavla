@@ -7,6 +7,7 @@ import { Server } from "socket.io";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "url";
 import registerKpis from "./server/kpis.js";
 
@@ -1077,6 +1078,15 @@ const matprotokollDB = new Datastore({
   autoload: true,
 });
 matprotokollDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 260000);
+ 
+/* ---------------- DOCUMENT CONTROL DATABASE ---------------- */
+// Metadata only: original files remain in the existing docs directory.
+const documentControlDB = new Datastore({
+  filename: path.join(DB_DIR, "documentControl.db"),
+  autoload: true,
+});
+documentControlDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 280000);
+
 
 /* ---------------- MÄTVERKTYG DATABASE ---------------- */
 const measuringToolsDB = new Datastore({ filename: path.join(DB_DIR, "measuringTools.db"), autoload: true });
@@ -2335,6 +2345,91 @@ app.delete("/structured-widgets/:widgetId", requireAuth, requireEditor, (req, re
       res.json({ success: true, removed: numRemoved });
     }
   );
+});
+
+
+/* ---------------- DOCUMENT CONTROL ENDPOINTS ---------------- */
+const documentControlAllowedExtensions = new Set([
+  ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".png", ".jpg", ".jpeg"
+]);
+
+// List registered records and existing files that have not yet been registered.
+app.get("/document-control/documents", requireAuth, (req, res) => {
+  documentControlDB.find({}).sort({ updatedAt: -1 }).exec((dbErr, documents) => {
+    if (dbErr) return res.status(500).json({ error: "Kunde inte läsa dokumentregistret." });
+
+    fs.readdir(docsDir, { withFileTypes: true }, (fileErr, entries) => {
+      if (fileErr) return res.status(500).json({ error: "Kunde inte läsa dokumentmappen." });
+      const files = entries
+        .filter((entry) => entry.isFile())
+        .map((entry) => entry.name)
+        .filter((name) => documentControlAllowedExtensions.has(path.extname(name).toLowerCase()))
+        .sort((a, b) => a.localeCompare(b, "sv"));
+      const registeredNames = new Set(documents.map((doc) => doc.fileName));
+      res.json({
+        documents,
+        availableFiles: files.filter((name) => !registeredNames.has(name)),
+      });
+    });
+  });
+});
+
+// Register metadata for an existing file. This does not move, copy, or modify the file.
+app.post("/document-control/documents", requireAuth, requireAdmin, (req, res) => {
+  const documentNumber = String(req.body?.documentNumber || "").trim();
+  const title = String(req.body?.title || "").trim();
+  const category = String(req.body?.category || "").trim();
+  const fileName = String(req.body?.fileName || "").trim();
+  const owner = String(req.body?.owner || "").trim();
+  const description = String(req.body?.description || "").trim();
+
+  if (!title || !category || !fileName) {
+    return res.status(400).json({ error: "Titel, kategori och befintlig fil måste anges." });
+  }
+  if (fileName !== path.basename(fileName) || fileName.includes("\\") || fileName.includes("/")) {
+    return res.status(400).json({ error: "Ogiltigt filnamn." });
+  }
+  if (!documentControlAllowedExtensions.has(path.extname(fileName).toLowerCase())) {
+    return res.status(400).json({ error: "Filtypen stöds inte i dokumentregistret." });
+  }
+  if (!fs.existsSync(path.join(docsDir, fileName))) {
+    return res.status(404).json({ error: "Filen finns inte längre i dokumentmappen." });
+  }
+
+  documentControlDB.findOne({
+    $or: [{ fileName }, ...(documentNumber ? [{ documentNumber }] : [])],
+  }, (findErr, existing) => {
+    if (findErr) return res.status(500).json({ error: "Kunde inte kontrollera dokumentregistret." });
+    if (existing) {
+      return res.status(409).json({
+        error: existing.fileName === fileName
+          ? "Filen är redan registrerad."
+          : "Dokumentnumret används redan."
+      });
+    }
+
+    const now = new Date().toISOString();
+    const record = {
+      documentId: randomUUID(),
+      documentNumber,
+      title,
+      category,
+      owner,
+      description,
+      fileName,
+      status: "needs-review",
+      revision: "",
+      createdAt: now,
+      updatedAt: now,
+      createdBy: req.user.name,
+      updatedBy: req.user.name,
+    };
+
+    documentControlDB.insert(record, (insertErr, saved) => {
+      if (insertErr) return res.status(500).json({ error: "Kunde inte registrera dokumentet." });
+      res.status(201).json(saved);
+    });
+  });
 });
 
 /* ---------------- MÄTPROTOKOLL ENDPOINTS ---------------- */
