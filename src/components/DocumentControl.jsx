@@ -121,6 +121,21 @@ export default function DocumentControl() {
     } catch (err) { setError(err.message || "Kunde inte läsa revisionshistoriken."); }
   };
 
+  const downloadRevision = async (revision) => {
+    try {
+      const response = await apiFetch("/documents/" + encodeURIComponent(revision.fileName), {
+        headers: { Authorization: "Bearer " + (localStorage.getItem("token") || "") },
+      });
+      if (!response.ok) throw new Error("Kunde inte hämta revisionsfilen.");
+      const url = URL.createObjectURL(await response.blob());
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = revision.originalFileName || revision.fileName;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) { setError(err.message || "Kunde inte ladda ner revisionsfilen."); }
+  };
+
   const updateRevisionForm = (documentId, field, value) => {
     setRevisionForms((previous) => ({ ...previous, [documentId]: { ...(previous[documentId] || {}), [field]: value } }));
   };
@@ -272,7 +287,8 @@ export default function DocumentControl() {
                                 <strong>Rev. {revision.revision}</strong>
                                 <span>{revision.changeDescription}</span>
                                 <small>{revision.createdAt ? new Date(revision.createdAt).toLocaleString("sv-SE") : "—"} · {revision.createdBy || "—"}</small>
-                                <small>Fil: {revision.fileName}</small>
+                                <small>Fil: {revision.originalFileName || revision.fileName}</small>
+                                <button type="button" className="btn-secondary" onClick={() => downloadRevision(revision)}>Ladda ner fil</button>
                               </div>
                             ))}
                           </div>
