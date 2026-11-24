@@ -19,6 +19,10 @@ export default function DocumentControl() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("");
+  const [expandedDocumentId, setExpandedDocumentId] = useState("");
+  const [revisionData, setRevisionData] = useState({});
+  const [revisionForms, setRevisionForms] = useState({});
+  const [revisionSaving, setRevisionSaving] = useState(false);
   const [form, setForm] = useState({
     documentNumber: "",
     title: "",
@@ -102,6 +106,54 @@ export default function DocumentControl() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const loadRevisions = async (documentId) => {
+    if (expandedDocumentId === documentId) { setExpandedDocumentId(""); return; }
+    setExpandedDocumentId(documentId);
+    try {
+      const response = await apiFetch("/document-control/documents/" + encodeURIComponent(documentId) + "/revisions", {
+        headers: { Authorization: "Bearer " + (localStorage.getItem("token") || "") },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Kunde inte läsa revisionshistoriken.");
+      setRevisionData((previous) => ({ ...previous, [documentId]: data }));
+    } catch (err) { setError(err.message || "Kunde inte läsa revisionshistoriken."); }
+  };
+
+  const updateRevisionForm = (documentId, field, value) => {
+    setRevisionForms((previous) => ({ ...previous, [documentId]: { ...(previous[documentId] || {}), [field]: value } }));
+  };
+
+  const uploadRevision = async (event, doc) => {
+    event.preventDefault();
+    const revisionForm = revisionForms[doc.documentId] || {};
+    if (!revisionForm.file || !revisionForm.revision?.trim() || !revisionForm.changeDescription?.trim()) {
+      setError("Välj fil och ange revision samt ändringsbeskrivning."); return;
+    }
+    setRevisionSaving(true); setError(""); setMessage("");
+    try {
+      const body = new FormData();
+      body.append("file", revisionForm.file);
+      body.append("revision", revisionForm.revision.trim());
+      body.append("changeDescription", revisionForm.changeDescription.trim());
+      const response = await apiFetch("/document-control/documents/" + encodeURIComponent(doc.documentId) + "/revisions", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + (localStorage.getItem("token") || "") },
+        body,
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Kunde inte spara revisionen.");
+      setMessage("Revision " + data.revision + " har sparats som en separat fil. Dokumentet är åter markerat som ej granskat.");
+      setRevisionForms((previous) => ({ ...previous, [doc.documentId]: {} }));
+      await loadRegister();
+      const historyResponse = await apiFetch("/document-control/documents/" + encodeURIComponent(doc.documentId) + "/revisions", {
+        headers: { Authorization: "Bearer " + (localStorage.getItem("token") || "") },
+      });
+      const history = await historyResponse.json();
+      if (historyResponse.ok) setRevisionData((previous) => ({ ...previous, [doc.documentId]: history }));
+    } catch (err) { setError(err.message || "Uppladdningen av revisionen misslyckades."); }
+    finally { setRevisionSaving(false); }
   };
 
   const visibleDocuments = documents.filter((doc) =>
@@ -191,6 +243,7 @@ export default function DocumentControl() {
                 <th>Ansvarig</th>
                 <th>Fil</th>
                 <th>Status</th>
+                <th>Historik</th>
               </tr>
             </thead>
             <tbody>
@@ -201,11 +254,52 @@ export default function DocumentControl() {
                   <td>{doc.category}</td>
                   <td>{doc.owner || "—"}</td>
                   <td>{doc.fileName}</td>
-                  <td><span className="document-control-status">Ej granskad</span></td>
+                  <td><span className="document-control-status">{doc.status === "needs-review" ? "Ej granskad" : doc.status}</span></td>
+                  <td><button type="button" className="btn-secondary" onClick={() => loadRevisions(doc.documentId)}>
+                    {expandedDocumentId === doc.documentId ? "Dölj" : "Revisioner"}
+                  </button></td>
                 </tr>
+                {expandedDocumentId === doc.documentId && (
+                  <tr key={doc.documentId + "-history"}>
+                    <td colSpan="7">
+                      <div className="document-control-revisions">
+                        <h4>Revisionshistorik – {doc.title}</h4>
+                        {!revisionData[doc.documentId] ? <p>Hämtar historik...</p> : (
+                          <div className="document-control-revision-list">
+                            {revisionData[doc.documentId].revisions.map((revision) => (
+                              <div className="document-control-revision" key={revision.revisionId}>
+                                <strong>Rev. {revision.revision}</strong>
+                                <span>{revision.changeDescription}</span>
+                                <small>{revision.createdAt ? new Date(revision.createdAt).toLocaleString("sv-SE") : "—"} · {revision.createdBy || "—"}</small>
+                                <small>Fil: {revision.fileName}</small>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {canRegister && (
+                          <form className="document-control-revision-form" onSubmit={(event) => uploadRevision(event, doc)}>
+                            <h4>Lägg till ny revision</h4>
+                            <label>Revisionsbeteckning
+                              <input value={revisionForms[doc.documentId]?.revision || ""} onChange={(event) => updateRevisionForm(doc.documentId, "revision", event.target.value)} maxLength={40} required />
+                            </label>
+                            <label>Ändringsbeskrivning
+                              <textarea value={revisionForms[doc.documentId]?.changeDescription || ""} onChange={(event) => updateRevisionForm(doc.documentId, "changeDescription", event.target.value)} rows={2} maxLength={2000} required />
+                            </label>
+                            <label>Ny revisionsfil
+                              <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" onChange={(event) => updateRevisionForm(doc.documentId, "file", event.target.files?.[0] || null)} required />
+                            </label>
+                            <button className="btn-primary" type="submit" disabled={revisionSaving}>
+                              {revisionSaving ? "Sparar..." : "Spara ny revision"}
+                            </button>
+                          </form>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )}
               ))}
               {visibleDocuments.length === 0 && (
-                <tr><td colSpan="6" className="document-control-empty">Inga registrerade dokument hittades.</td></tr>
+                <tr><td colSpan="7" className="document-control-empty">Inga registrerade dokument hittades.</td></tr>
               )}
             </tbody>
           </table>
