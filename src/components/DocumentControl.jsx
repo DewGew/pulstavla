@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { apiFetch } from "../api";
 import "./DocumentControl.css";
 
@@ -248,8 +248,8 @@ export default function DocumentControl() {
             </thead>
             <tbody>
               {visibleDocuments.map((doc) => (
-                <>
-                <tr key={doc.documentId}>
+                <Fragment key={doc.documentId}>
+                <tr>
                   <td>{doc.documentNumber || "—"}</td>
                   <td>{doc.title}</td>
                   <td>{doc.category}</td>
@@ -298,7 +298,7 @@ export default function DocumentControl() {
                     </td>
                   </tr>
                 )}
-                </>
+                </Fragment>
               ))}
               {visibleDocuments.length === 0 && (
                 <tr><td colSpan="7" className="document-control-empty">Inga registrerade dokument hittades.</td></tr>
