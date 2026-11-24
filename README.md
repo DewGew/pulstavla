@@ -13,6 +13,61 @@ Pulstavla är en webbaserad produktions- och informationsöversikt byggd med Rea
 - Användarhantering och behörighetsroller
 - JWT-skyddade API- och Socket.IO-anslutningar
 
+## Windows-version (fristående skrivbordsapp)
+
+Windows-versionen ingår nu i grenen `development`. Den körs som en fristående Electron-app på Windows med ett eget fönster, en lokal Node.js/Express-server och egna databaser. Raspberry Pi eller nätverksserver behövs inte när appen är installerad.
+
+> **Windows-version:** Appen kan byggas som en Windows x64-installation. GitHub Actions bygger automatiskt en installerare när relevanta filer pushas till `development`, och installationsfilen finns som workflow-artifact. Backupimporten har testats. Appen kan även ge åtkomst från det lokala nätverket via HTTPS, så att exempelvis mobiltelefoner kan använda QR-skanningen.
+
+### Dataplats
+
+Appens data lagras separat från installationsfilerna i Electron-appens användarspecifika `userData/data`-katalog. Där skapas:
+
+- `db/` – appens egna NeDB-databaser
+- `uploads/` – uppladdade filer
+- `docs/` – dokument
+- `.jwt-secret` – lokal JWT-hemlighet som skapas automatiskt
+
+En befintlig Raspberry Pi-installations databas används inte direkt och delas inte med Windows-versionen.
+
+### Bygga och starta från källkod
+
+Kräver Windows 10/11, Git och Node.js 22.12 eller senare i 22.x (eller en kompatibel aktuell Node-version). Klona utvecklingsgrenen:
+
+```powershell
+git clone --branch development https://github.com/DewGew/pulstavla.git
+cd pulstavla
+npm ci
+npm run build
+npm run electron
+```
+
+Vid första starten skapas ett administratörskonto automatiskt. Appen visar ett slumpmässigt lösenord en gång i ett dialogfönster. Spara lösenordet säkert innan dialogen stängs.
+
+### Skapa installationsfil (.exe)
+
+```powershell
+npm run dist:win
+```
+
+Installationsfilen ska hamna i katalogen `release/`. GitHub Actions bygger automatiskt när relevanta filer pushas till `development`, och bygget kan även startas manuellt via fliken Actions. Installationsfilen laddas upp som en workflow-artifact med namnet `Pulstavlan-Windows-x64` och sparas i 14 dagar.
+
+### Backup och återställning
+
+Windows-versionen har separata databaser och kan importera befintliga Pulstavla-backuper. Importen skapar först en säkerhetskopia av Windows-databasen och ersätter därefter databasinnehållet med den importerade backupen – poster slås aldrig ihop. Välj **Arkiv → Importera backup…** i skrivbordsappen och välj en `.tar.gz`- eller `.tgz`-fil. Appen kontrollerar arkivets innehåll och eventuella `.sha256`-kontrollfil, packar upp till en separat stagingkatalog och validerar samtliga 16 kända NeDB-filer innan den frågar om bekräftelse. Därefter stoppas den lokala servern, en verifierad backup av Windows-databaserna skapas i `userData/data/backups/`, och databasuppsättningen ersätts. Om den nya databasen inte kan startas försöker appen återställa den tidigare. Importen omfattar endast `db/`, inte `docs/` eller `uploads/`. Funktionen har testats i Windows-versionen.
+
+---
+
+### HTTPS och åtkomst från mobil
+
+Windows-appen använder HTTPS även för den lokala webbservern. Om du vill öppna Pulstavlan från en mobil eller annan dator aktiverar du **Inställningar → Tillåt åtkomst från lokalt nätverk** i appen. Windows visar då de HTTPS-adresser som kan användas.
+
+För att webbläsaren på mobilen ska lita på anslutningen behöver Pulstavlans publika rotcertifikat installeras en gång på varje enhet. I Windows-appen väljer du **Hjälp → Visa certifikat för mobil** och överför filen `pulstavla-root.cer` till mobilen. Installera certifikatet och aktivera full tillit för det i enhetens certifikatinställningar. Dela aldrig filerna `server.pfx` eller `.pfx-password`.
+
+När certifikatet är betrott kan QR-skanningen på sidan **Låna mätverktyg** använda mobilens kamera. Tillåt kameraåtkomst i webbläsaren.
+
+---
+
 ## Systemkrav
 
 - Raspberry Pi eller annan Linux-server

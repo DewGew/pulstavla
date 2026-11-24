@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { API_URL } from "../config";
+import { Html5Qrcode } from "html5-qrcode";
 import "./PublicMeasuringTools.css";
 
 export default function PublicMeasuringTools() {
@@ -12,6 +13,9 @@ export default function PublicMeasuringTools() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scannerError, setScannerError] = useState("");
+  const scannerRef = useRef(null);
   const [theme, setTheme] = useState(() => {
     try { return localStorage.getItem("public-loan-theme") === "dark" ? "dark" : "light"; }
     catch { return "light"; }
@@ -36,6 +40,94 @@ export default function PublicMeasuringTools() {
   }, []);
 
   useEffect(() => { loadTools(); }, [loadTools]);
+
+  useEffect(() => {
+    if (!scannerOpen) return undefined;
+
+    let cancelled = false;
+    let scanner;
+    let startPromise;
+    let started = false;
+
+    const startScanner = async () => {
+      if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+        setScannerError("Kameran kräver HTTPS. Öppna sidan via produktionsadressen med https://.");
+        return;
+      }
+
+      try {
+        scanner = new Html5Qrcode("public-loan-qr-reader");
+        scannerRef.current = scanner;
+        startPromise = scanner.start(
+          { facingMode: "environment" },
+          {
+            fps: 15,
+            // Använd kamerans naturliga bildformat på iPhone; kvadratiskt
+            // aspectRatio kan göra att Safari avvisar kamerastarten.
+            qrbox: (viewfinderWidth, viewfinderHeight) => {
+              const edge = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.8);
+              return { width: edge, height: edge };
+            },
+            videoConstraints: {
+              facingMode: { ideal: "environment" },
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+            },
+          },
+          (decodedText) => {
+            if (cancelled) return;
+            const value = decodedText.trim();
+            if (!value) return;
+            const matchedTool = tools.find((tool) =>
+              String(tool.toolNumber || "").trim().toLocaleLowerCase("sv") === value.toLocaleLowerCase("sv")
+            );
+            setSearch(value);
+            setActiveTab(matchedTool?.status === "Utlånad" ? "borrowed" : "available");
+            setScannerOpen(false);
+          },
+          () => {}
+        );
+        await startPromise;
+        started = true;
+
+        // Begär kontinuerlig autofokus när iPhone-kameran erbjuder det.
+        // Stöd varierar mellan modeller och Safari-versioner, så misslyckad
+        // constraint ska inte stoppa QR-skanningen.
+        try {
+          const capabilities = scanner.getRunningTrackCapabilities();
+          if (capabilities.focusMode?.includes("continuous")) {
+            await scanner.applyVideoConstraints({
+              advanced: [{ focusMode: "continuous" }],
+            });
+          }
+        } catch {
+          // Kameran använder då sina automatiska standardinställningar.
+        }
+
+        if (cancelled) {
+          await scanner.stop();
+          scanner.clear();
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setScannerError(err?.message || "Kunde inte starta QR-skannern. Kontrollera kamerabehörigheten.");
+        }
+      }
+    };
+
+    startScanner();
+    return () => {
+      cancelled = true;
+      if (scannerRef.current === scanner) scannerRef.current = null;
+      if (scanner && started) {
+        scanner.stop().then(() => scanner.clear()).catch(() => {});
+      } else if (scanner && startPromise) {
+        startPromise.then(() => scanner.stop()).then(() => scanner.clear()).catch(() => {});
+      } else if (scanner) {
+        scanner.clear();
+      }
+    };
+  }, [scannerOpen, tools]);
 
   const availableTools = useMemo(
     () => tools.filter((tool) => tool.status === "Disponibel"),
@@ -122,11 +214,25 @@ export default function PublicMeasuringTools() {
           </button>
         </div>
 
-        <label className="public-loan-search">
-          <span className="public-loan-search-icon" aria-hidden="true">⌕</span>
-          <input value={search} onChange={(event) => setSearch(event.target.value)}
-            placeholder="Sök verktygsnummer, namn eller typ…" />
-        </label>
+        <div className="public-loan-search-row">
+          <div className="public-loan-search-control">
+            <label className="public-loan-search">
+              <span className="public-loan-search-icon" aria-hidden="true">⌕</span>
+              <input value={search} onChange={(event) => setSearch(event.target.value)}
+                placeholder="Sök verktygsnummer, namn eller typ…" />
+            </label>
+            {search && (
+              <button type="button" className="public-loan-clear-button"
+                onClick={() => setSearch("")} aria-label="Rensa sökfältet" title="Rensa sökfältet">
+                ×
+              </button>
+            )}
+          </div>
+          <button type="button" className="public-loan-scan-button"
+            onClick={() => { setScannerError(""); setScannerOpen(true); }}>
+            <span aria-hidden="true">▦</span> Skanna QR-kod
+          </button>
+        </div>
 
         {notice && <div className="public-loan-notice" role="status">{notice}<button type="button" onClick={() => setNotice("")} aria-label="Stäng">×</button></div>}
         {error && !selectedTool && <div className="public-loan-error" role="alert">{error}</div>}
@@ -168,6 +274,20 @@ export default function PublicMeasuringTools() {
         )}
         <p className="public-loan-footnote">Ange ditt anställningsnummer för att registrera lån eller återlämning.</p>
       </main>
+
+      {scannerOpen && (
+        <div className="public-loan-modal-backdrop" role="presentation">
+          <section className="public-loan-modal public-loan-scanner" role="dialog" aria-modal="true" aria-labelledby="public-loan-scanner-title">
+            <button type="button" className="public-loan-modal-close"
+              onClick={() => setScannerOpen(false)} aria-label="Stäng">×</button>
+            <h2 id="public-loan-scanner-title">Skanna mätverktygets QR-kod</h2>
+            <p>Håll kameran nära QR-koden, ungefär 5–10 cm bort. Se till att koden är väl belyst och håll telefonen stilla medan kameran fokuserar.</p>
+            <div id="public-loan-qr-reader" className="public-loan-scanner-reader" />
+            {scannerError && <div className="public-loan-error" role="alert">{scannerError}</div>}
+            <button type="button" className="public-loan-cancel" onClick={() => setScannerOpen(false)}>Stäng skannern</button>
+          </section>
+        </div>
+      )}
 
       {selectedTool && (
         <div className="public-loan-modal-backdrop" role="presentation" onMouseDown={(event) => {

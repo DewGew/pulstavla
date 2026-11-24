@@ -1,16 +1,20 @@
 import express from "express";
 import Datastore from "nedb";
 import cors from "cors";
-import https from "http";
+import http from "node:http";
+import https from "node:https";
 import { Server } from "socket.io";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from "url";
 import registerKpis from "./server/kpis.js";
 
-// PORT: miljövariabel först, sedan (bakåtkompatibelt) src/config.local.js, annars 3000.
-let PORT = Number(process.env.PORT) || 0;
-if (!PORT) {
+// PORT kan vara 0 i desktop-läge för att låta operativsystemet välja en ledig port.
+let PORT;
+if (process.env.PORT !== undefined) {
+  PORT = Number(process.env.PORT);
+} else {
   try {
     ({ PORT } = await import("./src/config.local.js"));
   } catch {
@@ -27,12 +31,19 @@ import jwt from "jsonwebtoken";
 import { load } from "cheerio"; // ESM-kompatibel
 
 const app = express();
-const __dirname = path.dirname(
-  new URL(import.meta.url).pathname
-);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const uploadDir = path.join(__dirname, "uploads");
+// Standardläge behåller projektets nuvarande katalogstruktur. Desktop-versionen
+// anger PULSTAVLA_DATA_DIR så att all användardata hamnar utanför programfilerna.
+const DATA_DIR = path.resolve(process.env.PULSTAVLA_DATA_DIR || process.cwd());
+const DB_DIR = path.join(DATA_DIR, "db");
+const uploadDir = path.join(DATA_DIR, "uploads");
+const docsDir = path.join(DATA_DIR, "docs");
 const distDir = path.join(__dirname, "dist");
+
+for (const directory of [DB_DIR, uploadDir, docsDir]) {
+  fs.mkdirSync(directory, { recursive: true });
+}
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
@@ -137,7 +148,7 @@ app.use(express.json());
 
 // Den publika logotypen exponeras separat; dokumenten i docs är privata.
 app.get("/brand-logo", (req, res) => {
-  res.sendFile(path.resolve("docs/logo.png"), (err) => {
+  res.sendFile(path.join(__dirname, "docs", "logo.png"), (err) => {
     if (err && !res.headersSent) res.sendStatus(404);
   });
 });
@@ -189,10 +200,26 @@ function requireMeasuringControlAccess(req, res, next) {
   });
 }
 
+// Lokal hälsokontroll används av skrivbordsstartaren för att vänta in servern.
+let adminBootstrapReady = Promise.resolve();
+
+app.get("/health", async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  try {
+    await adminBootstrapReady;
+    res.json({ status: "ok" });
+  } catch {
+    res.status(503).json({ status: "starting", error: "Användardatabasen kunde inte initieras." });
+  }
+});
+
 /* ---------------- HTTP SERVER + WEBSOCKET ---------------- */
-const server = https.createServer(
-  app
-);
+export const server = process.env.TLS_PFX_PATH
+  ? https.createServer({
+      pfx: fs.readFileSync(process.env.TLS_PFX_PATH),
+      passphrase: process.env.TLS_PFX_PASSPHRASE,
+    }, app)
+  : http.createServer(app);
 
 const io = new Server(server, {
   cors: { origin: "*" },
@@ -229,37 +256,57 @@ io.use((socket, next) => {
 });
 
 /* ---------------- USERS DATABASE ---------------- */
-const usersDB = new Datastore({ filename: "./db/users.db", autoload: true });
+const usersDB = new Datastore({ filename: path.join(DB_DIR, "users.db"), autoload: true });
 usersDB.persistence.setAutocompactionInterval(5 * 60 * 1000);
 
 // Skapa aldrig förutsägbara standardkonton. En tom databas kan bootstrappas
 // med INITIAL_ADMIN_USERNAME och INITIAL_ADMIN_PASSWORD i servermiljön.
-usersDB.count({}, async (err, count) => {
-  if (err) return console.error("Kunde inte kontrollera användardatabasen:", err);
-  if (count !== 0) return;
+adminBootstrapReady = new Promise((resolve, reject) => {
+  usersDB.count({}, async (err, count) => {
+    if (err) {
+      console.error("Kunde inte kontrollera användardatabasen:", err);
+      reject(err);
+      return;
+    }
+    if (count !== 0) {
+      resolve();
+      return;
+    }
 
-  const username = process.env.INITIAL_ADMIN_USERNAME;
-  const password = process.env.INITIAL_ADMIN_PASSWORD;
-  if (!username || !password || password.length < 12) {
-    console.warn("Inga användare finns. Ange INITIAL_ADMIN_USERNAME och INITIAL_ADMIN_PASSWORD (minst 12 tecken) för första administratören.");
-    return;
-  }
+    const username = process.env.INITIAL_ADMIN_USERNAME;
+    const password = process.env.INITIAL_ADMIN_PASSWORD;
+    if (!username || !password || password.length < 12) {
+      console.warn("Inga användare finns. Ange INITIAL_ADMIN_USERNAME och INITIAL_ADMIN_PASSWORD (minst 12 tecken) för första administratören.");
+      resolve();
+      return;
+    }
 
-  const hashedPassword = await bcrypt.hash(password, 12);
-  usersDB.insert({
-    username,
-    password: hashedPassword,
-    role: "suAdmin",
-    email: process.env.INITIAL_ADMIN_EMAIL || "",
-    name: process.env.INITIAL_ADMIN_NAME || username,
-  }, (insertErr) => {
-    if (insertErr) console.error("Kunde inte skapa första administratören:", insertErr);
-    else console.log("Första Super Admin-kontot skapades från miljövariabler.");
+    try {
+      const hashedPassword = await bcrypt.hash(password, 12);
+      usersDB.insert({
+        username,
+        password: hashedPassword,
+        role: "suAdmin",
+        email: process.env.INITIAL_ADMIN_EMAIL || "",
+        name: process.env.INITIAL_ADMIN_NAME || username,
+      }, (insertErr) => {
+        if (insertErr) {
+          console.error("Kunde inte skapa första administratören:", insertErr);
+          reject(insertErr);
+        } else {
+          console.log("Första Super Admin-kontot skapades från miljövariabler.");
+          resolve();
+        }
+      });
+    } catch (hashErr) {
+      console.error("Kunde inte lösenordshasha första administratören:", hashErr);
+      reject(hashErr);
+    }
   });
 });
 
 /* ---------------- PRESENCE DATABASE ---------------- */
-const presenceDB = new Datastore({ filename: "./db/presence.db", autoload: true });
+const presenceDB = new Datastore({ filename: path.join(DB_DIR, "presence.db"), autoload: true });
 presenceDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 30000);
 
 // Initiera default närvaro om tom
@@ -276,13 +323,13 @@ usersDB.find({}, (err, users) => {
 
 /* ---------------- SETTINGS DATABASE ---------------- */
 const settingsDB = new Datastore({
-  filename: "./db/settings.db",
+  filename: path.join(DB_DIR, "settings.db"),
   autoload: true,
 });
 settingsDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 60000);
 
 /* ---------------- NOTIFICATIONS DATABASE ---------------- */
-const notificationsDB = new Datastore({ filename: "./db/notifications.db", autoload: true });
+const notificationsDB = new Datastore({ filename: path.join(DB_DIR, "notifications.db"), autoload: true });
 notificationsDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 65000);
 
 
@@ -392,14 +439,14 @@ import xlsx from "xlsx";
 
 /* ---------------- KUNDORDER DATABASE ---------------- */
 const ordersDB = new Datastore({
-  filename: "./db/orders.db",
+  filename: path.join(DB_DIR, "orders.db"),
   autoload: true,
 });
 ordersDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 90000);
 
 /* ---------------- TILLVERKNINGSORDER DATABASE ---------------- */
 const productionOrdersDB = new Datastore({
-  filename: "./db/productionOrders.db",
+  filename: path.join(DB_DIR, "productionOrders.db"),
   autoload: true,
 });
 productionOrdersDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 120000);
@@ -578,7 +625,7 @@ app.delete("/notifications/:id", requireAuth, (req, res) => {
 
 // Endpoint för att lista dokumenten
 app.get("/documents", requireAuth, (req, res) => {
-  const dir = path.resolve("docs");
+  const dir = docsDir;
 
   fs.readdir(dir, { withFileTypes: true }, (err, entries) => {
     if (err) {
@@ -609,7 +656,7 @@ app.get("/documents", requireAuth, (req, res) => {
 app.get("/uploads/:name", requireAuth, (req, res) => {
   const fileName = path.basename(req.params.name);
   if (!fileName || fileName !== req.params.name) return res.sendStatus(400);
-  res.sendFile(fileName, { root: path.resolve("uploads"), dotfiles: "deny" }, (err) => {
+  res.sendFile(fileName, { root: uploadDir, dotfiles: "deny" }, (err) => {
     if (err && !res.headersSent) res.sendStatus(err.statusCode === 404 ? 404 : 500);
   });
 });
@@ -617,14 +664,14 @@ app.get("/uploads/:name", requireAuth, (req, res) => {
 app.get("/documents/:name", requireAuth, (req, res) => {
   const fileName = path.basename(req.params.name);
   if (!fileName || fileName !== req.params.name) return res.sendStatus(400);
-  res.sendFile(fileName, { root: path.resolve("docs"), dotfiles: "deny" }, (err) => {
+  res.sendFile(fileName, { root: docsDir, dotfiles: "deny" }, (err) => {
     if (err && !res.headersSent) res.sendStatus(err.statusCode === 404 ? 404 : 500);
   });
 });
 
 /* Ladda upp dokument till docs med originalnamnet */
 app.post("/documents", requireAuth, requireAdmin, (req, res, next) => {
-  const docsDir = path.resolve("docs");
+  // Use the shared application data directory.
 
   fs.mkdirSync(docsDir, { recursive: true });
 
@@ -678,8 +725,8 @@ app.post("/documents", requireAuth, requireAdmin, (req, res, next) => {
 /* Ta bort dokument från docs */
 app.delete("/documents/:name", requireAuth, requireAdmin, (req, res) => {
   const fileName = path.basename(req.params.name);
-  const filePath = path.resolve("docs", fileName);
-  const docsDir = path.resolve("docs");
+  const filePath = path.join(docsDir, fileName);
+  // Use the shared application data directory.
 
   // Säkerställ att filen ligger direkt i docs-mappen
   if (path.dirname(filePath) !== docsDir) {
@@ -901,11 +948,11 @@ app.post("/presence", requireAuth, requireEditor, (req, res) => {
 });
 
 /* ---------------- GREEN CROSS DATABASE ---------------- */
-const db = new Datastore({ filename: "./db/greenCross.db", autoload: true });
+const db = new Datastore({ filename: path.join(DB_DIR, "greenCross.db"), autoload: true });
 db.persistence.setAutocompactionInterval(5 * 60 * 1000 + 150000);
 
 /* ---------------- ACTIVITIES DATABASE ---------------- */
-const activitiesDB = new Datastore({ filename: "./db/activities.db", autoload: true });
+const activitiesDB = new Datastore({ filename: path.join(DB_DIR, "activities.db"), autoload: true });
 activitiesDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 180000);
 
 // Skicka en engångsavisering när en ansvarigs aktivitet passerar deadline.
@@ -1011,38 +1058,28 @@ notifyOverdueActivities();
 setInterval(notifyOverdueActivities, 60 * 60 * 1000);
 
 /* ---------------- WIDGETS DATABASE ---------------- */
-const widgetsDB = new Datastore({filename: "./db/widgets.db", autoload: true });
+const widgetsDB = new Datastore({filename: path.join(DB_DIR, "widgets.db"), autoload: true });
 widgetsDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 210000);
 
 /* ---------------- STRUCTURED WIDGETS DATABASE ---------------- */
 const structuredWidgetsDB = new Datastore({
-  filename: "./db/structuredWidgets.db",
+  filename: path.join(DB_DIR, "structuredWidgets.db"),
   autoload: true,
 });
 structuredWidgetsDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 240000);
-
-/* ---------------- DRAWING WIDGETS DATABASE ---------------- */
-// Handstil/anteckningar från touchpanelen (DrawingWidget) — sparas som
-// vektorstrokes (punktlistor), inte som bitmap, så de förblir skarpa
-// oavsett skärmstorlek/upplösning.
-const drawingsDB = new Datastore({
-  filename: "./db/drawings.db",
-  autoload: true,
-});
-drawingsDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 255000);
 
 /* ---------------- MÄTPROTOKOLL DATABASE ---------------- */
 // Sparade mätprotokoll (Matprotokoll.jsx). Nya protokoll får unika ID:n
 // så flera protokoll kan finnas för samma order och artikel. Äldre poster
 // med order_artikel-ID fortsätter att kunna öppnas och uppdateras.
 const matprotokollDB = new Datastore({
-  filename: "./db/matprotokoll.db",
+  filename: path.join(DB_DIR, "matprotokoll.db"),
   autoload: true,
 });
 matprotokollDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 260000);
 
 /* ---------------- MÄTVERKTYG DATABASE ---------------- */
-const measuringToolsDB = new Datastore({ filename: "./db/measuringTools.db", autoload: true });
+const measuringToolsDB = new Datastore({ filename: path.join(DB_DIR, "measuringTools.db"), autoload: true });
 measuringToolsDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 270000);
 
 /* ---------------- AUTOMATISKA MÄTVERKTYGSAVISERINGAR ---------------- */
@@ -2395,93 +2432,6 @@ app.delete("/matprotokoll/:matprotokollId", requireAuth, requireEditor, (req, re
   );
 });
 
-/* ---------------- DRAWING WIDGET ENDPOINTS ---------------- */
-app.get("/drawings/:drawingId", requireAuth, (req, res) => {
-  const { drawingId } = req.params;
-
-  drawingsDB.findOne({ drawingId }, (err, doc) => {
-    if (err) return res.status(500).json({ error: "DB-fel" });
-    if (!doc) return res.status(404).json({ error: "Ritning saknas" });
-    res.json(doc);
-  });
-});
-
-app.post("/drawings", requireAuth, requireEditor, (req, res) => {
-  const { drawingId, title = "", strokes = [] } = req.body;
-
-  if (!drawingId)
-    return res.status(400).json({ error: "drawingId krävs" });
-
-  const drawing = {
-    drawingId,
-    title,
-    strokes,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  };
-
-  drawingsDB.insert(drawing, (err, doc) => {
-    if (err)
-      return res.status(500).json({ error: "Kunde inte skapa ritning" });
-
-    io.emit("drawingCreated", doc);
-    res.json(doc);
-  });
-});
-
-// FIX: no requireAuth here on purpose — touch panels drawing notes are often
-// logged in as a shared kiosk user.
-// updatedBy falls back to "Okänd" instead of relying on req.user.
-app.put("/drawings/:drawingId", requireAuth, requireEditor, (req, res) => {
-  const { drawingId } = req.params;
-  const { title, strokes } = req.body;
-
-  let updatedBy = "Okänd";
-  const authHeader = req.headers.authorization;
-  if (authHeader) {
-    try {
-      const decoded = jwt.verify(authHeader.split(" ")[1], JWT_SECRET);
-      updatedBy = decoded.name || decoded.username || updatedBy;
-    } catch {
-      // ogiltig/saknad token — spara ändå, bara utan namn
-    }
-  }
-
-  drawingsDB.update(
-    { drawingId },
-    {
-      $set: {
-        title,
-        strokes,
-        updatedBy,
-        updatedAt: Date.now(),
-      },
-    },
-    { upsert: true },
-    (err) => {
-      if (err)
-        return res.status(500).json({ error: "Kunde inte spara ritning" });
-
-      io.emit("drawingUpdated", {
-        drawingId,
-        title,
-        strokes,
-        updatedBy,
-        updatedAt: Date.now(),
-      });
-
-      res.json({ success: true });
-    }
-  );
-});
-
-app.delete("/drawings/:drawingId", requireAuth, requireAdmin, (req, res) => {
-  drawingsDB.remove({ drawingId: req.params.drawingId }, {}, (err, numRemoved) => {
-    if (err) return res.status(500).json({ error: "Kunde inte ta bort" });
-    res.json({ success: true, removed: numRemoved });
-  });
-});
-
 app.post("/activities/upload", requireAuth, requireEditor, upload.single("image"), validateUploadedFile(imageFileTypes), (req, res) => {
   console.log("Upload file:", req.file);
   if (!req.file) {
@@ -2495,7 +2445,7 @@ app.post("/activities/upload", requireAuth, requireEditor, upload.single("image"
 });
 
 /* ---------------- CHECKLIST DATABASE ---------------- */
-const checklistDB = new Datastore({ filename: "./db/checklist.db", autoload: true });
+const checklistDB = new Datastore({ filename: path.join(DB_DIR, "checklist.db"), autoload: true });
 checklistDB.persistence.setAutocompactionInterval(5 * 60 * 1000 + 270000);
 
 /* ---------------- CHECKLIST ENDPOINTS ---------------- */
@@ -2889,7 +2839,7 @@ app.get("/production-orders", requireAuth, (req, res) => {
 
 /* ---------------- NYCKELTAL (KPI) ---------------- */
 registerKpis({
-  app, io, Datastore, xlsx, fs,
+  app, io, Datastore, xlsx, fs, dbDir: DB_DIR,
   requireAuth, requireAdmin, requireEditor,
   upload, validateUploadedFile, kpiImportFileTypes,
 });
@@ -2947,6 +2897,16 @@ process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT", () => shutdown("SIGINT"));
 
 /* ---------------- START SERVER ---------------- */
-server.listen(PORT, () =>
-  console.log("Server (HTTP + WebSocket) körs på port", PORT)
-);
+export const serverReady = new Promise((resolve, reject) => {
+  server.once("error", reject);
+  const onListening = () => {
+    server.off("error", reject);
+    console.log("Server (HTTP + WebSocket) körs på port", server.address().port);
+    resolve(server);
+  };
+  if (process.env.HOST) {
+    server.listen(PORT, process.env.HOST, onListening);
+  } else {
+    server.listen(PORT, onListening);
+  }
+});
