@@ -50,11 +50,11 @@ Vid första starten skapas ett administratörskonto automatiskt. Appen visar ett
 npm run dist:win
 ```
 
-Installationsfilen ska hamna i katalogen `release/`. Byggflödet kan även köras från GitHub Actions på grenen `windows-version` (eller manuellt via fliken Actions). När ett bygge lyckas publiceras installationsfilen som en workflow-artifact med namnet `Pulstavlan-Windows-x64`.
+Installationsfilen ska hamna i katalogen `release/`. GitHub Actions bygger automatiskt när relevanta filer pushas till `development`, och bygget kan även startas manuellt via fliken Actions. Installationsfilen laddas upp som en workflow-artifact med namnet `Pulstavlan-Windows-x64` och sparas i 14 dagar.
 
 ### Backup och återställning
 
-Windows-versionen har separata databaser och importera befintliga Pulstavla-backuper. Den planerade importen ska först skapa en säkerhetskopia av Windows-databasen och därefter ersätta databasinnehållet med den importerade backupen – aldrig slå ihop poster. Välj **Arkiv → Importera backup…** i skrivbordsappen och välj en `.tar.gz`- eller `.tgz`-fil. Appen kontrollerar arkivets innehåll och eventuella `.sha256`-kontrollfil, packar upp till en separat stagingkatalog och validerar samtliga 16 kända NeDB-filer innan den frågar om bekräftelse. Därefter stoppas den lokala servern, en verifierad backup av Windows-databaserna skapas i `userData/data/backups/`, och databasuppsättningen ersätts. Om den nya databasen inte kan startas försöker appen återställa den tidigare. Importen omfattar endast `db/`, inte `docs/` eller `uploads/`. Funktionen har testats i Windows-versionen.
+Windows-versionen har separata databaser och kan importera befintliga Pulstavla-backuper. Importen skapar först en säkerhetskopia av Windows-databasen och ersätter därefter databasinnehållet med den importerade backupen – poster slås aldrig ihop. Välj **Arkiv → Importera backup…** i skrivbordsappen och välj en `.tar.gz`- eller `.tgz`-fil. Appen kontrollerar arkivets innehåll och eventuella `.sha256`-kontrollfil, packar upp till en separat stagingkatalog och validerar samtliga 16 kända NeDB-filer innan den frågar om bekräftelse. Därefter stoppas den lokala servern, en verifierad backup av Windows-databaserna skapas i `userData/data/backups/`, och databasuppsättningen ersätts. Om den nya databasen inte kan startas försöker appen återställa den tidigare. Importen omfattar endast `db/`, inte `docs/` eller `uploads/`. Funktionen har testats i Windows-versionen.
 
 ---
 
