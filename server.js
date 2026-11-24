@@ -2459,7 +2459,7 @@ app.get("/document-control/documents/:documentId/revisions", requireAuth, (req, 
     documentControlDB.find({ recordType: "revision", documentId: req.params.documentId }).sort({ createdAt: -1 }).exec((historyErr, revisions) => {
       if (historyErr) return res.status(500).json({ error: "Kunde inte läsa revisionshistoriken." });
       const initialFile = documentRecord.initialFileName || documentRecord.fileName;
-      res.json({ document: documentRecord, revisions: [...revisions, ...(initialFile ? [{ revisionId: "initial", revision: documentRecord.revision || "Befintlig", fileName: initialFile, changeDescription: "Befintlig fil vid registrering", createdAt: documentRecord.createdAt, createdBy: documentRecord.createdBy, isInitial: true }] : [])] });
+      res.json({ document: documentRecord, revisions: [...revisions, ...(initialFile ? [{ revisionId: "initial", revision: "Befintlig", fileName: initialFile, changeDescription: "Befintlig fil vid registrering", createdAt: documentRecord.createdAt, createdBy: documentRecord.createdBy, isInitial: true }] : [])] });
     });
   });
 });
