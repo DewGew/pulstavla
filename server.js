@@ -638,7 +638,7 @@ app.get("/documents", requireAuth, (req, res) => {
     ];
 
     const documents = entries
-      .filter(e => e.isFile())
+      .filter(e => e.isFile() && !e.name.startsWith("revision-"))
       .filter(e => {
         const ext = path.extname(e.name).slice(1).toLowerCase();
         return allowedExtensions.includes(ext);
@@ -2372,13 +2372,13 @@ const documentControlAllowedExtensions = new Set([
 
 // List registered records and existing files that have not yet been registered.
 app.get("/document-control/documents", requireAuth, (req, res) => {
-  documentControlDB.find({}).sort({ updatedAt: -1 }).exec((dbErr, documents) => {
+  documentControlDB.find({ recordType: { $ne: "revision" } }).sort({ updatedAt: -1 }).exec((dbErr, documents) => {
     if (dbErr) return res.status(500).json({ error: "Kunde inte läsa dokumentregistret." });
 
     fs.readdir(docsDir, { withFileTypes: true }, (fileErr, entries) => {
       if (fileErr) return res.status(500).json({ error: "Kunde inte läsa dokumentmappen." });
       const files = entries
-        .filter((entry) => entry.isFile())
+        .filter((entry) => entry.isFile() && !entry.name.startsWith("revision-"))
         .map((entry) => entry.name)
         .filter((name) => documentControlAllowedExtensions.has(path.extname(name).toLowerCase()))
         .sort((a, b) => a.localeCompare(b, "sv"));
@@ -2434,6 +2434,7 @@ app.post("/document-control/documents", requireAuth, requireAdmin, (req, res) =>
       owner,
       description,
       fileName,
+      initialFileName: fileName,
       currentFileName: fileName,
       status: "needs-review",
       revision: "",
@@ -2457,7 +2458,7 @@ app.get("/document-control/documents/:documentId/revisions", requireAuth, (req, 
     if (!documentRecord) return res.status(404).json({ error: "Dokumentet hittades inte." });
     documentControlDB.find({ recordType: "revision", documentId: req.params.documentId }).sort({ createdAt: -1 }).exec((historyErr, revisions) => {
       if (historyErr) return res.status(500).json({ error: "Kunde inte läsa revisionshistoriken." });
-      const initialFile = documentRecord.currentFileName || documentRecord.fileName;
+      const initialFile = documentRecord.initialFileName || documentRecord.fileName;
       res.json({ document: documentRecord, revisions: [...revisions, ...(initialFile ? [{ revisionId: "initial", revision: documentRecord.revision || "Befintlig", fileName: initialFile, changeDescription: "Befintlig fil vid registrering", createdAt: documentRecord.createdAt, createdBy: documentRecord.createdBy, isInitial: true }] : [])] });
     });
   });
