@@ -670,6 +670,14 @@ app.get("/documents/:name", requireAuth, (req, res) => {
   });
 });
 
+// Return true when a filename belongs to a registered document or a stored revision.
+function isControlledDocumentFile(fileName, callback) {
+  documentControlDB.findOne({ $or: [{ fileName }, { currentFileName: fileName }] }, (err, documentRecord) => {
+    if (err || documentRecord) return callback(err, Boolean(documentRecord));
+    documentControlDB.findOne({ recordType: "revision", fileName }, (revisionErr, revision) => callback(revisionErr, Boolean(revision)));
+  });
+}
+
 /* Ladda upp dokument till docs med originalnamnet */
 app.post("/documents", requireAuth, requireAdmin, (req, res, next) => {
   // Use the shared application data directory.
@@ -683,8 +691,14 @@ app.post("/documents", requireAuth, requireAdmin, (req, res, next) => {
     filename: (req, file, cb) => {
       // Busboy tolkar multipart-filnamn som Latin-1 som standard.
       // Webbläsare skickar UTF-8-bytes, så avkoda innan filen sparas.
-      const originalName = Buffer.from(file.originalname, "latin1").toString("utf8");
-      cb(null, path.basename(originalName));
+      const decodedName = Buffer.from(file.originalname, "latin1").toString("utf8");
+      const originalName = path.basename(decodedName);
+      if (!originalName || originalName !== decodedName) return cb(new Error("Ogiltigt filnamn."));
+      isControlledDocumentFile(originalName, (lookupErr, controlled) => {
+        if (lookupErr) return cb(lookupErr);
+        if (controlled) return cb(new Error("Filen tillhör ett dokument som är registrerat i dokumentstyrningen. Skapa en ny revision där i stället."));
+        cb(null, originalName);
+      });
     }
   });
 
@@ -730,13 +744,15 @@ app.delete("/documents/:name", requireAuth, requireAdmin, (req, res) => {
   // Use the shared application data directory.
 
   // Säkerställ att filen ligger direkt i docs-mappen
-  if (path.dirname(filePath) !== docsDir) {
-    return res.status(400).json({
-      error: "Ogiltigt filnamn."
-    });
+  if (!fileName || fileName !== req.params.name || path.dirname(filePath) !== docsDir) {
+    return res.status(400).json({ error: "Ogiltigt filnamn." });
   }
 
-  fs.unlink(filePath, (err) => {
+  isControlledDocumentFile(fileName, (lookupErr, controlled) => {
+    if (lookupErr) return res.status(500).json({ error: "Kunde inte kontrollera dokumentets skyddsstatus." });
+    if (controlled) return res.status(409).json({ error: "Filen tillhör ett registrerat dokument eller en revision och kan inte tas bort här. Hantera dokumentet i Dokumentstyrning." });
+
+    fs.unlink(filePath, (err) => {
     if (err) {
       if (err.code === "ENOENT") {
         return res.status(404).json({
@@ -754,6 +770,7 @@ app.delete("/documents/:name", requireAuth, requireAdmin, (req, res) => {
     res.json({
       message: "Dokumentet togs bort.",
       name: fileName
+    });
     });
   });
 });
@@ -2417,6 +2434,7 @@ app.post("/document-control/documents", requireAuth, requireAdmin, (req, res) =>
       owner,
       description,
       fileName,
+      currentFileName: fileName,
       status: "needs-review",
       revision: "",
       createdAt: now,
@@ -2428,6 +2446,61 @@ app.post("/document-control/documents", requireAuth, requireAdmin, (req, res) =>
     documentControlDB.insert(record, (insertErr, saved) => {
       if (insertErr) return res.status(500).json({ error: "Kunde inte registrera dokumentet." });
       res.status(201).json(saved);
+    });
+  });
+});
+
+// Read revision history for one registered document.
+app.get("/document-control/documents/:documentId/revisions", requireAuth, (req, res) => {
+  documentControlDB.findOne({ documentId: req.params.documentId, recordType: { $ne: "revision" } }, (docErr, documentRecord) => {
+    if (docErr) return res.status(500).json({ error: "Kunde inte läsa dokumentet." });
+    if (!documentRecord) return res.status(404).json({ error: "Dokumentet hittades inte." });
+    documentControlDB.find({ recordType: "revision", documentId: req.params.documentId }).sort({ createdAt: -1 }).exec((historyErr, revisions) => {
+      if (historyErr) return res.status(500).json({ error: "Kunde inte läsa revisionshistoriken." });
+      const initialFile = documentRecord.currentFileName || documentRecord.fileName;
+      res.json({ document: documentRecord, revisions: [...revisions, ...(initialFile ? [{ revisionId: "initial", revision: documentRecord.revision || "Befintlig", fileName: initialFile, changeDescription: "Befintlig fil vid registrering", createdAt: documentRecord.createdAt, createdBy: documentRecord.createdBy, isInitial: true }] : [])] });
+    });
+  });
+});
+
+// Upload a new revision to a unique filename; never overwrite an existing revision.
+app.post("/document-control/documents/:documentId/revisions", requireAuth, requireAdmin, (req, res) => {
+  const revisionStorage = multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, docsDir),
+    filename: (_req, file, cb) => cb(null, "revision-" + req.params.documentId + "-" + Date.now() + "-" + randomUUID() + path.extname(file.originalname).toLowerCase()),
+  });
+  const revisionUpload = multer({ storage: revisionStorage, limits: { fileSize: 5 * 1024 * 1024 } }).single("file");
+  revisionUpload(req, res, (uploadErr) => {
+    if (uploadErr) return res.status(uploadErr.code === "LIMIT_FILE_SIZE" ? 413 : 400).json({ error: uploadErr.code === "LIMIT_FILE_SIZE" ? "Filen får vara högst 5 MB." : uploadErr.message });
+    if (!req.file) return res.status(400).json({ error: "Välj en revisionsfil." });
+    validateUploadedFile(documentFileTypes)(req, res, () => {
+      const revision = String(req.body?.revision || "").trim();
+      const changeDescription = String(req.body?.changeDescription || "").trim();
+      if (!revision || revision.length > 40 || !changeDescription || changeDescription.length > 2000) {
+        fs.unlink(req.file.path, () => {});
+        return res.status(400).json({ error: "Ange revisionsbeteckning (max 40 tecken) och ändringsbeskrivning (max 2000 tecken)." });
+      }
+      documentControlDB.findOne({ documentId: req.params.documentId, recordType: { $ne: "revision" } }, (docErr, documentRecord) => {
+        if (docErr || !documentRecord) {
+          fs.unlink(req.file.path, () => {});
+          return res.status(docErr ? 500 : 404).json({ error: docErr ? "Kunde inte läsa dokumentet." : "Dokumentet hittades inte." });
+        }
+        documentControlDB.findOne({ documentId: req.params.documentId, revision, recordType: "revision" }, (duplicateErr, duplicate) => {
+          if (duplicateErr || duplicate) {
+            fs.unlink(req.file.path, () => {});
+            return res.status(duplicateErr ? 500 : 409).json({ error: duplicateErr ? "Kunde inte kontrollera revisionsnumret." : "Revisionsbeteckningen finns redan för dokumentet." });
+          }
+          const now = new Date().toISOString();
+          const revisionRecord = { recordType: "revision", revisionId: randomUUID(), documentId: req.params.documentId, revision, fileName: req.file.filename, originalFileName: Buffer.from(req.file.originalname, "latin1").toString("utf8"), changeDescription, createdAt: now, createdBy: req.user.name || req.user.username };
+          documentControlDB.insert(revisionRecord, (insertErr) => {
+            if (insertErr) { fs.unlink(req.file.path, () => {}); return res.status(500).json({ error: "Kunde inte spara revisionen." }); }
+            documentControlDB.update({ documentId: req.params.documentId, recordType: { $ne: "revision" } }, { $set: { currentFileName: req.file.filename, revision, status: "needs-review", updatedAt: now, updatedBy: req.user.name || req.user.username } }, {}, (updateErr) => {
+              if (updateErr) return res.status(500).json({ error: "Revisionen sparades men dokumentets aktuella revision kunde inte uppdateras." });
+              res.status(201).json(revisionRecord);
+            });
+          });
+        });
+      });
     });
   });
 });
