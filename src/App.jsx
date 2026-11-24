@@ -24,6 +24,7 @@ const AdminUsers = lazy(() => import("./components/AdminUsers"));
 const Activities = lazy(() => import("./components/Activities"));
 const MachineChecklist = lazy(() => import("./components/MachineChecklist"));
 const MachineDocuments = lazy(() => import("./components/MachineDocuments"));
+const DocumentControl = lazy(() => import("./components/DocumentControl"));
 const Settings = lazy(() => import("./components/Settings"));
 const OrderImport = lazy(() => import("./components/OrderImport"));
 const ProductionOrderImport = lazy(() => import("./components/ProductionOrderImport"));
@@ -440,6 +441,15 @@ return (
                 >
                   Dokument
                 </button>
+                <button
+                  className={activeTab === "documentControl" ? "active" : ""}
+                  onClick={() => {
+                    setActiveTab("documentControl");
+                    setOpenMenu(false);
+                  }}
+                >
+                  Dokumentstyrning
+                </button>
                 {(user?.role === "admin" || user?.role === "suAdmin") && (
                   <button
                     className={activeTab === "settings" ? "active" : ""}
@@ -511,6 +521,7 @@ return (
         {activeTab === "checklist" && <MachineChecklist currentUser={user} />}
         {activeTab === "adminUsers" && <AdminUsers currentUser={user} />}
         {activeTab === "documents" && <MachineDocuments />}
+        {activeTab === "documentControl" && <DocumentControl />}
         {activeTab === "orders" && <OrderImport />}
         {activeTab === "production" && <ProductionOrderImport />}
         {activeTab === "matprotokoll" && <Matprotokoll />}
