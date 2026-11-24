@@ -77,11 +77,23 @@ Påbörjat i grenen `feature/document-control`:
 - Registrering ändrar inte, flyttar eller kopierar den befintliga filen.
 - Nya registerposter får statusen ”Ej granskad” och blir inte automatiskt godkända.
 
-Avgränsningar i detta första steg:
-- Ingen automatisk massregistrering av befintliga filer.
-- Ingen revision, attestering, läsbekräftelse eller central PDF-arkivering ännu.
-- Befintliga uppladdnings- och borttagningsfunktioner i den vanliga dokumentvyn har ännu inte spärrats för registrerade filer.
-- Ingen build eller runtime-test är verifierad ännu.
+### Steg 2 – revisionshantering och filskydd
+
+Implementerat i grenen `feature/document-control`:
+- Ny revision laddas upp som en separat fil med ett unikt internt filnamn. Befintliga filer skrivs inte över.
+- Revisionshistoriken sparar revisionsbeteckning, ändringsbeskrivning, filreferens, tidpunkt och användare.
+- Dokumentposten pekar på aktuell fil och aktuell revision; en ny revision återställer status till `needs-review`.
+- Ursprunglig filreferens bevaras som registreringens baslinje.
+- Vanlig dokumentuppladdning avvisas om filnamnet redan tillhör ett registrerat dokument eller en revisionsfil.
+- Vanlig borttagning avvisas för registrerade dokument och revisionsfiler.
+- Revisionsfiler visas inte som fristående dokument i den vanliga dokumentlistan.
+- Vanliga, oregistrerade dokument fortsätter använda den befintliga uppladdnings- och borttagningshanteringen.
+
+Kvarstår:
+- Granskning och godkännande/publicering är inte implementerat. En ny revision får därför inte betraktas som godkänd eller publicerad.
+- Läsbekräftelser, granskningsdatum och central PDF-arkivering är inte implementerade.
+- Ingen build eller runtime-test av steg 2 är verifierad ännu.
+- Befintliga registrerade dokument från steg 1 får sin ursprungliga fil som historikens baslinje.
 
 ## Föreslagen genomförandeordning
 
