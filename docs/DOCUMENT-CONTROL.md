@@ -65,6 +65,24 @@ Datamodellen är ett förslag och ska verifieras mot befintliga API:er och behö
 - Historik och kvalitetsregistreringar ska ha spårbara rättelser.
 - Inga befintliga filer eller databasinlägg ska massimporteras, ändras eller raderas automatiskt.
 
+## Genomförandestatus
+
+### Steg 1 – dokumentregister och metadata
+
+Påbörjat i grenen `feature/document-control`:
+- Separat NeDB-fil `db/documentControl.db` för registermetadata.
+- API för att lista registrerade dokument och befintliga dokumentfiler som ännu inte registrerats.
+- API för administratörer att registrera metadata för en fil som redan finns i dokumentmappen.
+- En ny vy ”Dokumentstyrning” med sökning och registreringsformulär.
+- Registrering ändrar inte, flyttar eller kopierar den befintliga filen.
+- Nya registerposter får statusen ”Ej granskad” och blir inte automatiskt godkända.
+
+Avgränsningar i detta första steg:
+- Ingen automatisk massregistrering av befintliga filer.
+- Ingen revision, attestering, läsbekräftelse eller central PDF-arkivering ännu.
+- Befintliga uppladdnings- och borttagningsfunktioner i den vanliga dokumentvyn har ännu inte spärrats för registrerade filer.
+- Ingen build eller runtime-test är verifierad ännu.
+
 ## Föreslagen genomförandeordning
 
 1. Dokumentregister och metadata med läsning/registrering av befintliga filer utan att flytta dem.
