@@ -592,7 +592,7 @@ function createWindow(url) {
   mainWindow.loadURL(url);
 }
 
-app.on("certificate-error", (event, url, error, certificate, callback) => {
+app.on("certificate-error", (event, webContents, url, error, certificate, callback) => {
   let parsed;
   try { parsed = new URL(url); } catch { callback(false); return; }
   if (parsed.protocol === "https:" && parsed.hostname === "127.0.0.1" && Number(parsed.port) === serverPort) { event.preventDefault(); callback(true); }
