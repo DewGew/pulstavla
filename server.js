@@ -103,7 +103,8 @@ function validateUploadedFile(allowedExtensions) {
       xlsx: header[0] === 0x50 && header[1] === 0x4b,
       doc: header.subarray(0,8).equals(Buffer.from([0xd0,0xcf,0x11,0xe0,0xa1,0xb1,0x1a,0xe1])),
       xls: header.subarray(0,8).equals(Buffer.from([0xd0,0xcf,0x11,0xe0,0xa1,0xb1,0x1a,0xe1])),
-      csv: !header.includes(0),\n      md: !header.includes(0)
+      csv: !header.includes(0),
+      md: !header.includes(0)
     };
     if (!allowed || !signatures[ext]) {
       fs.unlink(req.file.path, () => {});
