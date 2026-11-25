@@ -2372,7 +2372,7 @@ const documentControlAllowedExtensions = new Set([
 
 // List registered records and existing files that have not yet been registered.
 app.get("/document-control/documents", requireAuth, (req, res) => {
-  documentControlDB.find({ recordType: { $ne: "revision" } }).sort({ updatedAt: -1 }).exec((dbErr, documents) => {
+  documentControlDB.find({ recordType: { $nin: ["revision", "counter"] } }).sort({ updatedAt: -1 }).exec((dbErr, documents) => {
     if (dbErr) return res.status(500).json({ error: "Kunde inte läsa dokumentregistret." });
 
     fs.readdir(docsDir, { withFileTypes: true }, (fileErr, entries) => {
@@ -2392,8 +2392,33 @@ app.get("/document-control/documents", requireAuth, (req, res) => {
 });
 
 // Register metadata for an existing file. This does not move, copy, or modify the file.
+const DOCUMENT_NUMBER_PREFIXES = {
+  "Rutin": "RUT",
+  "Arbetsinstruktion": "AI",
+  "Blankett": "BL",
+  "Mall": "MALL",
+  "Policy": "POL",
+  "Övrigt": "OVR",
+};
+
+function nextDocumentNumber(category, callback) {
+  const prefix = DOCUMENT_NUMBER_PREFIXES[category] || "OVR";
+  const counterKey = category;
+  documentControlDB.update(
+    { recordType: "counter", counterKey },
+    { $inc: { value: 1 }, $setOnInsert: { recordType: "counter", counterKey } },
+    { upsert: true, returnUpdatedDocs: true },
+    (err, _count, updated) => {
+      if (err) return callback(err);
+      const counter = Array.isArray(updated) ? updated[0] : updated;
+      if (!counter || !Number.isFinite(counter.value)) return callback(new Error("Kunde inte skapa dokumentnummer."));
+      callback(null, prefix + "-" + String(counter.value).padStart(3, "0"));
+    }
+  );
+}
+
 app.post("/document-control/documents", requireAuth, requireAdmin, (req, res) => {
-  const documentNumber = String(req.body?.documentNumber || "").trim();
+  const requestedNumber = String(req.body?.documentNumber || "").trim();
   const title = String(req.body?.title || "").trim();
   const category = String(req.body?.category || "").trim();
   const fileName = String(req.body?.fileName || "").trim();
@@ -2413,41 +2438,46 @@ app.post("/document-control/documents", requireAuth, requireAdmin, (req, res) =>
     return res.status(404).json({ error: "Filen finns inte längre i dokumentmappen." });
   }
 
-  documentControlDB.findOne({
-    $or: [{ fileName }, ...(documentNumber ? [{ documentNumber }] : [])],
-  }, (findErr, existing) => {
-    if (findErr) return res.status(500).json({ error: "Kunde inte kontrollera dokumentregistret." });
-    if (existing) {
-      return res.status(409).json({
-        error: existing.fileName === fileName
-          ? "Filen är redan registrerad."
-          : "Dokumentnumret används redan."
+  const createRecord = (documentNumber) => {
+    documentControlDB.findOne({
+      $or: [{ fileName }, ...(documentNumber ? [{ documentNumber }] : [])],
+    }, (findErr, existing) => {
+      if (findErr) return res.status(500).json({ error: "Kunde inte kontrollera dokumentregistret." });
+      if (existing) {
+        return res.status(409).json({
+          error: existing.fileName === fileName ? "Filen är redan registrerad." : "Dokumentnumret används redan.",
+        });
+      }
+
+      const now = new Date().toISOString();
+      const record = {
+        documentId: randomUUID(),
+        documentNumber,
+        title,
+        category,
+        owner,
+        description,
+        fileName,
+        initialFileName: fileName,
+        currentFileName: fileName,
+        status: "needs-review",
+        revision: "",
+        createdAt: now,
+        updatedAt: now,
+        createdBy: req.user.name,
+        updatedBy: req.user.name,
+      };
+      documentControlDB.insert(record, (insertErr, saved) => {
+        if (insertErr) return res.status(500).json({ error: "Kunde inte registrera dokumentet." });
+        res.status(201).json(saved);
       });
-    }
-
-    const now = new Date().toISOString();
-    const record = {
-      documentId: randomUUID(),
-      documentNumber,
-      title,
-      category,
-      owner,
-      description,
-      fileName,
-      initialFileName: fileName,
-      currentFileName: fileName,
-      status: "needs-review",
-      revision: "",
-      createdAt: now,
-      updatedAt: now,
-      createdBy: req.user.name,
-      updatedBy: req.user.name,
-    };
-
-    documentControlDB.insert(record, (insertErr, saved) => {
-      if (insertErr) return res.status(500).json({ error: "Kunde inte registrera dokumentet." });
-      res.status(201).json(saved);
     });
+  };
+
+  if (requestedNumber) return createRecord(requestedNumber);
+  nextDocumentNumber(category, (numberErr, generatedNumber) => {
+    if (numberErr) return res.status(500).json({ error: "Kunde inte generera dokumentnummer." });
+    createRecord(generatedNumber);
   });
 });
 
