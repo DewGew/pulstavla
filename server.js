@@ -2928,3 +2928,40 @@ export const serverReady = new Promise((resolve, reject) => {
     server.listen(PORT, onListening);
   }
 });
+
+// Värm lunchcachen vid serverstart om bilden saknas, är gammal eller tillhör
+// en annan vecka. Då fungerar återhämtningen även utan att dashboarden öppnas.
+serverReady.then(async () => {
+  try {
+    const meta = await readLunchMeta();
+    const fetchedAt = meta?.fetchedAt ? Date.parse(meta.fetchedAt) : NaN;
+    const imagePath = meta?.imageFile ? path.join(uploadDir, meta.imageFile) : null;
+    let imageExists = false;
+
+    if (imagePath) {
+      try {
+        await fs.promises.access(imagePath, fs.constants.R_OK);
+        imageExists = true;
+      } catch {
+        imageExists = false;
+      }
+    }
+
+    const cacheIsFresh = meta &&
+      meta.week === new Date().getWeek() &&
+      meta.year === new Date().getFullYear() &&
+      Number.isFinite(fetchedAt) &&
+      Date.now() - fetchedAt < LUNCH_CACHE_MAX_AGE_MS &&
+      imageExists;
+
+    if (!cacheIsFresh) {
+      console.log("Lunchbild saknas eller är inaktuell – hämtar från Smakrikt...");
+      await refreshLunchCacheOnce();
+      console.log("Lunchbildens cache har uppdaterats.");
+    }
+  } catch (err) {
+    console.warn("Kunde inte värma lunch-cache vid serverstart:", err.message);
+  }
+}).catch((err) => {
+  console.warn("Lunch-cache kunde inte initieras vid serverstart:", err.message);
+});
