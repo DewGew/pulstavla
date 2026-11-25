@@ -7,6 +7,7 @@ import { API_URL } from "../config";
 export default function MachineDocuments() {
   const [documents, setDocuments] = useState([]);
   const [modalDoc, setModalDoc] = useState(null);
+  const [previewText, setPreviewText] = useState("");
   const [uploadModal, setUploadModal] = useState(false);
   const [filterText, setFilterText] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
@@ -48,7 +49,8 @@ export default function MachineDocuments() {
         headers: { Authorization: `Bearer ${token || localStorage.getItem("token") || ""}` },
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const previewUrl = URL.createObjectURL(await response.blob());
+      const fileBlob = await response.blob();
+      const previewUrl = URL.createObjectURL(fileBlob);
       if (download) {
         const link = document.createElement("a");
         link.href = previewUrl;
@@ -56,6 +58,7 @@ export default function MachineDocuments() {
         link.click();
         URL.revokeObjectURL(previewUrl);
       } else {
+        setPreviewText(/\.md$/i.test(doc.name) ? await fileBlob.text() : "");
         setModalDoc({ ...doc, previewUrl });
       }
     } catch (error) {
@@ -64,7 +67,7 @@ export default function MachineDocuments() {
     }
   };
   const openModal = (doc) => openDocument(doc);
-  const closeModal = () => { if (modalDoc?.previewUrl) URL.revokeObjectURL(modalDoc.previewUrl); setModalDoc(null); };
+  const closeModal = () => { if (modalDoc?.previewUrl) URL.revokeObjectURL(modalDoc.previewUrl); setModalDoc(null); setPreviewText(""); };
 
   const openUploadModal = () => {
     setSelectedFile(null);
@@ -94,6 +97,9 @@ export default function MachineDocuments() {
       case "xls":
       case "xlsx":
         return "/icons/xls.png";
+
+      case "md":
+        return "/icons/document.png";
 
       case "png":
       case "jpg":
@@ -352,6 +358,11 @@ export default function MachineDocuments() {
                 width="100%"
                 height="1200px"
               />
+            ) : modalDoc.name.match(/\.md$/i) ? (
+              <div className="markdown-preview">
+                <h2>{displayFileName(modalDoc.name)}</h2>
+                <pre>{previewText}</pre>
+              </div>
             ) : modalDoc.name.match(/\.(png|jpg|jpeg)$/i) ? (
               <img
                 src={modalDoc.previewUrl}
