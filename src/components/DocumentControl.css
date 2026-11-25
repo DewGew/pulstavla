@@ -173,3 +173,57 @@
   font-weight: 400;
   resize: vertical;
 }
+
+.document-control-workflow {
+  display: grid;
+  gap: 12px;
+  margin: 14px 0;
+  padding: 14px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--cell-radius);
+  background: var(--bg-cell);
+}
+.document-control-workflow h4 { margin: 0; }
+.document-control-workflow-setup,
+.document-control-workflow-state,
+.document-control-decision {
+  display: grid;
+  gap: 10px;
+}
+.document-control-workflow-setup label,
+.document-control-decision label {
+  display: grid;
+  gap: 5px;
+  font-weight: 600;
+}
+.document-control-workflow select[multiple] {
+  width: 100%;
+  min-height: 90px;
+  padding: 7px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--cell-radius);
+}
+.document-control-workflow textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--cell-radius);
+  font: inherit;
+  resize: vertical;
+}
+.document-control-workflow-state p { margin: 0; }
+.document-control-workflow-state ul,
+.document-control-workflow details ul { margin: 0; padding-left: 22px; }
+.document-control-decision {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: end;
+}
+.document-control-decision label { grid-column: 1 / -1; }
+@media (max-width: 700px) {
+  .document-control-decision { grid-template-columns: 1fr; }
+}
