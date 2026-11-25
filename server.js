@@ -2724,6 +2724,7 @@ app.post("/document-control/documents/:documentId/submit-review", requireAuth, r
       if (docErr) return res.status(500).json({ error: "Kunde inte läsa dokumentet." });
       if (!doc) return res.status(404).json({ error: "Dokumentet hittades inte." });
       if (!doc.currentFileName && !doc.fileName) return res.status(400).json({ error: "Dokumentet saknar en aktuell fil." });
+      if (doc.status !== "needs-review") return res.status(409).json({ error: "Dokumentet kan endast skickas till granskning när det är markerat som ej granskat." });
       if (doc.status === "published" && doc.workflow?.revision === (doc.revision || "")) {
         return res.status(409).json({ error: "Dokumentet är redan publicerat. Ladda upp en ny revision för att starta om flödet." });
       }
@@ -2810,7 +2811,7 @@ app.post("/document-control/documents/:documentId/approval", requireAuth, (req, 
     const nextStatus = rejected ? "needs-review" : allApproved ? "published" : "awaiting-approval";
     const nextWorkflow = { ...workflow, approvals, approvedAt: allApproved ? now : workflow.approvedAt || null };
     documentControlDB.update({ documentId: doc.documentId, status: "awaiting-approval" }, {
-      $set: { workflow: nextWorkflow, status: nextStatus, updatedAt: now, updatedBy: req.user.name || req.user.username, ...(allApproved ? { publishedAt: now, publishedRevision: workflow.revision } : {}) }
+      $set: { workflow: nextWorkflow, status: nextStatus, updatedAt: now, updatedBy: req.user.name || req.user.username, ...(allApproved ? { publishedAt: now, publishedRevision: workflow.revision, publishedFileName: workflow.fileName } : {}) }
     }, {}, (updateErr, changed) => {
       if (updateErr) return res.status(500).json({ error: "Kunde inte spara godkännandebeslutet." });
       if (!changed) return res.status(409).json({ error: "Dokumentets status har ändrats. Uppdatera sidan." });
