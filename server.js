@@ -2406,7 +2406,7 @@ function nextDocumentNumber(category, callback) {
   const counterKey = category;
   documentControlDB.update(
     { recordType: "counter", counterKey },
-    { $inc: { value: 1 }, $setOnInsert: { recordType: "counter", counterKey } },
+    { $inc: { value: 1 } },
     { upsert: true, returnUpdatedDocs: true },
     (err, _count, updated) => {
       if (err) return callback(err);
@@ -2475,10 +2475,18 @@ app.post("/document-control/documents", requireAuth, requireAdmin, (req, res) =>
   };
 
   if (requestedNumber) return createRecord(requestedNumber);
-  nextDocumentNumber(category, (numberErr, generatedNumber) => {
-    if (numberErr) return res.status(500).json({ error: "Kunde inte generera dokumentnummer." });
-    createRecord(generatedNumber);
-  });
+
+  const allocateAvailableNumber = () => {
+    nextDocumentNumber(category, (numberErr, generatedNumber) => {
+      if (numberErr) return res.status(500).json({ error: "Kunde inte generera dokumentnummer." });
+      documentControlDB.findOne({ documentNumber: generatedNumber }, (checkErr, duplicateNumber) => {
+        if (checkErr) return res.status(500).json({ error: "Kunde inte kontrollera det automatiska dokumentnumret." });
+        if (duplicateNumber) return allocateAvailableNumber();
+        createRecord(generatedNumber);
+      });
+    });
+  };
+  allocateAvailableNumber();
 });
 
 // Read revision history for one registered document.
