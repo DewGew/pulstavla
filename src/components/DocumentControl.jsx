@@ -490,7 +490,7 @@ export default function DocumentControl() {
 
                         <div className="document-control-workflow">
                           <h4>Granskning och godkännande</h4>
-                          {canRegister && doc.status !== "published" && (
+                          {canRegister && (doc.status === "needs-review" || !doc.status) && (
                             <div className="document-control-workflow-setup">
                               <p>Tilldela en eller flera granskare och godkännare för aktuell revision ({doc.revision || "—"}).</p>
                               <label>Granskare
