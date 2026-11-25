@@ -2,17 +2,16 @@ import { Fragment, useCallback, useEffect, useState } from "react";
 import { apiFetch } from "../api";
 import "./DocumentControl.css";
 
-const CATEGORIES = [
-  "Kvalitetshandbok",
-  "Policy",
-  "Rutin",
-  "Allmän instruktion",
-  "Arbetsinstruktion",
-  "Blankett",
-  "Mall",
-  "Policy",
-  "Övrigt",
+const DOCUMENT_TEMPLATES = [
+  { key: "KHB", label: "Kvalitetshandbok", category: "Kvalitetshandbok", sections: ["Verksamhet och omfattning", "Kvalitetsledningssystemets uppbyggnad", "Processer och deras samverkan", "Ansvar och befogenheter", "Kvalitetspolicy och kvalitetsmål", "Risker och möjligheter", "Kompetens och resurser", "Uppföljning, avvikelsehantering och förbättring", "Hänvisningar till styrande dokument"] },
+  { key: "POL", label: "Policy", category: "Policy", sections: ["Syfte och åtagande", "Omfattning", "Policy och grundprinciper", "Ansvar", "Kommunikation och tillämpning", "Uppföljning och översyn"] },
+  { key: "RUT", label: "Rutin", category: "Rutin", sections: ["Syfte", "Omfattning", "Definitioner och förutsättningar", "Ansvar och befogenheter", "Genomförande – arbetsflöde steg för steg", "Kontroller och acceptanskriterier", "Hantering av avvikelser", "Dokumentation och relaterade dokument"] },
+  { key: "AI", label: "Arbetsinstruktion", category: "Arbetsinstruktion", sections: ["Syfte och arbetsmoment", "Omfattning och förutsättningar", "Verktyg, material och utrustning", "Säkerhet och risker", "Arbetsgång – steg för steg", "Kontrollpunkter och acceptanskriterier", "Avvikelsehantering", "Dokumentation"] },
+  { key: "AIN", label: "Allmän instruktion", category: "Allmän instruktion", sections: ["Syfte", "Vem instruktionen gäller för", "Grundregler", "Arbetssätt och förväntat beteende", "Ansvar", "Hänvisningar till rutiner och arbetsinstruktioner"] },
+  { key: "FORM", label: "Blankett / Mall", category: "Blankett", sections: ["Syfte och användningsområde", "När och av vem dokumentet ska användas", "Instruktioner för ifyllnad", "Uppgifter och kontrollfält som ska dokumenteras", "Granskning, signering och sparande", "Hänvisningar och relaterade dokument"] }
 ];
+
+const CATEGORIES = ["Kvalitetshandbok", "Policy", "Rutin", "Allmän instruktion", "Arbetsinstruktion", "Blankett", "Mall", "Övrigt"];
 
 export default function DocumentControl() {
   const [documents, setDocuments] = useState([]);
@@ -26,6 +25,13 @@ export default function DocumentControl() {
   const [revisionData, setRevisionData] = useState({});
   const [revisionForms, setRevisionForms] = useState({});
   const [revisionSaving, setRevisionSaving] = useState(false);
+  const [templateKey, setTemplateKey] = useState("RUT");
+  const [templateTitle, setTemplateTitle] = useState("");
+  const [templateCategory, setTemplateCategory] = useState("Rutin");
+  const [templateOwner, setTemplateOwner] = useState("");
+  const [templateDescription, setTemplateDescription] = useState("");
+  const [templateSections, setTemplateSections] = useState({});
+  const [templateSaving, setTemplateSaving] = useState(false);
   const [form, setForm] = useState({
     documentNumber: "",
     title: "",
@@ -65,6 +71,49 @@ export default function DocumentControl() {
   useEffect(() => {
     loadRegister();
   }, [loadRegister]);
+
+  const selectedTemplate = DOCUMENT_TEMPLATES.find((template) => template.key === templateKey) || DOCUMENT_TEMPLATES[2];
+
+  const changeTemplate = (key) => {
+    const nextTemplate = DOCUMENT_TEMPLATES.find((template) => template.key === key);
+    setTemplateKey(key);
+    setTemplateCategory(nextTemplate?.category || "Rutin");
+    setTemplateTitle("");
+    setTemplateSections({});
+  };
+
+  const createFromTemplate = async (event) => {
+    event.preventDefault();
+    setTemplateSaving(true);
+    setMessage("");
+    setError("");
+    try {
+      const response = await apiFetch("/document-control/documents/from-template", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+        },
+        body: JSON.stringify({
+          templateKey, title: templateTitle.trim(), category: templateCategory,
+          owner: templateOwner.trim(), description: templateDescription.trim(),
+          sections: templateSections,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Kunde inte skapa dokumentet från mallen.");
+      setMessage(`Utkastet ${data.document.documentNumber} har skapats med revision 00. Det är inte granskat eller godkänt.`);
+      setTemplateTitle("");
+      setTemplateOwner("");
+      setTemplateDescription("");
+      setTemplateSections({});
+      await loadRegister();
+    } catch (err) {
+      setError(err.message || "Kunde inte skapa dokumentet från mallen.");
+    } finally {
+      setTemplateSaving(false);
+    }
+  };
 
   const updateField = (event) => {
     const { name, value } = event.target;
@@ -193,6 +242,60 @@ export default function DocumentControl() {
 
       {message && <p className="document-control-message" role="status">{message}</p>}
       {error && <p className="document-control-error" role="alert">{error}</p>}
+
+      {canRegister && (
+        <form className="document-control-form document-control-template-form" onSubmit={createFromTemplate}>
+          <h3>Skapa nytt styrande dokument från mall</h3>
+          <p>Välj dokumenttyp och fyll i relevanta avsnitt. Pulstavla skapar ett separat utkast med automatiskt dokumentnummer och revision 00.</p>
+          <div className="document-control-form-grid">
+            <label>
+              Dokumentmall *
+              <select value={templateKey} onChange={(event) => changeTemplate(event.target.value)}>
+                {DOCUMENT_TEMPLATES.map((template) => <option key={template.key} value={template.key}>{template.label}</option>)}
+              </select>
+            </label>
+            {templateKey === "FORM" && (
+              <label>
+                Dokumentkategori *
+                <select value={templateCategory} onChange={(event) => setTemplateCategory(event.target.value)}>
+                  <option value="Blankett">Blankett</option>
+                  <option value="Mall">Mall</option>
+                </select>
+              </label>
+            )}
+            <label>
+              Dokumentnamn *
+              <input value={templateTitle} onChange={(event) => setTemplateTitle(event.target.value)} maxLength={200} required placeholder={selectedTemplate.label} />
+            </label>
+            <label>
+              Dokumentansvarig
+              <input value={templateOwner} onChange={(event) => setTemplateOwner(event.target.value)} maxLength={120} />
+            </label>
+          </div>
+          <label>
+            Kort beskrivning
+            <textarea value={templateDescription} onChange={(event) => setTemplateDescription(event.target.value)} rows={2} maxLength={1000} />
+          </label>
+          <div className="document-control-template-sections">
+            <h4>Dokumentinnehåll</h4>
+            {selectedTemplate.sections.map((heading) => (
+              <label key={heading}>
+                {heading}
+                <textarea
+                  value={templateSections[heading] || ""}
+                  onChange={(event) => setTemplateSections((previous) => ({ ...previous, [heading]: event.target.value }))}
+                  rows={3}
+                  maxLength={12000}
+                  placeholder="Beskriv innehållet här. Lämna avsnitt tomt om det inte är relevant; det markeras då för komplettering i utkastet."
+                />
+              </label>
+            ))}
+          </div>
+          <button className="btn-primary" type="submit" disabled={templateSaving || !templateTitle.trim()}>
+            {templateSaving ? "Skapar utkast..." : "Skapa dokumentutkast"}
+          </button>
+        </form>
+      )}
 
       {canRegister && (
         <form className="document-control-form" onSubmit={registerDocument}>
