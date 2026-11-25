@@ -635,7 +635,7 @@ app.get("/documents", requireAuth, (req, res) => {
     }
 
     const allowedExtensions = [
-      "pdf", "doc", "docx", "xls", "xlsx", "png", "jpg", "jpeg"
+      "pdf", "doc", "docx", "xls", "xlsx", "png", "jpg", "jpeg", "md"
     ];
 
     const documents = entries
