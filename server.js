@@ -2684,7 +2684,7 @@ function documentControlEvent(documentId, eventType, details, req, callback) {
 }
 
 app.get("/document-control/users", requireAuth, requireAdmin, (req, res) => {
-  usersDB.find({ role: { $in: ["user", "admin", "suAdmin"] } }, (err, users) => {
+  usersDB.find({}, (err, users) => {
     if (err) return res.status(500).json({ error: "Kunde inte läsa användarlistan." });
     res.json(users.map(({ _id, username, name, role }) => ({
       id: _id, username, name: name || username, role
@@ -2717,7 +2717,7 @@ app.post("/document-control/documents/:documentId/submit-review", requireAuth, r
     return res.status(400).json({ error: "Välj minst en granskare och en godkännare." });
   }
   const assignedIds = [...new Set([...reviewerIds, ...approverIds])];
-  usersDB.find({ _id: { $in: assignedIds }, role: { $in: ["user", "admin", "suAdmin"] } }, (usersErr, users) => {
+  usersDB.find({ _id: { $in: assignedIds } }, (usersErr, users) => {
     if (usersErr) return res.status(500).json({ error: "Kunde inte kontrollera valda användare." });
     if (users.length !== assignedIds.length) return res.status(400).json({ error: "En eller flera valda användare är ogiltiga." });
     documentControlDB.findOne({ documentId: req.params.documentId, recordType: { $nin: ["revision", "counter", "event"] } }, (docErr, doc) => {
