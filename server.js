@@ -2412,6 +2412,9 @@ app.get("/document-control/documents", requireAuth, (req, res) => {
 // Register metadata for an existing file. This does not move, copy, or modify the file.
 const DOCUMENT_NUMBER_PREFIXES = {
   "Rutin": "RUT",
+  "Kvalitetshandbok": "KHB",
+  "Policy": "POL",
+  "Allmän instruktion": "AIN",
   "Arbetsinstruktion": "AI",
   "Blankett": "BL",
   "Mall": "MALL",
