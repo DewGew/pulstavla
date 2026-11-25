@@ -3,7 +3,10 @@ import { apiFetch } from "../api";
 import "./DocumentControl.css";
 
 const CATEGORIES = [
+  "Kvalitetshandbok",
+  "Policy",
   "Rutin",
+  "Allmän instruktion",
   "Arbetsinstruktion",
   "Blankett",
   "Mall",
