@@ -788,7 +788,7 @@ async function refreshLunchCache() {
     const src = $(el).attr("src") || $(el).attr("data-src");
     // Extension is intentionally flexible — Smakrikt doesn't always upload
     // the menu as .webp, some weeks it's .jpg/.jpeg/.png instead.
-    if (src && /Smakrikt-lunch-v\d+-\d+\.(webp|jpg|jpeg|png)/i.test(src)) {
+    if (src && /Smakrikt-lunch-v\d+(?:_\d+)?-\d{4}\.(webp|jpg|jpeg|png)/i.test(src)) {
       imageUrl = src;
     }
   });
