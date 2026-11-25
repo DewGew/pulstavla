@@ -2659,6 +2659,171 @@ app.post("/document-control/documents/:documentId/revisions", requireAuth, requi
   });
 });
 
+
+/* ---------------- DOCUMENT REVIEW & APPROVAL ---------------- */
+function documentControlNotify(userIds, title, message) {
+  const ids = [...new Set((userIds || []).filter((id) => typeof id === "string" && id))];
+  if (!ids.length) return;
+  const createdAt = Date.now();
+  notificationsDB.insert(ids.map((recipientId) => ({
+    recipientId, title, message, priority: "important",
+    senderId: "system", senderName: "Pulstavla – dokumentstyrning",
+    createdAt, readAt: null
+  })), (err) => {
+    if (err) console.error("Kunde inte skicka dokumentavisering:", err);
+  });
+}
+
+function documentControlEvent(documentId, eventType, details, req, callback) {
+  documentControlDB.insert({
+    recordType: "event", eventId: randomUUID(), documentId, eventType, details,
+    actorId: req.user.id, actorName: req.user.name || req.user.username,
+    createdAt: new Date().toISOString()
+  }, callback || (() => {}));
+}
+
+app.get("/document-control/users", requireAuth, requireAdmin, (req, res) => {
+  usersDB.find({ role: { $in: ["user", "admin", "suAdmin"] } }, (err, users) => {
+    if (err) return res.status(500).json({ error: "Kunde inte läsa användarlistan." });
+    res.json(users.map(({ _id, username, name, role }) => ({
+      id: _id, username, name: name || username, role
+    })));
+  });
+});
+
+app.get("/document-control/documents/:documentId/workflow", requireAuth, (req, res) => {
+  documentControlDB.findOne({ documentId: req.params.documentId, recordType: { $nin: ["revision", "counter", "event"] } }, (docErr, doc) => {
+    if (docErr) return res.status(500).json({ error: "Kunde inte läsa dokumentet." });
+    if (!doc) return res.status(404).json({ error: "Dokumentet hittades inte." });
+    documentControlDB.find({ recordType: "event", documentId: req.params.documentId }).sort({ createdAt: -1 }).exec((eventErr, events) => {
+      if (eventErr) return res.status(500).json({ error: "Kunde inte läsa händelsehistoriken." });
+      const workflow = doc.workflow || null;
+      const isAssigned = workflow && [
+        ...(workflow.reviewerIds || []), ...(workflow.approverIds || [])
+      ].includes(req.user.id);
+      if (!["admin", "suAdmin"].includes(req.user.role) && !isAssigned) {
+        return res.status(403).json({ error: "Du saknar behörighet att se granskningsflödet." });
+      }
+      res.json({ workflow, events });
+    });
+  });
+});
+
+app.post("/document-control/documents/:documentId/submit-review", requireAuth, requireAdmin, (req, res) => {
+  const reviewerIds = Array.isArray(req.body?.reviewerIds) ? [...new Set(req.body.reviewerIds.filter((id) => typeof id === "string" && id))] : [];
+  const approverIds = Array.isArray(req.body?.approverIds) ? [...new Set(req.body.approverIds.filter((id) => typeof id === "string" && id))] : [];
+  if (!reviewerIds.length || !approverIds.length) {
+    return res.status(400).json({ error: "Välj minst en granskare och en godkännare." });
+  }
+  const assignedIds = [...new Set([...reviewerIds, ...approverIds])];
+  usersDB.find({ _id: { $in: assignedIds }, role: { $in: ["user", "admin", "suAdmin"] } }, (usersErr, users) => {
+    if (usersErr) return res.status(500).json({ error: "Kunde inte kontrollera valda användare." });
+    if (users.length !== assignedIds.length) return res.status(400).json({ error: "En eller flera valda användare är ogiltiga." });
+    documentControlDB.findOne({ documentId: req.params.documentId, recordType: { $nin: ["revision", "counter", "event"] } }, (docErr, doc) => {
+      if (docErr) return res.status(500).json({ error: "Kunde inte läsa dokumentet." });
+      if (!doc) return res.status(404).json({ error: "Dokumentet hittades inte." });
+      if (!doc.currentFileName && !doc.fileName) return res.status(400).json({ error: "Dokumentet saknar en aktuell fil." });
+      if (doc.status === "published" && doc.workflow?.revision === (doc.revision || "")) {
+        return res.status(409).json({ error: "Dokumentet är redan publicerat. Ladda upp en ny revision för att starta om flödet." });
+      }
+      const now = new Date().toISOString();
+      const workflow = {
+        revision: doc.revision || "",
+        fileName: doc.currentFileName || doc.fileName,
+        reviewerIds, approverIds, reviews: {}, approvals: {},
+        submittedAt: now, submittedBy: req.user.id,
+        submittedByName: req.user.name || req.user.username
+      };
+      documentControlDB.update({ documentId: doc.documentId, recordType: { $nin: ["revision", "counter", "event"] } }, {
+        $set: { workflow, status: "in-review", updatedAt: now, updatedBy: req.user.name || req.user.username }
+      }, {}, (updateErr) => {
+        if (updateErr) return res.status(500).json({ error: "Kunde inte starta granskningsflödet." });
+        documentControlEvent(doc.documentId, "submitted-for-review", { revision: workflow.revision, reviewerIds, approverIds }, req);
+        documentControlNotify(reviewerIds, "Dokument väntar på granskning", doc.documentNumber + " – " + doc.title + " (revision " + (workflow.revision || "—") + ") väntar på din granskning.");
+        res.json({ success: true, workflow, status: "in-review" });
+      });
+    });
+  });
+});
+
+app.post("/document-control/documents/:documentId/review", requireAuth, (req, res) => {
+  const decision = req.body?.decision;
+  const comment = typeof req.body?.comment === "string" ? req.body.comment.trim() : "";
+  if (!["approved", "rejected"].includes(decision) || comment.length > 2000) {
+    return res.status(400).json({ error: "Ogiltigt granskningsbeslut eller kommentar." });
+  }
+  documentControlDB.findOne({ documentId: req.params.documentId, recordType: { $nin: ["revision", "counter", "event"] } }, (err, doc) => {
+    if (err) return res.status(500).json({ error: "Kunde inte läsa dokumentet." });
+    if (!doc) return res.status(404).json({ error: "Dokumentet hittades inte." });
+    const workflow = doc.workflow;
+    if (!workflow || workflow.revision !== (doc.revision || "") || workflow.fileName !== (doc.currentFileName || doc.fileName)) {
+      return res.status(409).json({ error: "Granskningsflödet gäller inte längre aktuell revision. Starta ett nytt flöde." });
+    }
+    if (doc.status !== "in-review" || !(workflow.reviewerIds || []).includes(req.user.id)) {
+      return res.status(403).json({ error: "Du är inte tilldelad granskning av den aktuella revisionen." });
+    }
+    if (workflow.reviews?.[req.user.id]) return res.status(409).json({ error: "Du har redan lämnat ett granskningsbeslut." });
+    const now = new Date().toISOString();
+    const reviews = { ...(workflow.reviews || {}), [req.user.id]: { decision, comment, decidedAt: now, userName: req.user.name || req.user.username } };
+    const rejected = decision === "rejected";
+    const allReviewed = !rejected && workflow.reviewerIds.every((id) => reviews[id]?.decision === "approved");
+    const nextStatus = rejected ? "needs-review" : allReviewed ? "awaiting-approval" : "in-review";
+    const nextWorkflow = { ...workflow, reviews, reviewCompletedAt: allReviewed ? now : workflow.reviewCompletedAt || null };
+    documentControlDB.update({ documentId: doc.documentId, status: "in-review" }, {
+      $set: { workflow: nextWorkflow, status: nextStatus, updatedAt: now, updatedBy: req.user.name || req.user.username }
+    }, {}, (updateErr, changed) => {
+      if (updateErr) return res.status(500).json({ error: "Kunde inte spara granskningsbeslutet." });
+      if (!changed) return res.status(409).json({ error: "Dokumentets status har ändrats. Uppdatera sidan." });
+      documentControlEvent(doc.documentId, "review-" + decision, { revision: workflow.revision, comment }, req);
+      if (rejected) {
+        documentControlNotify([workflow.submittedBy], "Dokument behöver ändras", doc.documentNumber + " – " + doc.title + " har fått granskningsanmärkning: " + (comment || "Ingen kommentar angavs."));
+      } else if (allReviewed) {
+        documentControlNotify(workflow.approverIds, "Dokument väntar på godkännande", doc.documentNumber + " – " + doc.title + " (revision " + (workflow.revision || "—") + ") är granskat och väntar på godkännande.");
+      }
+      res.json({ success: true, status: nextStatus, workflow: nextWorkflow });
+    });
+  });
+});
+
+app.post("/document-control/documents/:documentId/approval", requireAuth, (req, res) => {
+  const decision = req.body?.decision;
+  const comment = typeof req.body?.comment === "string" ? req.body.comment.trim() : "";
+  if (!["approved", "rejected"].includes(decision) || comment.length > 2000) {
+    return res.status(400).json({ error: "Ogiltigt godkännandebeslut eller kommentar." });
+  }
+  documentControlDB.findOne({ documentId: req.params.documentId, recordType: { $nin: ["revision", "counter", "event"] } }, (err, doc) => {
+    if (err) return res.status(500).json({ error: "Kunde inte läsa dokumentet." });
+    if (!doc) return res.status(404).json({ error: "Dokumentet hittades inte." });
+    const workflow = doc.workflow;
+    if (!workflow || workflow.revision !== (doc.revision || "") || workflow.fileName !== (doc.currentFileName || doc.fileName)) {
+      return res.status(409).json({ error: "Godkännandeflödet gäller inte längre aktuell revision. Starta ett nytt flöde." });
+    }
+    if (doc.status !== "awaiting-approval" || !(workflow.approverIds || []).includes(req.user.id)) {
+      return res.status(403).json({ error: "Du är inte tilldelad godkännande av den aktuella revisionen." });
+    }
+    if (workflow.approvals?.[req.user.id]) return res.status(409).json({ error: "Du har redan lämnat ett godkännandebeslut." });
+    const now = new Date().toISOString();
+    const approvals = { ...(workflow.approvals || {}), [req.user.id]: { decision, comment, decidedAt: now, userName: req.user.name || req.user.username } };
+    const rejected = decision === "rejected";
+    const allApproved = !rejected && workflow.approverIds.every((id) => approvals[id]?.decision === "approved");
+    const nextStatus = rejected ? "needs-review" : allApproved ? "published" : "awaiting-approval";
+    const nextWorkflow = { ...workflow, approvals, approvedAt: allApproved ? now : workflow.approvedAt || null };
+    documentControlDB.update({ documentId: doc.documentId, status: "awaiting-approval" }, {
+      $set: { workflow: nextWorkflow, status: nextStatus, updatedAt: now, updatedBy: req.user.name || req.user.username, ...(allApproved ? { publishedAt: now, publishedRevision: workflow.revision } : {}) }
+    }, {}, (updateErr, changed) => {
+      if (updateErr) return res.status(500).json({ error: "Kunde inte spara godkännandebeslutet." });
+      if (!changed) return res.status(409).json({ error: "Dokumentets status har ändrats. Uppdatera sidan." });
+      documentControlEvent(doc.documentId, "approval-" + decision, { revision: workflow.revision, comment }, req);
+      if (rejected) {
+        documentControlNotify([workflow.submittedBy], "Dokument behöver ändras", doc.documentNumber + " – " + doc.title + " har inte godkänts: " + (comment || "Ingen kommentar angavs."));
+      } else if (allApproved) {
+        documentControlNotify([workflow.submittedBy], "Dokument publicerat", doc.documentNumber + " – " + doc.title + " revision " + (workflow.revision || "—") + " är nu godkänd och publicerad.");
+      }
+      res.json({ success: true, status: nextStatus, workflow: nextWorkflow });
+    });
+  });
+});
+
 /* ---------------- MÄTPROTOKOLL ENDPOINTS ---------------- */
 // Lista sparade protokoll (bara det som behövs för en väljarlista —
 // inte hela mätpunkts-arrayen, så listan förblir snabb att hämta)
