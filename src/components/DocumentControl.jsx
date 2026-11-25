@@ -32,6 +32,11 @@ export default function DocumentControl() {
   const [templateDescription, setTemplateDescription] = useState("");
   const [templateSections, setTemplateSections] = useState({});
   const [templateSaving, setTemplateSaving] = useState(false);
+  const [workflowUsers, setWorkflowUsers] = useState([]);
+  const [workflowData, setWorkflowData] = useState({});
+  const [workflowAssignments, setWorkflowAssignments] = useState({});
+  const [workflowComments, setWorkflowComments] = useState({});
+  const [workflowSaving, setWorkflowSaving] = useState(false);
   const [form, setForm] = useState({
     documentNumber: "",
     title: "",
@@ -49,6 +54,7 @@ export default function DocumentControl() {
     }
   })();
   const canRegister = ["admin", "suAdmin"].includes(currentUser.role);
+  const currentUserId = currentUser._id || currentUser.id;
 
   const loadRegister = useCallback(async () => {
     setLoading(true);
@@ -71,6 +77,77 @@ export default function DocumentControl() {
   useEffect(() => {
     loadRegister();
   }, [loadRegister]);
+
+  useEffect(() => {
+    if (!canRegister) return;
+    apiFetch("/document-control/users", { headers: { Authorization: "Bearer " + (localStorage.getItem("token") || "") } })
+      .then(async (response) => { const data = await response.json(); if (response.ok) setWorkflowUsers(Array.isArray(data) ? data : []); })
+      .catch((err) => console.warn("Kunde inte läsa granskningsanvändare:", err.message));
+  }, [canRegister]);
+
+  const loadWorkflow = async (documentId) => {
+    try {
+      const response = await apiFetch("/document-control/documents/" + encodeURIComponent(documentId) + "/workflow", {
+        headers: { Authorization: "Bearer " + (localStorage.getItem("token") || "") },
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        if (response.status !== 403) throw new Error(data.error || "Kunde inte läsa granskningsflödet.");
+        return;
+      }
+      setWorkflowData((previous) => ({ ...previous, [documentId]: data }));
+      if (data.workflow) setWorkflowAssignments((previous) => ({ ...previous, [documentId]: {
+        reviewerIds: data.workflow.reviewerIds || [], approverIds: data.workflow.approverIds || []
+      } }));
+    } catch (err) { setError(err.message || "Kunde inte läsa granskningsflödet."); }
+  };
+
+  const updateWorkflowAssignment = (documentId, field, selectedOptions) => {
+    setWorkflowAssignments((previous) => ({ ...previous, [documentId]: {
+      ...(previous[documentId] || { reviewerIds: [], approverIds: [] }),
+      [field]: Array.from(selectedOptions, (option) => option.value),
+    } }));
+  };
+
+  const startReview = async (doc) => {
+    const assignment = workflowAssignments[doc.documentId] || {};
+    if (!assignment.reviewerIds?.length || !assignment.approverIds?.length) {
+      setError("Välj minst en granskare och en godkännare."); return;
+    }
+    setWorkflowSaving(true); setError(""); setMessage("");
+    try {
+      const response = await apiFetch("/document-control/documents/" + encodeURIComponent(doc.documentId) + "/submit-review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("token") || "") },
+        body: JSON.stringify(assignment),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Kunde inte starta granskningen.");
+      setMessage("Dokumentet har skickats till granskning. Berörda användare får ett meddelande.");
+      await loadRegister(); await loadWorkflow(doc.documentId);
+    } catch (err) { setError(err.message || "Kunde inte starta granskningen."); }
+    finally { setWorkflowSaving(false); }
+  };
+
+  const decideWorkflow = async (doc, stage, decision) => {
+    const comment = workflowComments[doc.documentId] || "";
+    setWorkflowSaving(true); setError(""); setMessage("");
+    try {
+      const response = await apiFetch("/document-control/documents/" + encodeURIComponent(doc.documentId) + "/" + (stage === "review" ? "review" : "approval"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("token") || "") },
+        body: JSON.stringify({ decision, comment }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Kunde inte spara beslutet.");
+      setMessage(decision === "approved"
+        ? (stage === "review" ? "Granskningen är registrerad." : data.status === "published" ? "Dokumentet är nu godkänt och publicerat." : "Ditt godkännande är registrerat.")
+        : "Dokumentet har avvisats och behöver bearbetas.");
+      setWorkflowComments((previous) => ({ ...previous, [doc.documentId]: "" }));
+      await loadRegister(); await loadWorkflow(doc.documentId);
+    } catch (err) { setError(err.message || "Kunde inte spara beslutet."); }
+    finally { setWorkflowSaving(false); }
+  };
 
   const selectedTemplate = DOCUMENT_TEMPLATES.find((template) => template.key === templateKey) || DOCUMENT_TEMPLATES[2];
 
@@ -170,6 +247,7 @@ export default function DocumentControl() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Kunde inte läsa revisionshistoriken.");
       setRevisionData((previous) => ({ ...previous, [documentId]: data }));
+      await loadWorkflow(documentId);
     } catch (err) { setError(err.message || "Kunde inte läsa revisionshistoriken."); }
   };
 
@@ -386,7 +464,7 @@ export default function DocumentControl() {
                   <td>{doc.category}</td>
                   <td>{doc.owner || "—"}</td>
                   <td>{doc.fileName}</td>
-                  <td><span className="document-control-status">{doc.status === "needs-review" ? "Ej granskad" : doc.status}</span></td>
+                  <td><span className="document-control-status">{({ "needs-review": "Ej granskad", "in-review": "Under granskning", "awaiting-approval": "Väntar på godkännande", published: "Godkänd / publicerad" })[doc.status] || doc.status || "Ej granskad"}</span></td>
                   <td><button type="button" className="btn-secondary" onClick={() => loadRevisions(doc.documentId)}>
                     {expandedDocumentId === doc.documentId ? "Dölj" : "Revisioner"}
                   </button></td>
@@ -409,6 +487,67 @@ export default function DocumentControl() {
                             ))}
                           </div>
                         )}
+
+                        <div className="document-control-workflow">
+                          <h4>Granskning och godkännande</h4>
+                          {canRegister && doc.status !== "published" && (
+                            <div className="document-control-workflow-setup">
+                              <p>Tilldela en eller flera granskare och godkännare för aktuell revision ({doc.revision || "—"}).</p>
+                              <label>Granskare
+                                <select multiple size={Math.min(5, Math.max(3, workflowUsers.length))} value={workflowAssignments[doc.documentId]?.reviewerIds || []} onChange={(event) => updateWorkflowAssignment(doc.documentId, "reviewerIds", event.target.selectedOptions)}>
+                                  {workflowUsers.map((person) => <option key={person.id} value={person.id}>{person.name} ({person.username})</option>)}
+                                </select>
+                              </label>
+                              <label>Godkännare
+                                <select multiple size={Math.min(5, Math.max(3, workflowUsers.length))} value={workflowAssignments[doc.documentId]?.approverIds || []} onChange={(event) => updateWorkflowAssignment(doc.documentId, "approverIds", event.target.selectedOptions)}>
+                                  {workflowUsers.map((person) => <option key={person.id} value={person.id}>{person.name} ({person.username})</option>)}
+                                </select>
+                              </label>
+                              <small>Håll Ctrl (Windows) eller Cmd (Mac) för att välja flera. Samtliga valda personer måste godkänna sitt steg.</small>
+                              <button type="button" className="btn-primary" onClick={() => startReview(doc)} disabled={workflowSaving || !workflowAssignments[doc.documentId]?.reviewerIds?.length || !workflowAssignments[doc.documentId]?.approverIds?.length}>
+                                {workflowSaving ? "Skickar..." : "Skicka till granskning"}
+                              </button>
+                            </div>
+                          )}
+                          {workflowData[doc.documentId]?.workflow && (
+                            <div className="document-control-workflow-state">
+                              <p><strong>Flöde för revision {workflowData[doc.documentId].workflow.revision || "—"}</strong> · Startat av {workflowData[doc.documentId].workflow.submittedByName || "—"}</p>
+                              <p>Granskare: {workflowData[doc.documentId].workflow.reviewerIds.map((id) => workflowUsers.find((person) => person.id === id)?.name || workflowData[doc.documentId].workflow.reviews?.[id]?.userName || "Användare").join(", ")}</p>
+                              <p>Godkännare: {workflowData[doc.documentId].workflow.approverIds.map((id) => workflowUsers.find((person) => person.id === id)?.name || workflowData[doc.documentId].workflow.approvals?.[id]?.userName || "Användare").join(", ")}</p>
+                              <ul>
+                                {workflowData[doc.documentId].workflow.reviewerIds.map((id) => {
+                                  const result = workflowData[doc.documentId].workflow.reviews?.[id];
+                                  return <li key={"review-" + id}>Granskning: {result?.userName || workflowUsers.find((person) => person.id === id)?.name || "Tilldelad"} – {result ? (result.decision === "approved" ? "Godkänd" : "Avvisad") : "Väntar"}{result?.comment ? " – " + result.comment : ""}</li>;
+                                })}
+                                {workflowData[doc.documentId].workflow.approverIds.map((id) => {
+                                  const result = workflowData[doc.documentId].workflow.approvals?.[id];
+                                  return <li key={"approval-" + id}>Godkännande: {result?.userName || workflowUsers.find((person) => person.id === id)?.name || "Tilldelad"} – {result ? (result.decision === "approved" ? "Godkänd" : "Avvisad") : "Väntar"}{result?.comment ? " – " + result.comment : ""}</li>;
+                                })}
+                              </ul>
+                            </div>
+                          )}
+                          {doc.status === "in-review" && (workflowData[doc.documentId]?.workflow?.reviewerIds || []).includes(currentUserId) && !workflowData[doc.documentId]?.workflow?.reviews?.[currentUserId] && (
+                            <div className="document-control-decision">
+                              <label>Kommentar till granskningen (valfri)
+                                <textarea rows={2} maxLength={2000} value={workflowComments[doc.documentId] || ""} onChange={(event) => setWorkflowComments((previous) => ({ ...previous, [doc.documentId]: event.target.value }))} />
+                              </label>
+                              <button type="button" className="btn-secondary" disabled={workflowSaving} onClick={() => decideWorkflow(doc, "review", "rejected")}>Begär ändring</button>
+                              <button type="button" className="btn-primary" disabled={workflowSaving} onClick={() => decideWorkflow(doc, "review", "approved")}>Godkänn granskning</button>
+                            </div>
+                          )}
+                          {doc.status === "awaiting-approval" && (workflowData[doc.documentId]?.workflow?.approverIds || []).includes(currentUserId) && !workflowData[doc.documentId]?.workflow?.approvals?.[currentUserId] && (
+                            <div className="document-control-decision">
+                              <label>Kommentar till godkännandet (valfri)
+                                <textarea rows={2} maxLength={2000} value={workflowComments[doc.documentId] || ""} onChange={(event) => setWorkflowComments((previous) => ({ ...previous, [doc.documentId]: event.target.value }))} />
+                              </label>
+                              <button type="button" className="btn-secondary" disabled={workflowSaving} onClick={() => decideWorkflow(doc, "approval", "rejected")}>Avvisa dokument</button>
+                              <button type="button" className="btn-primary" disabled={workflowSaving} onClick={() => decideWorkflow(doc, "approval", "approved")}>Godkänn och publicera</button>
+                            </div>
+                          )}
+                          {(workflowData[doc.documentId]?.events || []).length > 0 && (
+                            <details><summary>Händelselogg</summary><ul>{workflowData[doc.documentId].events.map((event) => <li key={event.eventId}>{new Date(event.createdAt).toLocaleString("sv-SE")} · {event.actorName} · {event.eventType}{event.details?.comment ? " – " + event.details.comment : ""}</li>)}</ul></details>
+                          )}
+                        </div>
                         {canRegister && (
                           <form className="document-control-revision-form" onSubmit={(event) => uploadRevision(event, doc)}>
                             <h4>Lägg till ny revision</h4>
