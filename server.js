@@ -2385,7 +2385,7 @@ app.delete("/structured-widgets/:widgetId", requireAuth, requireEditor, (req, re
 
 /* ---------------- DOCUMENT CONTROL ENDPOINTS ---------------- */
 const documentControlAllowedExtensions = new Set([
-  ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".png", ".jpg", ".jpeg"
+  ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".png", ".jpg", ".jpeg", ".md"
 ]);
 
 // List registered records and existing files that have not yet been registered.
@@ -2407,6 +2407,96 @@ app.get("/document-control/documents", requireAuth, (req, res) => {
       });
     });
   });
+});
+
+// Fixed template structures. User-entered content is stored as a draft, never as an approved document.
+const DOCUMENT_TEMPLATE_DEFINITIONS = {
+  KHB: { category: "Kvalitetshandbok", sections: ["Verksamhet och omfattning", "Kvalitetsledningssystemets uppbyggnad", "Processer och deras samverkan", "Ansvar och befogenheter", "Kvalitetspolicy och kvalitetsmål", "Risker och möjligheter", "Kompetens och resurser", "Uppföljning, avvikelsehantering och förbättring", "Hänvisningar till styrande dokument"] },
+  POL: { category: "Policy", sections: ["Syfte och åtagande", "Omfattning", "Policy och grundprinciper", "Ansvar", "Kommunikation och tillämpning", "Uppföljning och översyn"] },
+  RUT: { category: "Rutin", sections: ["Syfte", "Omfattning", "Definitioner och förutsättningar", "Ansvar och befogenheter", "Genomförande – arbetsflöde steg för steg", "Kontroller och acceptanskriterier", "Hantering av avvikelser", "Dokumentation och relaterade dokument"] },
+  AI: { category: "Arbetsinstruktion", sections: ["Syfte och arbetsmoment", "Omfattning och förutsättningar", "Verktyg, material och utrustning", "Säkerhet och risker", "Arbetsgång – steg för steg", "Kontrollpunkter och acceptanskriterier", "Avvikelsehantering", "Dokumentation"] },
+  AIN: { category: "Allmän instruktion", sections: ["Syfte", "Vem instruktionen gäller för", "Grundregler", "Arbetssätt och förväntat beteende", "Ansvar", "Hänvisningar till rutiner och arbetsinstruktioner"] },
+  FORM: { category: "Blankett", sections: ["Syfte och användningsområde", "När och av vem dokumentet ska användas", "Instruktioner för ifyllnad", "Uppgifter och kontrollfält som ska dokumenteras", "Granskning, signering och sparande", "Hänvisningar och relaterade dokument"] }
+};
+
+app.post("/document-control/documents/from-template", requireAuth, requireAdmin, (req, res) => {
+  const templateKey = String(req.body?.templateKey || "");
+  const template = DOCUMENT_TEMPLATE_DEFINITIONS[templateKey];
+  const title = String(req.body?.title || "").trim();
+  const category = String(req.body?.category || template?.category || "").trim();
+  const owner = String(req.body?.owner || "").trim();
+  const description = String(req.body?.description || "").trim();
+  const inputSections = req.body?.sections && typeof req.body.sections === "object" ? req.body.sections : {};
+  if (!template) return res.status(400).json({ error: "Välj en giltig dokumentmall." });
+  const allowedCategories = templateKey === "FORM" ? ["Blankett", "Mall"] : [template.category];
+  if (!allowedCategories.includes(category)) return res.status(400).json({ error: "Dokumentkategorin stämmer inte med vald mall." });
+  if (!title || title.length > 200) return res.status(400).json({ error: "Ange ett dokumentnamn (max 200 tecken)." });
+  if (owner.length > 120 || description.length > 1000) return res.status(400).json({ error: "Dokumentansvarig eller beskrivning är för lång." });
+
+  let content;
+  try {
+    content = template.sections.map((heading) => {
+      const value = typeof inputSections[heading] === "string" ? inputSections[heading].trim() : "";
+      if (value.length > 12000) throw new Error("Ett avsnitt innehåller mer än 12 000 tecken.");
+      return "## " + heading + "\n\n" + (value || "[Fyll i innehållet här.]");
+    }).join("\n\n");
+  } catch (error) {
+    return res.status(400).json({ error: error.message || "Mallens innehåll är ogiltigt." });
+  }
+
+  const allocateAndCreate = () => {
+    nextDocumentNumber(category, (numberErr, documentNumber) => {
+      if (numberErr) return res.status(500).json({ error: "Kunde inte generera dokumentnummer." });
+      documentControlDB.findOne({ documentNumber }, (findErr, duplicate) => {
+        if (findErr) return res.status(500).json({ error: "Kunde inte kontrollera dokumentnumret." });
+        if (duplicate) return allocateAndCreate();
+
+        const documentId = randomUUID();
+        const fileName = "document-" + documentId + ".md";
+        const now = new Date().toISOString();
+        const createdBy = req.user.name || req.user.username;
+        const markdown = [
+          "# " + title, "",
+          "| Dokumentnummer | " + documentNumber + " |",
+          "| --- | --- |",
+          "| Dokumenttyp | " + category + " |",
+          "| Revision | 00 |",
+          "| Status | Utkast – ej granskat eller godkänt |",
+          "| Dokumentägare | " + (owner || "Ej angiven") + " |",
+          "| Skapat | " + now.slice(0, 10) + " |",
+          "| Upprättat av | " + createdBy + " |",
+          description ? "| Beskrivning | " + description.replace(/\|/g, "\\|").replace(/[\r\n]+/g, " ") + " |" : "",
+          "", "---", "", content, "", "---", "",
+          "> Detta dokument är ett utkast skapat från Pulstavlas dokumentmall. Det får inte betraktas som godkänt eller gällande förrän företagets granskning och godkännande har genomförts."
+        ].filter((line) => line !== null).join("\n");
+
+        const filePath = path.join(docsDir, fileName);
+        fs.writeFile(filePath, markdown, { encoding: "utf8", flag: "wx" }, (writeErr) => {
+          if (writeErr) return res.status(500).json({ error: "Kunde inte skapa dokumentfilen." });
+          const record = {
+            documentId, documentNumber, title, category, owner, description,
+            fileName, initialFileName: fileName, currentFileName: fileName,
+            status: "needs-review", revision: "00", templateKey,
+            createdAt: now, updatedAt: now, createdBy, updatedBy: createdBy
+          };
+          documentControlDB.insert(record, (insertErr) => {
+            if (insertErr) return fs.unlink(filePath, () => res.status(500).json({ error: "Dokumentfilen skapades men kunde inte registreras." }));
+            const revisionRecord = {
+              recordType: "revision", revisionId: randomUUID(), documentId,
+              revision: "00", fileName, originalFileName: fileName,
+              changeDescription: "Första utkastet skapades från dokumentmall",
+              createdAt: now, createdBy, isInitial: true
+            };
+            documentControlDB.insert(revisionRecord, (revisionErr) => {
+              if (revisionErr) return res.status(500).json({ error: "Dokumentet skapades men revisionshistoriken kunde inte sparas." });
+              res.status(201).json({ success: true, document: record });
+            });
+          });
+        });
+      });
+    });
+  };
+  allocateAndCreate();
 });
 
 // Register metadata for an existing file. This does not move, copy, or modify the file.
@@ -2517,7 +2607,7 @@ app.get("/document-control/documents/:documentId/revisions", requireAuth, (req, 
     documentControlDB.find({ recordType: "revision", documentId: req.params.documentId }).sort({ createdAt: -1 }).exec((historyErr, revisions) => {
       if (historyErr) return res.status(500).json({ error: "Kunde inte läsa revisionshistoriken." });
       const initialFile = documentRecord.initialFileName || documentRecord.fileName;
-      res.json({ document: documentRecord, revisions: [...revisions, ...(initialFile ? [{ revisionId: "initial", revision: "Befintlig", fileName: initialFile, changeDescription: "Befintlig fil vid registrering", createdAt: documentRecord.createdAt, createdBy: documentRecord.createdBy, isInitial: true }] : [])] });
+      res.json({ document: documentRecord, revisions: [...revisions, ...(initialFile && !revisions.some((revision) => revision.isInitial) ? [{ revisionId: "initial", revision: "Befintlig", fileName: initialFile, changeDescription: "Befintlig fil vid registrering", createdAt: documentRecord.createdAt, createdBy: documentRecord.createdBy, isInitial: true }] : [])] });
     });
   });
 });
