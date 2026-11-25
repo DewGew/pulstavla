@@ -2418,7 +2418,6 @@ const DOCUMENT_NUMBER_PREFIXES = {
   "Arbetsinstruktion": "AI",
   "Blankett": "BL",
   "Mall": "MALL",
-  "Policy": "POL",
   "Övrigt": "OVR",
 };
 
