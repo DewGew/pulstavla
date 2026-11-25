@@ -77,6 +77,20 @@ Påbörjat i grenen `feature/document-control`:
 - Registrering ändrar inte, flyttar eller kopierar den befintliga filen.
 - Nya registerposter får statusen ”Ej granskad” och blir inte automatiskt godkända.
 
+### Automatisk dokumentnumrering
+
+- Nya dokument får automatiskt ett löpnummer per dokumentkategori om dokumentadministratören lämnar dokumentnummerfältet tomt.
+- Prefix och format:
+  - Rutin: `RUT-001`
+  - Arbetsinstruktion: `AI-001`
+  - Blankett: `BL-001`
+  - Mall: `MALL-001`
+  - Policy: `POL-001`
+  - Övrigt: `OVR-001`
+- Räknaren lagras i `documentControl.db` och är separat per kategori.
+- Dokumentadministratören kan ange ett eget nummer. Dubbletter av dokumentnummer kontrolleras innan registrering.
+- Befintliga dokumentnummer ändras inte retroaktivt. Manuellt angivna nummer ändrar inte den automatiska räknaren.
+
 ### Steg 2 – revisionshantering och filskydd
 
 Implementerat i grenen `feature/document-control`:
