@@ -558,7 +558,7 @@ export default function DocumentControl() {
                               <textarea value={revisionForms[doc.documentId]?.changeDescription || ""} onChange={(event) => updateRevisionForm(doc.documentId, "changeDescription", event.target.value)} rows={2} maxLength={2000} required />
                             </label>
                             <label>Ny revisionsfil
-                              <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" onChange={(event) => updateRevisionForm(doc.documentId, "file", event.target.files?.[0] || null)} required />
+                              <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.md" onChange={(event) => updateRevisionForm(doc.documentId, "file", event.target.files?.[0] || null)} required />
                             </label>
                             <button className="btn-primary" type="submit" disabled={revisionSaving}>
                               {revisionSaving ? "Sparar..." : "Spara ny revision"}
