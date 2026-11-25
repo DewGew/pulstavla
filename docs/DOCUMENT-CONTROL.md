@@ -139,3 +139,23 @@ Påbörjat i grenen `feature/document-control`:
 Kvarstår:
 - Godkännande/publicering, läsbekräftelser och granskningsdatum är fortfarande inte implementerade.
 - Ingen build eller runtime-test av mallflödet är verifierad.
+
+
+## Steg 4 – granskning och godkännande
+
+Implementerat i `feature/document-control`:
+- Dokumentadministratör väljer en eller flera granskare och en eller flera godkännare per dokument/revision.
+- När dokumentet skickas till granskning får samtliga granskare en intern avisering.
+- Varje utsedd granskare lämnar ett eget beslut: godkänd granskning eller begär ändring, med valfri kommentar.
+- Först när samtliga granskare godkänt går dokumentet vidare till godkännandesteg.
+- Utsedda godkännare får avisering och lämnar individuella beslut.
+- Först när samtliga godkännare godkänt markeras dokumentet som `published`.
+- Avslag i något steg stoppar flödet och återför dokumentet till `needs-review`. En administratör kan därefter starta ett nytt flöde.
+- Beslut är knutna till aktuell revisionsbeteckning och fil. Ett gammalt flöde kan inte användas för en ny revision.
+- Händelser, beslut, kommentarer, användare och tidpunkter sparas i `documentControl.db` som revisions-/auditspår.
+- Backend kontrollerar tilldelning och behörighet; det räcker inte att en användare visar granskningsknappar i webbläsaren.
+- Mallfiler i Markdown kan även laddas upp som en ny revision.
+
+Statusflöde: `needs-review` → `in-review` → `awaiting-approval` → `published`. Avslag återför till `needs-review`.
+
+Viktigt: `published` betyder att alla tilldelade godkännare har godkänt den aktuella revisionen. Funktionen är inte en juridisk e-signatur och ISO 9001 kräver inte en viss elektronisk signeringsmetod. Organisationen behöver fortfarande bestämma vilka roller som får granska/godkänna och hur dokument görs tillgängliga i verksamheten.
