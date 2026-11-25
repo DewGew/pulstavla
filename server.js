@@ -2684,8 +2684,8 @@ function documentControlEvent(documentId, eventType, details, req, callback) {
 }
 
 app.get("/document-control/users", requireAuth, requireAdmin, (req, res) => {
-  usersDB.find({}, (err, users) => {
-    if (err) return res.status(500).json({ error: "Kunde inte läsa användarlistan." });
+  usersDB.find({ role: { $in: ["admin", "suAdmin"] } }, (err, users) => {
+    if (err) return res.status(500).json({ error: "Kunde inte läsa administratörslistan." });
     res.json(users.map(({ _id, username, name, role }) => ({
       id: _id, username, name: name || username, role
     })));
@@ -2719,7 +2719,9 @@ app.post("/document-control/documents/:documentId/submit-review", requireAuth, r
   const assignedIds = [...new Set([...reviewerIds, ...approverIds])];
   usersDB.find({ _id: { $in: assignedIds } }, (usersErr, users) => {
     if (usersErr) return res.status(500).json({ error: "Kunde inte kontrollera valda användare." });
-    if (users.length !== assignedIds.length) return res.status(400).json({ error: "En eller flera valda användare är ogiltiga." });
+    if (users.length !== assignedIds.length || users.some((user) => !["admin", "suAdmin"].includes(user.role))) {
+      return res.status(400).json({ error: "Granskare och godkännare måste vara administratörer." });
+    }
     documentControlDB.findOne({ documentId: req.params.documentId, recordType: { $nin: ["revision", "counter", "event"] } }, (docErr, doc) => {
       if (docErr) return res.status(500).json({ error: "Kunde inte läsa dokumentet." });
       if (!doc) return res.status(404).json({ error: "Dokumentet hittades inte." });
