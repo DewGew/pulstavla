@@ -122,3 +122,20 @@ Kvarstår:
 6. Granskningsintervall, aviseringar och översikter.
 
 Varje steg ska kunna testas separat. Ingen databasmigrering, massimport eller ändring av befintliga mätprotokoll ska göras utan separat verifiering och godkännande.
+
+
+## Steg 3 – skapa dokument från färdiga mallar
+
+Påbörjat i grenen `feature/document-control`:
+- Dokumentadministratörer kan skapa nya utkast från sex malltyper: Kvalitetshandbok, Policy, Rutin, Arbetsinstruktion, Allmän instruktion samt Blankett/Mall.
+- Blankett och Mall använder samma grundmall men får olika dokumentkategori och automatiskt prefix.
+- Mallarna innehåller rubriker för relevanta avsnitt som användaren fyller i.
+- Pulstavla skapar en separat Markdown-fil i den befintliga dokumentmappen, registrerar metadata och tilldelar automatiskt dokumentnummer.
+- Nya mallbaserade dokument får revision `00`, status `needs-review` och en revisionshistorikpost.
+- Utkastet märks tydligt som ej granskat/godkänt. Funktionen publicerar eller godkänner inte dokument.
+- Tomma avsnitt får en tydlig kompletteringsmarkering.
+- Befintliga filer och registerposter påverkas inte.
+
+Kvarstår:
+- Godkännande/publicering, läsbekräftelser och granskningsdatum är fortfarande inte implementerade.
+- Ingen build eller runtime-test av mallflödet är verifierad.
