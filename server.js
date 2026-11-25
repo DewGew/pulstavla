@@ -2455,7 +2455,7 @@ app.post("/document-control/documents/from-template", requireAuth, requireAdmin,
         const fileName = "document-" + documentId + ".md";
         const now = new Date().toISOString();
         const createdBy = req.user.name || req.user.username;
-        const markdownCell = (value) => String(value || "").replace(/\\|/g, "\\\\|").replace(/[\\r\\n]+/g, " ").trim();
+        const markdownCell = (value) => String(value || "").replace(/\|/g, "\\|").replace(/[\r\n]+/g, " ").trim();
         const markdown = [
           "# " + markdownCell(title), "",
           "| Dokumentnummer | " + markdownCell(documentNumber) + " |",
@@ -2463,10 +2463,10 @@ app.post("/document-control/documents/from-template", requireAuth, requireAdmin,
           "| Dokumenttyp | " + markdownCell(category) + " |",
           "| Revision | 00 |",
           "| Status | Utkast – ej granskat eller godkänt |",
-          "| Dokumentägare | " + (owner || "Ej angiven") + " |",
+          "| Dokumentägare | " + markdownCell(owner || "Ej angiven") + " |",
           "| Skapat | " + now.slice(0, 10) + " |",
-          "| Upprättat av | " + createdBy + " |",
-          description ? "| Beskrivning | " + description.replace(/\|/g, "\\|").replace(/[\r\n]+/g, " ") + " |" : "",
+          "| Upprättat av | " + markdownCell(createdBy) + " |",
+          description ? "| Beskrivning | " + markdownCell(description) + " |" : "",
           "", "---", "", content, "", "---", "",
           "> Detta dokument är ett utkast skapat från Pulstavlas dokumentmall. Det får inte betraktas som godkänt eller gällande förrän företagets granskning och godkännande har genomförts."
         ].filter((line) => line !== null).join("\n");
