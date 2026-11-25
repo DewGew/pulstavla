@@ -23,7 +23,8 @@ export default function LunchWidget({footerOrder, price}) {
       const res = await apiFetch(`/lunch`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      setImageUrl(`${API_URL}${data.imageUrl}?v=${data.week}-${data.year}`);
+      const cacheKey = encodeURIComponent(data.fetchedAt || Date.now());
+      setImageUrl(`${API_URL}${data.imageUrl}?v=${cacheKey}`);
     } catch {
       setError("Kunde inte hämta veckans lunch");
     } finally {
