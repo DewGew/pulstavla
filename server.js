@@ -2390,7 +2390,7 @@ const documentControlAllowedExtensions = new Set([
 
 // List registered records and existing files that have not yet been registered.
 app.get("/document-control/documents", requireAuth, (req, res) => {
-  documentControlDB.find({ recordType: { $nin: ["revision", "counter"] } }).sort({ updatedAt: -1 }).exec((dbErr, documents) => {
+  documentControlDB.find({ recordType: { $nin: ["revision", "counter", "event"] } }).sort({ updatedAt: -1 }).exec((dbErr, documents) => {
     if (dbErr) return res.status(500).json({ error: "Kunde inte läsa dokumentregistret." });
 
     fs.readdir(docsDir, { withFileTypes: true }, (fileErr, entries) => {
@@ -2606,7 +2606,7 @@ app.post("/document-control/documents", requireAuth, requireAdmin, (req, res) =>
 
 // Read revision history for one registered document.
 app.get("/document-control/documents/:documentId/revisions", requireAuth, (req, res) => {
-  documentControlDB.findOne({ documentId: req.params.documentId, recordType: { $ne: "revision" } }, (docErr, documentRecord) => {
+  documentControlDB.findOne({ documentId: req.params.documentId, recordType: { $nin: ["revision", "counter", "event"] } }, (docErr, documentRecord) => {
     if (docErr) return res.status(500).json({ error: "Kunde inte läsa dokumentet." });
     if (!documentRecord) return res.status(404).json({ error: "Dokumentet hittades inte." });
     documentControlDB.find({ recordType: "revision", documentId: req.params.documentId }).sort({ createdAt: -1 }).exec((historyErr, revisions) => {
