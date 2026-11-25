@@ -764,6 +764,17 @@ const LUNCH_META_PATH = path.join(uploadDir, "lunch-meta.json");
 // cache filename is built dynamically from whatever the source actually is —
 // see refreshLunchCache().
 const LUNCH_IMAGE_BASENAME = "lunch-current";
+const LUNCH_CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+let lunchRefreshPromise = null;
+
+function refreshLunchCacheOnce() {
+  if (!lunchRefreshPromise) {
+    lunchRefreshPromise = refreshLunchCache().finally(() => {
+      lunchRefreshPromise = null;
+    });
+  }
+  return lunchRefreshPromise;
+}
 
 async function refreshLunchCache() {
   const res = await fetch(LUNCH_SOURCE_URL);
@@ -839,13 +850,20 @@ app.get("/lunch", async (req, res) => {
 
   try {
     const meta = await readLunchMeta();
-    const isCurrent = meta && meta.week === currentWeek && meta.year === currentYear;
+    const fetchedAt = meta?.fetchedAt ? Date.parse(meta.fetchedAt) : NaN;
+    const isCurrent = meta &&
+      meta.week === currentWeek &&
+      meta.year === currentYear &&
+      Number.isFinite(fetchedAt) &&
+      Date.now() - fetchedAt < LUNCH_CACHE_MAX_AGE_MS;
 
     if (isCurrent) {
       return res.json({ imageUrl: `/lunch-image/${meta.imageFile}`, ...meta });
     }
 
-    const freshMeta = await refreshLunchCache();
+    // Refresh even during the same week, since the source may update its menu.
+    // Share one in-flight refresh between simultaneous dashboard requests.
+    const freshMeta = await refreshLunchCacheOnce();
     res.json({ imageUrl: `/lunch-image/${freshMeta.imageFile}`, ...freshMeta });
   } catch (err) {
     console.warn("Kunde inte uppdatera lunch-cache:", err.message);
