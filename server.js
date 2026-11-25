@@ -2455,11 +2455,12 @@ app.post("/document-control/documents/from-template", requireAuth, requireAdmin,
         const fileName = "document-" + documentId + ".md";
         const now = new Date().toISOString();
         const createdBy = req.user.name || req.user.username;
+        const markdownCell = (value) => String(value || "").replace(/\\|/g, "\\\\|").replace(/[\\r\\n]+/g, " ").trim();
         const markdown = [
-          "# " + title, "",
-          "| Dokumentnummer | " + documentNumber + " |",
+          "# " + markdownCell(title), "",
+          "| Dokumentnummer | " + markdownCell(documentNumber) + " |",
           "| --- | --- |",
-          "| Dokumenttyp | " + category + " |",
+          "| Dokumenttyp | " + markdownCell(category) + " |",
           "| Revision | 00 |",
           "| Status | Utkast – ej granskat eller godkänt |",
           "| Dokumentägare | " + (owner || "Ej angiven") + " |",
@@ -2488,7 +2489,11 @@ app.post("/document-control/documents/from-template", requireAuth, requireAdmin,
               createdAt: now, createdBy, isInitial: true
             };
             documentControlDB.insert(revisionRecord, (revisionErr) => {
-              if (revisionErr) return res.status(500).json({ error: "Dokumentet skapades men revisionshistoriken kunde inte sparas." });
+              if (revisionErr) {
+                return documentControlDB.remove({ documentId }, {}, () => {
+                  fs.unlink(filePath, () => res.status(500).json({ error: "Dokumentet kunde inte färdigställas i revisionshistoriken." }));
+                });
+              }
               res.status(201).json({ success: true, document: record });
             });
           });
