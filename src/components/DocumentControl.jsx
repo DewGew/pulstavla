@@ -206,8 +206,18 @@ export default function DocumentControl() {
 
           <div className="document-control-form-grid">
             <label>
-              Dokumentnummer
-              <input name="documentNumber" value={form.documentNumber} onChange={updateField} maxLength={80} />
+              Eget dokumentnummer (valfritt)
+              <input
+                name="documentNumber"
+                value={form.documentNumber}
+                onChange={updateField}
+                maxLength={80}
+                placeholder="Lämna tomt för automatiskt nummer"
+              />
+              <small className="document-control-help">
+                Om fältet lämnas tomt skapas nästa nummer automatiskt utifrån dokumentkategori.
+                Dokumentadministratören kan ange ett eget nummer vid behov.
+              </small>
             </label>
             <label>
               Dokumentnamn *
