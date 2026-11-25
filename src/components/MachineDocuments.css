@@ -216,3 +216,8 @@
   .app.ultra4k :is(.documents select):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
   .app.ultra4k :is(.documents textarea):not(.nav button):not(.nav button *):not(.nav-dropdown-menu button):not(.nav-dropdown-menu button *):not(.dash-toolbar button):not(.dash-toolbar button *):not(.dash-tabs button):not(.dash-tabs button *):not(.dash-btn):not(.dash-btn *) { font-size: 1.8rem !important; }
 }
+
+
+.markdown-preview { min-width: min(900px, 75vw); }
+.markdown-preview h2 { margin: 0 36px 16px 0; text-align: left; }
+.markdown-preview pre { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; line-height: 1.6; background: var(--bg-cell); border: 1px solid var(--panel-border); border-radius: 6px; padding: 18px; max-height: 75vh; overflow: auto; }
