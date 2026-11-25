@@ -1133,6 +1133,14 @@ export default function Matprotokoll() {
                     style={{ width: "100%", boxSizing: "border-box" }}
                   >
                     <option value="">{t.valjInstrument}</option>
+                    {row.matinstrumentId && !measuringTools.some((tool) => tool._id === row.matinstrumentId) && (
+                      <option value={row.matinstrumentId}>
+                        {(row.matinstrumentSnapshot?.toolNumber && row.matinstrumentSnapshot?.type)
+                          ? row.matinstrumentSnapshot.toolNumber + " – " + row.matinstrumentSnapshot.type
+                          : row.matinstrument || (lang === "sv" ? "Sparat mätinstrument" : "Saved measuring instrument")}
+                        {lang === "sv" ? " (inte i din instrumentlista)" : " (not in your instrument list)"}
+                      </option>
+                    )}
                     <optgroup label={lang === "sv" ? "Registrerade mätverktyg" : "Registered measuring tools"}>
                       {measuringTools.map((tool) => (
                         <option key={tool._id} value={tool._id}>
