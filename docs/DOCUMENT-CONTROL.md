@@ -81,7 +81,10 @@ Påbörjat i grenen `feature/document-control`:
 
 - Nya dokument får automatiskt ett löpnummer per dokumentkategori om dokumentadministratören lämnar dokumentnummerfältet tomt.
 - Prefix och format:
+  - Kvalitetshandbok: `KHB-001`
+  - Policy: `POL-001`
   - Rutin: `RUT-001`
+  - Allmän instruktion: `AIN-001`
   - Arbetsinstruktion: `AI-001`
   - Blankett: `BL-001`
   - Mall: `MALL-001`
