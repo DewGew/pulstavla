@@ -234,3 +234,22 @@
 @media (max-width: 700px) {
   .document-control-decision { grid-template-columns: 1fr; }
 }
+
+.document-control-existing {
+  margin: 14px 0 22px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--control-radius);
+  background: var(--bg);
+}
+.document-control-existing > summary {
+  padding: 12px 14px;
+  color: var(--header-text);
+  cursor: pointer;
+  font-weight: 600;
+}
+.document-control-existing[open] > .document-control-form {
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--panel-border);
+  border-radius: 0;
+}
