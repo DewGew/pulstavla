@@ -79,6 +79,13 @@
   background: var(--hover-bg);
   white-space: nowrap;
 }
+.document-control-latest-revision-label {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted-text);
+  font-size: .8rem;
+  line-height: 1.35;
+}
 .document-control-empty { text-align: center; color: var(--muted-text); padding: 22px !important; }
 .document-control-message { color: var(--text) !important; padding: 10px; background: var(--hover-bg); border-radius: var(--cell-radius); }
 .document-control-error { color: #b42318 !important; padding: 10px; background: rgba(180, 35, 24, .08); border-radius: var(--cell-radius); }
