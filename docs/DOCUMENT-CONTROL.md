@@ -2,7 +2,7 @@
 
 ## Mål
 
-Införa dokumentstyrning som stödjer arbetet enligt ISO 9001 utan att flytta eller skriva över befintliga dokument. Funktionen ska använda Pulstavlans befintliga dokumentlagring och kunna koppla färdiga mätprotokoll till styrande instruktioner.
+Införa dokumentstyrning som stödjer arbetet enligt ISO 9001. Nya styrda dokument och deras revisioner laddas upp till en separat lagringsmapp, skild från vanliga dokument. Befintliga filer ska fortsatt kunna registreras utan att flyttas eller skrivas över. Funktionen ska kunna koppla färdiga mätprotokoll till styrande instruktioner.
 
 Systemstödet hjälper till att hantera dokumenterad information men ersätter inte företagets egna beslut om ansvar, godkännande, åtkomst och lagringstider.
 
@@ -72,6 +72,10 @@ Datamodellen är ett förslag och ska verifieras mot befintliga API:er och behö
 Påbörjat i grenen `feature/document-control`:
 - Separat NeDB-fil `db/documentControl.db` för registermetadata.
 - API för att lista registrerade dokument och befintliga dokumentfiler som ännu inte registrerats.
+- Egen uppladdningsfunktion för nya styrda dokument med separat lagring i `document-control/`, utanför den vanliga dokumentmappen.
+- Revisionsfiler för nya och befintliga styrda dokument lagras i samma separata dokumentstyrningsmapp. Vanliga dokumentlistan påverkas inte.
+- Nedladdning av dokumentstyrningsfiler sker via en separat, autentiserad endpoint som endast lämnar ut filer som refereras av dokumentregistret.
+- Möjligheten att registrera en befintlig fil från vanliga Dokument finns kvar under ett separat, utfällbart avsnitt.
 - API för administratörer att registrera metadata för en fil som redan finns i dokumentmappen.
 - En ny vy ”Dokumentstyrning” med sökning och registreringsformulär.
 - Registrering ändrar inte, flyttar eller kopierar den befintliga filen.
@@ -97,7 +101,7 @@ Påbörjat i grenen `feature/document-control`:
 ### Steg 2 – revisionshantering och filskydd
 
 Implementerat i grenen `feature/document-control`:
-- Ny revision laddas upp som en separat fil med ett unikt internt filnamn. Befintliga filer skrivs inte över.
+- Ny revision laddas upp som en separat fil med ett unikt internt filnamn. Befintliga filer skrivs inte över. Nya revisionsfiler lagras i `document-control/`.
 - Revisionshistoriken sparar revisionsbeteckning, ändringsbeskrivning, filreferens, tidpunkt och användare.
 - Dokumentposten pekar på aktuell fil och aktuell revision; en ny revision återställer status till `needs-review`.
 - Ursprunglig filreferens bevaras som registreringens baslinje.
@@ -142,3 +146,17 @@ Implementerat i `feature/document-control`:
 Statusflöde: `needs-review` → `in-review` → `awaiting-approval` → `published`. Avslag återför till `needs-review`.
 
 Viktigt: `published` betyder att alla tilldelade godkännare har godkänt den aktuella revisionen. Funktionen är inte en juridisk e-signatur och ISO 9001 kräver inte en viss elektronisk signeringsmetod. Organisationen behöver fortfarande bestämma vilka roller som får granska/godkänna och hur dokument görs tillgängliga i verksamheten.
+
+
+## Separat uppladdning för dokumentstyrning
+
+Implementerat i `feature/document-control`:
+- Administratörer kan ladda upp ett nytt styrt dokument direkt i Dokumentstyrning.
+- Uppladdade originalfiler lagras i `document-control/` under programmets datakatalog och visas inte i vanliga Dokument.
+- Dokumentnummer genereras automatiskt per kategori om ett eget nummer inte anges.
+- Filtyp kontrolleras mot tillåten filändelse och filsignatur; maximal filstorlek är 5 MB.
+- Nya revisioner lagras i samma separata mapp. Gällande publicerad revision ändras först när godkännandeflödet är slutfört.
+- Befintliga dokument kan fortfarande registreras från vanliga dokumentmappen via det utfällbara avsnittet ”Registrera en fil som redan finns under Dokument”.
+- Nedladdning av kontrollerade filer går via en autentiserad endpoint som verifierar att filen tillhör ett registrerat dokument eller en revision.
+
+Äldre registrerade filer och revisioner fortsätter att läsas från den tidigare dokumentmappen. Ingen befintlig fil flyttas automatiskt.
