@@ -2634,7 +2634,7 @@ app.get("/document-control/documents/:documentId/latest-download", requireAuth, 
 
     documentControlDB.findOne({ recordType: "revision", documentId: documentRecord.documentId, fileName }, (revisionErr, revisionRecord) => {
       if (revisionErr) return res.status(500).json({ error: "Kunde inte läsa revisionsfilen." });
-      sendFile(revisionRecord?.originalFileName || fileName);
+      sendFile(revisionRecord?.originalFileName || documentRecord.originalFileName || fileName);
     });
   });
 });
