@@ -40,9 +40,10 @@ const DATA_DIR = path.resolve(process.env.PULSTAVLA_DATA_DIR || process.cwd());
 const DB_DIR = path.join(DATA_DIR, "db");
 const uploadDir = path.join(DATA_DIR, "uploads");
 const docsDir = path.join(DATA_DIR, "docs");
+const documentControlDir = path.join(DATA_DIR, "document-control");
 const distDir = path.join(__dirname, "dist");
 
-for (const directory of [DB_DIR, uploadDir, docsDir]) {
+for (const directory of [DB_DIR, uploadDir, docsDir, documentControlDir]) {
   fs.mkdirSync(directory, { recursive: true });
 }
 
@@ -2410,6 +2411,106 @@ app.get("/document-control/documents", requireAuth, (req, res) => {
   });
 });
 
+// Upload a new controlled document directly into its separate storage directory.
+app.post("/document-control/documents/upload", requireAuth, requireAdmin, (req, res) => {
+  const controlledStorage = multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, documentControlDir),
+    filename: (_req, file, cb) => cb(null, "controlled-" + randomUUID() + path.extname(file.originalname).toLowerCase()),
+  });
+  const controlledUpload = multer({ storage: controlledStorage, limits: { fileSize: 5 * 1024 * 1024 } }).single("file");
+  controlledUpload(req, res, (uploadErr) => {
+    if (uploadErr) return res.status(uploadErr.code === "LIMIT_FILE_SIZE" ? 413 : 400).json({ error: uploadErr.code === "LIMIT_FILE_SIZE" ? "Filen får vara högst 5 MB." : uploadErr.message });
+    if (!req.file) return res.status(400).json({ error: "Välj en dokumentfil." });
+    validateUploadedFile(documentFileTypes)(req, res, () => {
+      const title = String(req.body?.title || "").trim();
+      const category = String(req.body?.category || "").trim();
+      const requestedNumber = String(req.body?.documentNumber || "").trim();
+      const owner = String(req.body?.owner || "").trim();
+      const description = String(req.body?.description || "").trim();
+      if (!title || !category || title.length > 200 || category.length > 80 || requestedNumber.length > 80 || owner.length > 120 || description.length > 1000) {
+        fs.unlink(req.file.path, () => {});
+        return res.status(400).json({ error: "Ange dokumentnamn och kategori. Kontrollera även maxlängderna för övriga fält." });
+      }
+
+      const createRecord = (documentNumber) => {
+        documentControlDB.findOne({ documentNumber }, (findErr, existing) => {
+          if (findErr || existing) {
+            fs.unlink(req.file.path, () => {});
+            return res.status(findErr ? 500 : 409).json({ error: findErr ? "Kunde inte kontrollera dokumentnumret." : "Dokumentnumret används redan." });
+          }
+          const now = new Date().toISOString();
+          const record = {
+            documentId: randomUUID(), documentNumber, title, category, owner, description,
+            fileName: req.file.filename, initialFileName: req.file.filename,
+            currentFileName: req.file.filename, fileStorage: "document-control",
+            currentFileStorage: "document-control",
+            originalFileName: Buffer.from(req.file.originalname, "latin1").toString("utf8"),
+            status: "needs-review", revision: "", createdAt: now, updatedAt: now,
+            createdBy: req.user.name || req.user.username,
+            updatedBy: req.user.name || req.user.username,
+          };
+          documentControlDB.insert(record, (insertErr, saved) => {
+            if (insertErr) {
+              fs.unlink(req.file.path, () => {});
+              return res.status(500).json({ error: "Filen laddades upp men dokumentposten kunde inte sparas." });
+            }
+            res.status(201).json(saved);
+          });
+        });
+      };
+
+      if (requestedNumber) return createRecord(requestedNumber);
+      const allocateAvailableNumber = () => {
+        nextDocumentNumber(category, (numberErr, generatedNumber) => {
+          if (numberErr) {
+            fs.unlink(req.file.path, () => {});
+            return res.status(500).json({ error: "Kunde inte generera dokumentnummer." });
+          }
+          documentControlDB.findOne({ documentNumber: generatedNumber }, (checkErr, duplicate) => {
+            if (checkErr) {
+              fs.unlink(req.file.path, () => {});
+              return res.status(500).json({ error: "Kunde inte kontrollera dokumentnumret." });
+            }
+            if (duplicate) return allocateAvailableNumber();
+            createRecord(generatedNumber);
+          });
+        });
+      };
+      allocateAvailableNumber();
+    });
+  });
+});
+
+// Download a file only when it is referenced by a registered controlled document or revision.
+app.get("/document-control/files/:fileName", requireAuth, (req, res) => {
+  const fileName = req.params.fileName;
+  if (!fileName || path.basename(fileName) !== fileName || !documentControlAllowedExtensions.has(path.extname(fileName).toLowerCase())) {
+    return res.sendStatus(404);
+  }
+  documentControlDB.findOne({ recordType: "revision", fileName }, (revisionErr, revision) => {
+    if (revisionErr) return res.status(500).json({ error: "Kunde inte läsa revisionsfilen." });
+    if (revision) {
+      const baseDir = revision.fileStorage === "document-control" ? documentControlDir : docsDir;
+      const filePath = path.join(baseDir, fileName);
+      if (!fs.existsSync(filePath)) return res.status(404).json({ error: "Filen saknas på servern." });
+      return res.download(filePath, path.basename(revision.originalFileName || fileName));
+    }
+    documentControlDB.findOne({ recordType: { $nin: ["revision", "counter", "event"] }, $or: [
+      { fileName }, { initialFileName: fileName }, { currentFileName: fileName }, { publishedFileName: fileName }
+    ] }, (docErr, doc) => {
+      if (docErr) return res.status(500).json({ error: "Kunde inte läsa dokumentet." });
+      if (!doc) return res.sendStatus(404);
+      const inControlledStore = (doc.currentFileName === fileName && doc.currentFileStorage === "document-control") ||
+        (doc.publishedFileName === fileName && doc.publishedFileStorage === "document-control") ||
+        (doc.initialFileName === fileName && doc.fileStorage === "document-control");
+      const baseDir = inControlledStore ? documentControlDir : docsDir;
+      const filePath = path.join(baseDir, fileName);
+      if (!fs.existsSync(filePath)) return res.status(404).json({ error: "Filen saknas på servern." });
+      res.download(filePath, path.basename(doc.originalFileName || fileName));
+    });
+  });
+});
+
 // Register metadata for an existing file. This does not move, copy, or modify the file.
 const DOCUMENT_NUMBER_PREFIXES = {
   "Rutin": "RUT",
@@ -2523,7 +2624,8 @@ app.get("/document-control/documents/:documentId/latest-download", requireAuth, 
     }
 
     const sendFile = (downloadName) => {
-      const filePath = path.join(docsDir, fileName);
+      const isControlledFile = (documentRecord.publishedFileName === fileName && documentRecord.publishedFileStorage === "document-control") || (documentRecord.initialFileName === fileName && documentRecord.fileStorage === "document-control");
+      const filePath = path.join(isControlledFile ? documentControlDir : docsDir, fileName);
       if (!fs.existsSync(filePath)) return res.status(404).json({ error: "Den senaste godkända dokumentfilen saknas på servern." });
       res.download(filePath, path.basename(downloadName || fileName), (downloadErr) => {
         if (downloadErr && !res.headersSent) res.status(500).json({ error: "Kunde inte ladda ner dokumentfilen." });
@@ -2553,7 +2655,7 @@ app.get("/document-control/documents/:documentId/revisions", requireAuth, (req, 
 // Upload a new revision to a unique filename; never overwrite an existing revision.
 app.post("/document-control/documents/:documentId/revisions", requireAuth, requireAdmin, (req, res) => {
   const revisionStorage = multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, docsDir),
+    destination: (_req, _file, cb) => cb(null, documentControlDir),
     filename: (_req, file, cb) => cb(null, "revision-" + req.params.documentId + "-" + Date.now() + "-" + randomUUID() + path.extname(file.originalname).toLowerCase()),
   });
   const revisionUpload = multer({ storage: revisionStorage, limits: { fileSize: 5 * 1024 * 1024 } }).single("file");
@@ -2578,10 +2680,10 @@ app.post("/document-control/documents/:documentId/revisions", requireAuth, requi
             return res.status(duplicateErr ? 500 : 409).json({ error: duplicateErr ? "Kunde inte kontrollera revisionsnumret." : "Revisionsbeteckningen finns redan för dokumentet." });
           }
           const now = new Date().toISOString();
-          const revisionRecord = { recordType: "revision", revisionId: randomUUID(), documentId: req.params.documentId, revision, fileName: req.file.filename, originalFileName: Buffer.from(req.file.originalname, "latin1").toString("utf8"), changeDescription, createdAt: now, createdBy: req.user.name || req.user.username };
+          const revisionRecord = { recordType: "revision", revisionId: randomUUID(), documentId: req.params.documentId, revision, fileName: req.file.filename, fileStorage: "document-control", originalFileName: Buffer.from(req.file.originalname, "latin1").toString("utf8"), changeDescription, createdAt: now, createdBy: req.user.name || req.user.username };
           documentControlDB.insert(revisionRecord, (insertErr) => {
             if (insertErr) { fs.unlink(req.file.path, () => {}); return res.status(500).json({ error: "Kunde inte spara revisionen." }); }
-            documentControlDB.update({ documentId: req.params.documentId, recordType: { $ne: "revision" } }, { $set: { currentFileName: req.file.filename, revision, status: "needs-review", updatedAt: now, updatedBy: req.user.name || req.user.username } }, {}, (updateErr) => {
+            documentControlDB.update({ documentId: req.params.documentId, recordType: { $ne: "revision" } }, { $set: { currentFileName: req.file.filename, currentFileStorage: "document-control", revision, status: "needs-review", updatedAt: now, updatedBy: req.user.name || req.user.username } }, {}, (updateErr) => {
               if (updateErr) return res.status(500).json({ error: "Revisionen sparades men dokumentets aktuella revision kunde inte uppdateras." });
               res.status(201).json(revisionRecord);
             });
@@ -2666,6 +2768,7 @@ app.post("/document-control/documents/:documentId/submit-review", requireAuth, r
       const workflow = {
         revision: doc.revision || "",
         fileName: doc.currentFileName || doc.fileName,
+        fileStorage: doc.currentFileStorage || doc.fileStorage || "documents",
         reviewerIds, approverIds, reviews: {}, approvals: {},
         submittedAt: now, submittedBy: req.user.id,
         submittedByName: req.user.name || req.user.username
@@ -2745,7 +2848,7 @@ app.post("/document-control/documents/:documentId/approval", requireAuth, (req, 
     const nextStatus = rejected ? "needs-review" : allApproved ? "published" : "awaiting-approval";
     const nextWorkflow = { ...workflow, approvals, approvedAt: allApproved ? now : workflow.approvedAt || null };
     documentControlDB.update({ documentId: doc.documentId, status: "awaiting-approval" }, {
-      $set: { workflow: nextWorkflow, status: nextStatus, updatedAt: now, updatedBy: req.user.name || req.user.username, ...(allApproved ? { publishedAt: now, publishedRevision: workflow.revision, publishedFileName: workflow.fileName } : {}) }
+      $set: { workflow: nextWorkflow, status: nextStatus, updatedAt: now, updatedBy: req.user.name || req.user.username, ...(allApproved ? { publishedAt: now, publishedRevision: workflow.revision, publishedFileName: workflow.fileName, publishedFileStorage: workflow.fileStorage || "documents" } : {}) }
     }, {}, (updateErr, changed) => {
       if (updateErr) return res.status(500).json({ error: "Kunde inte spara godkännandebeslutet." });
       if (!changed) return res.status(409).json({ error: "Dokumentets status har ändrats. Uppdatera sidan." });
