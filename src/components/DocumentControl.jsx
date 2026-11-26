@@ -207,6 +207,30 @@ export default function DocumentControl() {
     } catch (err) { setError(err.message || "Kunde inte ladda ner revisionsfilen."); }
   };
 
+  const downloadLatestRevision = async (doc) => {
+    try {
+      const response = await apiFetch("/document-control/documents/" + encodeURIComponent(doc.documentId) + "/latest-download", {
+        headers: { Authorization: "Bearer " + (localStorage.getItem("token") || "") },
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "Kunde inte hämta den senaste godkända revisionen.");
+      }
+      const blobUrl = URL.createObjectURL(await response.blob());
+      const disposition = response.headers.get("content-disposition") || "";
+      const encodedName = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+      const plainName = disposition.match(/filename="?([^";]+)"?/i)?.[1];
+      const downloadName = encodedName ? decodeURIComponent(encodedName) : (plainName || doc.fileName || "dokument");
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = downloadName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) { setError(err.message || "Kunde inte ladda ner dokumentfilen."); }
+  };
+
   const updateRevisionForm = (documentId, field, value) => {
     setRevisionForms((previous) => ({ ...previous, [documentId]: { ...(previous[documentId] || {}), [field]: value } }));
   };
@@ -337,7 +361,8 @@ export default function DocumentControl() {
                 <th>Namn</th>
                 <th>Kategori</th>
                 <th>Ansvarig</th>
-                <th>Fil</th>
+                <th>Registrerad fil</th>
+                <th>Senaste godkända revision</th>
                 <th>Status</th>
                 <th>Historik</th>
               </tr>
@@ -351,6 +376,14 @@ export default function DocumentControl() {
                   <td>{doc.category}</td>
                   <td>{doc.owner || "—"}</td>
                   <td>{doc.fileName}</td>
+                  <td>
+                    <button type="button" className="btn-secondary" onClick={() => downloadLatestRevision(doc)}>
+                      Ladda ner senaste
+                    </button>
+                    <small className="document-control-latest-revision-label">
+                      {doc.publishedRevision ? "Publicerad Rev. " + doc.publishedRevision : "Ursprungsfil (ännu ingen publicerad revision)"}
+                    </small>
+                  </td>
                   <td><span className="document-control-status">{({ "needs-review": "Ej granskad", "in-review": "Under granskning", "awaiting-approval": "Väntar på godkännande", published: "Godkänd / publicerad" })[doc.status] || doc.status || "Ej granskad"}</span></td>
                   <td><button type="button" className="btn-secondary" onClick={() => loadRevisions(doc.documentId)}>
                     {expandedDocumentId === doc.documentId ? "Dölj" : "Revisioner"}
@@ -358,7 +391,7 @@ export default function DocumentControl() {
                 </tr>
                 {expandedDocumentId === doc.documentId && (
                   <tr key={doc.documentId + "-history"}>
-                    <td colSpan="7">
+                    <td colSpan="8">
                       <div className="document-control-revisions">
                         <h4>Revisionshistorik – {doc.title}</h4>
                         {!revisionData[doc.documentId] ? <p>Hämtar historik...</p> : (
@@ -459,7 +492,7 @@ export default function DocumentControl() {
                 </Fragment>
               ))}
               {visibleDocuments.length === 0 && (
-                <tr><td colSpan="7" className="document-control-empty">Inga registrerade dokument hittades.</td></tr>
+                <tr><td colSpan="8" className="document-control-empty">Inga registrerade dokument hittades.</td></tr>
               )}
             </tbody>
           </table>
