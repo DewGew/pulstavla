@@ -149,6 +149,7 @@ export default function DocumentControl() {
 
   const uploadNewDocument = async (event) => {
     event.preventDefault();
+    const formElement = event.currentTarget;
     if (!newDocumentFile || !form.title.trim() || !form.category) {
       setError("Välj en fil och ange dokumentnamn samt kategori.");
       return;
@@ -172,7 +173,7 @@ export default function DocumentControl() {
       setMessage(data.documentNumber + " har laddats upp till Dokumentstyrning och är ännu inte granskat eller godkänt.");
       setForm({ documentNumber: "", title: "", category: "Arbetsinstruktion", owner: "", description: "", fileName: "" });
       setNewDocumentFile(null);
-      event.currentTarget.reset();
+      formElement.reset();
       await loadRegister();
     } catch (err) {
       setError(err.message || "Uppladdningen misslyckades.");
