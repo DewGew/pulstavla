@@ -21,6 +21,8 @@ export default function DocumentControl() {
   const [workflowAssignments, setWorkflowAssignments] = useState({});
   const [workflowComments, setWorkflowComments] = useState({});
   const [workflowSaving, setWorkflowSaving] = useState(false);
+  const [uploadingDocument, setUploadingDocument] = useState(false);
+  const [newDocumentFile, setNewDocumentFile] = useState(null);
   const [form, setForm] = useState({
     documentNumber: "",
     title: "",
@@ -145,6 +147,40 @@ export default function DocumentControl() {
     }
   };
 
+  const uploadNewDocument = async (event) => {
+    event.preventDefault();
+    if (!newDocumentFile || !form.title.trim() || !form.category) {
+      setError("Välj en fil och ange dokumentnamn samt kategori.");
+      return;
+    }
+    setUploadingDocument(true); setMessage(""); setError("");
+    try {
+      const body = new FormData();
+      body.append("file", newDocumentFile);
+      body.append("documentNumber", form.documentNumber.trim());
+      body.append("title", form.title.trim());
+      body.append("category", form.category);
+      body.append("owner", form.owner.trim());
+      body.append("description", form.description.trim());
+      const response = await apiFetch("/document-control/documents/upload", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + (localStorage.getItem("token") || "") },
+        body,
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Kunde inte ladda upp dokumentet.");
+      setMessage(data.documentNumber + " har laddats upp till Dokumentstyrning och är ännu inte granskat eller godkänt.");
+      setForm({ documentNumber: "", title: "", category: "Arbetsinstruktion", owner: "", description: "", fileName: "" });
+      setNewDocumentFile(null);
+      event.currentTarget.reset();
+      await loadRegister();
+    } catch (err) {
+      setError(err.message || "Uppladdningen misslyckades.");
+    } finally {
+      setUploadingDocument(false);
+    }
+  };
+
   const registerDocument = async (event) => {
     event.preventDefault();
     setSaving(true);
@@ -194,7 +230,7 @@ export default function DocumentControl() {
 
   const downloadRevision = async (revision) => {
     try {
-      const response = await apiFetch("/documents/" + encodeURIComponent(revision.fileName), {
+      const response = await apiFetch("/document-control/files/" + encodeURIComponent(revision.fileName), {
         headers: { Authorization: "Bearer " + (localStorage.getItem("token") || "") },
       });
       if (!response.ok) throw new Error("Kunde inte hämta revisionsfilen.");
@@ -287,7 +323,47 @@ export default function DocumentControl() {
       {error && <p className="document-control-error" role="alert">{error}</p>}
 
       {canRegister && (
-        <form className="document-control-form" onSubmit={registerDocument}>
+        <form className="document-control-form" onSubmit={uploadNewDocument}>
+          <h3>Ladda upp nytt styrande dokument</h3>
+          <p>Filen sparas separat från vanliga Dokument och blir ett utkast i dokumentstyrningen. Den blir inte gällande förrän granskning och godkännande är klara.</p>
+          <label>
+            Dokumentfil *
+            <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.md" required onChange={(event) => setNewDocumentFile(event.target.files?.[0] || null)} />
+          </label>
+          <div className="document-control-form-grid">
+            <label>
+              Eget dokumentnummer (valfritt)
+              <input name="documentNumber" value={form.documentNumber} onChange={updateField} maxLength={80} placeholder="Lämna tomt för automatiskt nummer" />
+              <small className="document-control-help">Om fältet lämnas tomt skapas nästa nummer automatiskt utifrån dokumentkategori.</small>
+            </label>
+            <label>
+              Dokumentnamn *
+              <input name="title" value={form.title} onChange={updateField} required maxLength={200} />
+            </label>
+            <label>
+              Dokumentkategori *
+              <select name="category" value={form.category} onChange={updateField} required>
+                {CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}
+              </select>
+            </label>
+            <label>
+              Dokumentansvarig
+              <input name="owner" value={form.owner} onChange={updateField} maxLength={120} />
+            </label>
+          </div>
+          <label>Beskrivning / kommentar
+            <textarea name="description" value={form.description} onChange={updateField} rows={2} maxLength={1000} />
+          </label>
+          <button className="btn-primary" type="submit" disabled={uploadingDocument || !newDocumentFile || !form.title.trim()}>
+            {uploadingDocument ? "Laddar upp..." : "Ladda upp och registrera"}
+          </button>
+        </form>
+      )}
+
+      {canRegister && (
+        <details className="document-control-existing">
+          <summary>Registrera en fil som redan finns under Dokument</summary>
+          <form className="document-control-form" onSubmit={registerDocument}>
           <h3>Registrera befintligt dokument</h3>
           <p>Filen ligger kvar på sin nuvarande plats. Här lägger du endast till registeruppgifter.</p>
 
@@ -338,7 +414,8 @@ export default function DocumentControl() {
           <button className="btn-primary" type="submit" disabled={saving || !form.fileName || !form.title.trim()}>
             {saving ? "Registrerar..." : "Registrera dokument"}
           </button>
-        </form>
+          </form>
+        </details>
       )}
 
       <div className="document-control-list-header">
