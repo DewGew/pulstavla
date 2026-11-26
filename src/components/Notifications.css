@@ -43,3 +43,17 @@
 @media (max-width: 600px) {
   .notification-item-actions { width: 100%; }
 }
+
+
+/* Ultra 4K – större och jämförbar typografi med övriga sidor */
+@media screen and (min-width: 3200px) {
+  .app.ultra4k .notifications-page { font-size: 1.8rem !important; }
+  .app.ultra4k .notifications-page :is(h2, h3, p, label, legend, button, input, select, textarea) {
+    font-size: 1.8rem !important;
+  }
+  .app.ultra4k .notifications-page .notification-item-top,
+  .app.ultra4k .notifications-page .notification-item-footer,
+  .app.ultra4k .notifications-page .notifications-header p {
+    font-size: 1.2rem !important;
+  }
+}
