@@ -2510,6 +2510,33 @@ app.post("/document-control/documents", requireAuth, requireAdmin, (req, res) =>
   allocateAvailableNumber();
 });
 
+// Download the latest approved/published revision. If no revision has been published yet,
+// keep the original registered file available; an unapproved upload must never replace it.
+app.get("/document-control/documents/:documentId/latest-download", requireAuth, (req, res) => {
+  documentControlDB.findOne({ documentId: req.params.documentId, recordType: { $nin: ["revision", "counter", "event"] } }, (docErr, documentRecord) => {
+    if (docErr) return res.status(500).json({ error: "Kunde inte läsa dokumentet." });
+    if (!documentRecord) return res.status(404).json({ error: "Dokumentet hittades inte." });
+
+    const fileName = documentRecord.publishedFileName || documentRecord.initialFileName || documentRecord.fileName;
+    if (!fileName || path.basename(fileName) !== fileName || !documentControlAllowedExtensions.has(path.extname(fileName).toLowerCase())) {
+      return res.status(404).json({ error: "Det finns ingen tillgänglig dokumentfil." });
+    }
+
+    const sendFile = (downloadName) => {
+      const filePath = path.join(docsDir, fileName);
+      if (!fs.existsSync(filePath)) return res.status(404).json({ error: "Den senaste godkända dokumentfilen saknas på servern." });
+      res.download(filePath, path.basename(downloadName || fileName), (downloadErr) => {
+        if (downloadErr && !res.headersSent) res.status(500).json({ error: "Kunde inte ladda ner dokumentfilen." });
+      });
+    };
+
+    documentControlDB.findOne({ recordType: "revision", documentId: documentRecord.documentId, fileName }, (revisionErr, revisionRecord) => {
+      if (revisionErr) return res.status(500).json({ error: "Kunde inte läsa revisionsfilen." });
+      sendFile(revisionRecord?.originalFileName || fileName);
+    });
+  });
+});
+
 // Read revision history for one registered document.
 app.get("/document-control/documents/:documentId/revisions", requireAuth, (req, res) => {
   documentControlDB.findOne({ documentId: req.params.documentId, recordType: { $nin: ["revision", "counter", "event"] } }, (docErr, documentRecord) => {
