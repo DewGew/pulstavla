@@ -23,6 +23,17 @@ const formatCategory = (category) => {
   return match ? `${match.code} – ${match.label}` : String(category || "—");
 };
 
+const DOCUMENT_GROUPS = [
+  { title: "1. Policy och styrning", codes: ["POL", "KM", "ORG"] },
+  { title: "2. Processer och rutiner", codes: ["PRO", "RUT", "PLA"] },
+  { title: "3. Instruktioner och metoder", codes: ["INS", "SPE"] },
+  { title: "4. Mallar, formulär och registreringar", codes: ["MAL"] },
+  { title: "5. Externa dokument", codes: ["EXT"] },
+];
+
+const categoryCode = (category) =>
+  category && typeof category === "object" ? category.code : category;
+
 export default function DocumentControl() {
   const [documents, setDocuments] = useState([]);
   const [availableFiles, setAvailableFiles] = useState([]);
@@ -327,6 +338,23 @@ export default function DocumentControl() {
       .some((value) => String(value || "").toLowerCase().includes(filter.toLowerCase()))
   );
 
+  const documentGroups = DOCUMENT_GROUPS.map((group) => ({
+    ...group,
+    documents: visibleDocuments
+      .filter((doc) => group.codes.includes(categoryCode(doc.category)))
+      .sort((a, b) => String(a.documentNumber || "").localeCompare(String(b.documentNumber || ""), "sv", { numeric: true })),
+  })).filter((group) => group.documents.length > 0);
+
+  const uncategorizedDocuments = visibleDocuments.filter(
+    (doc) => !DOCUMENT_GROUPS.some((group) => group.codes.includes(categoryCode(doc.category)))
+  );
+  if (uncategorizedDocuments.length) {
+    documentGroups.push({
+      title: "Övriga dokument",
+      documents: uncategorizedDocuments.sort((a, b) => String(a.documentNumber || "").localeCompare(String(b.documentNumber || ""), "sv", { numeric: true })),
+    });
+  }
+
   return (
     <section className="document-control">
       <header className="document-control-header">
@@ -465,7 +493,12 @@ export default function DocumentControl() {
               </tr>
             </thead>
             <tbody>
-              {visibleDocuments.map((doc) => (
+              {documentGroups.map((group) => (
+                <Fragment key={group.title}>
+                <tr className="document-control-group-row">
+                  <th colSpan="8">{group.title} <span>({group.documents.length})</span></th>
+                </tr>
+                {group.documents.map((doc) => (
                 <Fragment key={doc.documentId}>
                 <tr>
                   <td>{doc.documentNumber || "—"}</td>
@@ -586,6 +619,8 @@ export default function DocumentControl() {
                     </td>
                   </tr>
                 )}
+                </Fragment>
+                ))}
                 </Fragment>
               ))}
               {visibleDocuments.length === 0 && (
