@@ -502,3 +502,12 @@
 .measuring-return-form label { display:flex; flex-direction:column; gap:6px; font-weight:650; }
 .measuring-return-form textarea { box-sizing:border-box; width:100%; min-height:100px; padding:10px 11px; border:1px solid var(--panel-border); border-radius:var(--control-radius); background:var(--bg-cell); color:var(--text); font:inherit; resize:vertical; }
 .measuring-return-actions { display:flex; flex-wrap:wrap; gap:8px; }
+
+.measuring-card-facts .measuring-card-comment {
+  grid-column: 1 / -1;
+  padding-top: 8px;
+  border-top: 1px solid var(--panel-border);
+}
+.measuring-card-facts .measuring-card-comment strong {
+  white-space: pre-wrap;
+}
