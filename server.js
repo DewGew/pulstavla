@@ -1500,6 +1500,7 @@ app.post("/measuring-tools", requireAuth, requireMeasuringControlAccess, (req, r
   const doc = {
     toolNumber, type, description,
     manufacturer: String(input.manufacturer || "").trim(),
+    comment: String(input.comment || "").trim().slice(0, 1000),
     range: String(input.range || "").trim(),
     location: String(input.location || "").trim(),
     controlInterval: Math.max(0, Number(input.controlInterval) || 0),
@@ -1533,6 +1534,7 @@ app.patch("/measuring-tools/:id", requireAuth, requireMeasuringControlAccess, (r
   const fields = {
     toolNumber, type, description,
     manufacturer: String(input.manufacturer || "").trim(),
+    comment: String(input.comment || "").trim().slice(0, 1000),
     range: String(input.range || "").trim(),
     location: String(input.location || "").trim(),
     controlInterval: Math.max(0, Number(input.controlInterval) || 0),
