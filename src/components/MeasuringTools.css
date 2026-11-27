@@ -497,3 +497,8 @@
   .app.ultra4k .measuring-tools .measuring-tool-number,
   .app.ultra4k .measuring-tools .measuring-status { font-size: 1.2rem !important; }
 }
+
+.measuring-return-form > p { margin:0; color:var(--muted-text); }
+.measuring-return-form label { display:flex; flex-direction:column; gap:6px; font-weight:650; }
+.measuring-return-form textarea { box-sizing:border-box; width:100%; min-height:100px; padding:10px 11px; border:1px solid var(--panel-border); border-radius:var(--control-radius); background:var(--bg-cell); color:var(--text); font:inherit; resize:vertical; }
+.measuring-return-actions { display:flex; flex-wrap:wrap; gap:8px; }

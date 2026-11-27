@@ -49,6 +49,8 @@ export default function MeasuringTools({ currentUser }) {
   const [reservationUserId, setReservationUserId] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [actionModal, setActionModal] = useState(null);
+  const [returnModal, setReturnModal] = useState(null);
+  const [returnNote, setReturnNote] = useState("");
   const [history, setHistory] = useState(null);
   const [controlUserIds, setControlUserIds] = useState([]);
   const [canRegisterControl, setCanRegisterControl] = useState(false);
@@ -231,17 +233,25 @@ export default function MeasuringTools({ currentUser }) {
     } catch (err) { setMessage(err.message); }
   };
 
-  const returnTool = async (tool) => {
-    const note = window.prompt("Kommentar vid återlämning (valfritt):", "");
-    if (note === null) return;
+  const returnTool = (tool) => {
+    setReturnNote("");
+    setReturnModal({ tool });
+  };
+
+  const submitReturn = async (event) => {
+    event.preventDefault();
+    if (!returnModal?.tool) return;
+    const tool = returnModal.tool;
     try {
       const response = await apiFetch(`/measuring-tools/${tool._id}/return`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
-        body: JSON.stringify({ note }),
+        body: JSON.stringify({ note: returnNote.trim() }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Återlämningen misslyckades.");
+      setReturnModal(null);
+      setReturnNote("");
       setMessage(`${tool.toolNumber} har återlämnats.`);
       await load();
     } catch (err) { setMessage(err.message); }
@@ -553,6 +563,21 @@ export default function MeasuringTools({ currentUser }) {
           </label>}
           <button className="btn-primary" type="submit" disabled={actionModal.mode === "reserve" ? !reservationUserId : isAdmin && !borrowerId}>{actionModal.mode === "checkout" ? "Bekräfta utlåning" : "Bekräfta reservation"}</button>
           <button className="btn-secondary" type="button" onClick={() => setActionModal(null)}>Avbryt</button>
+        </form>
+      </div>}
+
+      {returnModal && <div className="measuring-modal-backdrop" onClick={() => setReturnModal(null)}>
+        <form className="measuring-history measuring-action-form measuring-return-form" onSubmit={submitReturn} onClick={(event) => event.stopPropagation()}>
+          <button type="button" className="measuring-close" onClick={() => setReturnModal(null)} aria-label="Stäng">×</button>
+          <h3>Återlämna mätverktyg – {returnModal.tool.toolNumber}</h3>
+          <p>Vill du lämna en kommentar om återlämningen? Fältet är frivilligt.</p>
+          <label>Kommentar (valfritt)
+            <textarea rows="4" value={returnNote} onChange={(event) => setReturnNote(event.target.value)} maxLength={1000} placeholder="Skriv eventuell kommentar här..." />
+          </label>
+          <div className="measuring-return-actions">
+            <button className="btn-primary" type="submit">Bekräfta återlämning</button>
+            <button className="btn-secondary" type="button" onClick={() => setReturnModal(null)}>Avbryt</button>
+          </div>
         </form>
       </div>}
 
