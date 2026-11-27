@@ -640,8 +640,9 @@ export default function Matprotokoll() {
       const nextControl = snapshot.lastControlDate && snapshot.controlInterval
         ? (() => {
             const date = new Date(`${snapshot.lastControlDate}T12:00:00`);
-            if (Number.isNaN(date.getTime())) return "";
-            date.setDate(date.getDate() + Number(snapshot.controlInterval));
+            const interval = Number(snapshot.controlInterval);
+            if (Number.isNaN(date.getTime()) || !Number.isFinite(interval)) return "";
+            date.setDate(date.getDate() + interval);
             return date.toISOString().slice(0, 10);
           })()
         : "";
@@ -678,8 +679,9 @@ export default function Matprotokoll() {
       }
       entered.forEach((field) => {
         const status = getMeasurementStatus(row, field);
+        const detailNumber = fields.indexOf(field) + 1;
         resultRows.push([
-          row.mätpunkt || String(index + 1),
+          `${row.mätpunkt || index + 1} / D${detailNumber}`,
           [row.dimensionskrav, row.plustolerans].filter(Boolean).join(" "),
           row[field],
           status === "Godkänd" ? "G" : status === "Underkänd" ? "EG" : "Ej bedömd",
