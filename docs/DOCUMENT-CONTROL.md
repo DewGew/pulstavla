@@ -81,22 +81,24 @@ Påbörjat i grenen `feature/document-control`:
 - Registrering ändrar inte, flyttar eller kopierar den befintliga filen.
 - Nya registerposter får statusen ”Ej granskad” och blir inte automatiskt godkända.
 
-### Automatisk dokumentnumrering
+### Kategorikoder och automatisk dokumentnumrering
 
-- Nya dokument får automatiskt ett löpnummer per dokumentkategori om dokumentadministratören lämnar dokumentnummerfältet tomt.
-- Prefix och format:
-  - Kvalitetshandbok: `KHB-001`
-  - Policy: `POL-001`
-  - Rutin: `RUT-001`
-  - Allmän instruktion: `AIN-001`
-  - Arbetsinstruktion: `AI-001`
-  - Blankett: `BL-001`
-  - Mall: `MALL-001`
-  - Policy: `POL-001`
-  - Övrigt: `OVR-001`
-- Räknaren lagras i `documentControl.db` och är separat per kategori.
-- Dokumentadministratören kan ange ett eget nummer. Dubbletter av dokumentnummer kontrolleras innan registrering.
-- Befintliga dokumentnummer ändras inte retroaktivt. Manuellt angivna nummer ändrar inte den automatiska räknaren.
+Nya dokument får automatiskt ett löpnummer per dokumentkategori om dokumentadministratören lämnar dokumentnummerfältet tomt.
+
+| Kod | Kategori |
+|---|---|
+| POL | Policy och mål |
+| KM | Kvalitetsmanual |
+| PRO | Processbeskrivningar |
+| RUT | Rutiner |
+| INS | Instruktioner |
+| SPE | Specifikationer |
+| PLA | Planer |
+| MAL | Mallar och formulär |
+| ORG | Organisation och roller |
+| EXT | Externa dokument |
+
+Dokumentnummer följer formatet `KOD-001`, exempelvis `POL-001` för Kvalitetspolicy. Varje kategori har en egen löpande nummerserie som lagras i `documentControl.db`. Dokumentadministratören kan ange ett eget nummer; dubbletter kontrolleras innan registrering. Befintliga dokumentnummer och äldre kategorivärden ändras inte retroaktivt.
 
 ### Steg 2 – revisionshantering och filskydd
 
