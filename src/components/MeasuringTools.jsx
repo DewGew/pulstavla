@@ -3,7 +3,7 @@ import { apiFetch } from "../api";
 import "./MeasuringTools.css";
 
 const emptyTool = {
-  toolNumber: "", type: "", description: "", manufacturer: "", range: "", location: "",
+  toolNumber: "", type: "", description: "", manufacturer: "", comment: "", range: "", location: "",
   controlInterval: "365", lastControlDate: "",
 };
 
@@ -122,7 +122,7 @@ export default function MeasuringTools({ currentUser }) {
   }), [tools]);
 
   const filteredTools = useMemo(() => tools.filter((tool) => {
-    const haystack = [tool.toolNumber, tool.type, tool.description, tool.manufacturer, tool.range, tool.location, tool.activeLoan?.borrowerName, tool.reservation?.userName]
+    const haystack = [tool.toolNumber, tool.type, tool.description, tool.manufacturer, tool.comment, tool.range, tool.location, tool.activeLoan?.borrowerName, tool.reservation?.userName]
       .join(" ").toLocaleLowerCase("sv");
     const matchesStatus = statusFilter === "Alla" ||
       (statusFilter === "Lediga" && tool.status === "Disponibel" && !tool.activeLoan && !tool.reservation && !isToolBlocked(tool)) ||
@@ -136,12 +136,12 @@ export default function MeasuringTools({ currentUser }) {
   }), [tools, search, statusFilter]);
 
   const exportFilteredCsv = () => {
-    const headers = ["Verktygsnr", "Typ", "Benämning", "Tillverkare", "Mätområde/Dimensioner", "Plats", "Kontrollintervall (dagar)", "Senaste kontroll", "Nästa kontroll", "Status", "Låntagare / Reservation"];
+    const headers = ["Verktygsnr", "Typ", "Benämning", "Tillverkare/modell", "Kommentar", "Mätområde/Dimensioner", "Plats", "Kontrollintervall (dagar)", "Senaste kontroll", "Nästa kontroll", "Status", "Låntagare / Reservation"];
     const rows = filteredTools.map((tool) => {
       const next = nextControlDate(tool);
       const status = (tool.status === "Utlånad" || tool.activeLoan) ? "Utlånad" : isTerminalTool(tool) ? (tool.status === "Saknad" ? "Saknas" : tool.status) : isToolBlocked(tool) ? (isControlOverdue(tool) ? "Kontroll förfallen" : "Kontrollspärrad") : tool.reservation ? "Reserverad" : "Ledig";
       return [
-        tool.toolNumber, tool.type, tool.description, tool.manufacturer, tool.range, tool.location,
+        tool.toolNumber, tool.type, tool.description, tool.manufacturer, tool.comment, tool.range, tool.location,
         tool.controlInterval, dateLabel(tool.lastControlDate), next ? dateLabel(next.toISOString().slice(0, 10)) : "",
         status, tool.activeLoan?.borrowerName || (tool.reservation ? `Reserverad för ${tool.reservation.userName}` : ""),
       ];
@@ -279,7 +279,7 @@ export default function MeasuringTools({ currentUser }) {
   const editTool = (tool) => {
     setForm({
       toolNumber: tool.toolNumber || "", type: tool.type || "", description: tool.description || "",
-      manufacturer: tool.manufacturer || "", range: tool.range || "", location: tool.location || "",
+      manufacturer: tool.manufacturer || "", comment: tool.comment || "", range: tool.range || "", location: tool.location || "",
       controlInterval: String(tool.controlInterval ?? 365), lastControlDate: tool.lastControlDate || "",
     });
     setEditingToolId(tool._id);
@@ -423,6 +423,7 @@ export default function MeasuringTools({ currentUser }) {
                   </div>
                   <div className="measuring-card-facts">
                     <div><span>Mätområde</span><strong>{tool.range || "Ej angivet"}</strong></div>
+                    {tool.comment && <div className="measuring-card-comment"><span>Kommentar</span><strong>{tool.comment}</strong></div>}
                     <div><span>Placering</span><strong>{tool.location || "Ej angiven"}</strong></div>
                   </div>
                   {tool.reservation && (
@@ -463,7 +464,7 @@ export default function MeasuringTools({ currentUser }) {
           </div>
         ) : (
           <div className="measuring-table-wrap"><table className="measuring-table">
-            <thead><tr><th>Verktygsnr</th><th>Typ / Benämning</th><th>Tillverkare</th><th>Mätområde</th><th>Plats</th><th>Senaste kontroll</th><th>Nästa kontroll</th><th>Status / Låntagare</th><th>Åtgärd</th></tr></thead>
+            <thead><tr><th>Verktygsnr</th><th>Typ / Benämning</th><th>Tillverkare/modell</th><th>Kommentar</th><th>Mätområde</th><th>Plats</th><th>Senaste kontroll</th><th>Nästa kontroll</th><th>Status / Låntagare</th><th>Åtgärd</th></tr></thead>
             <tbody>{filteredTools.map((tool) => {
               const next = nextControlDate(tool);
               const overdue = isControlOverdue(tool);
@@ -492,6 +493,7 @@ export default function MeasuringTools({ currentUser }) {
                 <td><strong>{tool.toolNumber}</strong></td>
                 <td>{tool.type}<small>{tool.description}</small></td>
                 <td>{tool.manufacturer || "—"}</td>
+                <td>{tool.comment || "—"}</td>
                 <td>{tool.range || "—"}</td><td>{tool.location || "—"}</td>
                 <td>{dateLabel(tool.lastControlDate)}</td>
                 <td><span className={overdue ? "measuring-overdue" : ""}>{next ? dateLabel(next.toISOString().slice(0, 10)) : "—"}</span></td>
@@ -530,7 +532,8 @@ export default function MeasuringTools({ currentUser }) {
               <label>Verktygsnr<input required value={form.toolNumber} onChange={(e) => setForm({ ...form, toolNumber: e.target.value })} />{!editingToolId && <small>{nextSuggestedToolNumber ? `Nästa lediga nummer: ${nextSuggestedToolNumber}` : "Inga lediga nummer kvar i serien 1115-100–1115-999."}</small>}</label>
               <label>Typ<input required value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} /></label>
               <label>Benämning<input required value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
-              <label>Tillverkare<input value={form.manufacturer} onChange={(e) => setForm({ ...form, manufacturer: e.target.value })} /></label>
+              <label>Tillverkare/modell<input value={form.manufacturer} onChange={(e) => setForm({ ...form, manufacturer: e.target.value })} /></label>
+              <label>Kommentar<textarea rows="2" value={form.comment} onChange={(e) => setForm({ ...form, comment: e.target.value })} maxLength={1000} /></label>
               <label>Mätområde/Dimensioner<input value={form.range} onChange={(e) => setForm({ ...form, range: e.target.value })} /></label>
               <label>Plats<input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} /></label>
               <label>Kontrollintervall (dagar)<input type="number" min="0" value={form.controlInterval} onChange={(e) => setForm({ ...form, controlInterval: e.target.value })} /></label>
