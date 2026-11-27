@@ -506,6 +506,7 @@ function showServerPortDialog() {
     const submit = (event, value) => {
       if (event.sender !== dialogWindow.webContents) return;
       if (value === null) { finish(null); return; }
+      if (value === "auto") { finish(0); return; }
       const port = Number(value);
       if (!Number.isInteger(port) || port < 1024 || port > 65535) { dialogWindow.webContents.send('pulstavla-port-dialog-error', 'Ange ett heltal mellan 1024 och 65535.'); return; }
       finish(port);
@@ -516,7 +517,7 @@ function showServerPortDialog() {
     ipcMain.on('pulstavla-port-dialog-cancel', cancel);
     dialogWindow.on('closed', () => { ipcMain.removeListener('pulstavla-port-dialog-submit', submit); ipcMain.removeListener('pulstavla-port-dialog-cancel', cancel); finish(null); });
     const current = configuredServerPort || 'Automatiskt (ledig port)';
-    const html = '<!doctype html><html lang="sv"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Välj serverport</title><style>body{font:14px Segoe UI,Arial,sans-serif;padding:22px;color:#222}label{display:block;font-weight:600;margin:12px 0 6px}input{box-sizing:border-box;width:100%;padding:10px;font-size:16px}p{color:#555;line-height:1.4}.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:22px}button{padding:9px 16px;cursor:pointer}#error{color:#b42318;min-height:18px}</style></head><body><h2>Serverport</h2><p>Nuvarande inställning: ' + current + '. Ange ett portnummer mellan 1024 och 65535. Lämna fältet tomt för automatisk port.</p><label for="port">Portnummer</label><input id="port" type="number" min="1024" max="65535" placeholder="Automatiskt" value="' + (configuredServerPort || '') + '"><div id="error" role="alert"></div><div class="actions"><button id="cancel" type="button">Avbryt</button><button id="save" type="button">Spara</button></div><script>const port=document.getElementById("port");document.getElementById("save").onclick=()=>{const value=port.value.trim();if(!value){window.portDialog.submit(null);return;}const number=Number(value);if(!Number.isInteger(number)||number<1024||number>65535){document.getElementById("error").textContent="Ange ett heltal mellan 1024 och 65535.";return;}window.portDialog.submit(number)};document.getElementById("cancel").onclick=()=>window.portDialog.cancel();window.addEventListener("keydown",e=>{if(e.key==="Enter")document.getElementById("save").click();if(e.key==="Escape")window.portDialog.cancel()});</script></body></html>';
+    const html = '<!doctype html><html lang="sv"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Välj serverport</title><style>body{font:14px Segoe UI,Arial,sans-serif;padding:22px;color:#222}label{display:block;font-weight:600;margin:12px 0 6px}input{box-sizing:border-box;width:100%;padding:10px;font-size:16px}p{color:#555;line-height:1.4}.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:22px}button{padding:9px 16px;cursor:pointer}#error{color:#b42318;min-height:18px}</style></head><body><h2>Serverport</h2><p>Nuvarande inställning: ' + current + '. Ange ett portnummer mellan 1024 och 65535. Lämna fältet tomt för automatisk port.</p><label for="port">Portnummer</label><input id="port" type="number" min="1024" max="65535" placeholder="Automatiskt" value="' + (configuredServerPort || '') + '"><div id="error" role="alert"></div><div class="actions"><button id="cancel" type="button">Avbryt</button><button id="save" type="button">Spara</button></div><script>const port=document.getElementById("port");document.getElementById("save").onclick=()=>{const value=port.value.trim();if(!value){window.portDialog.submit("auto");return;}const number=Number(value);if(!Number.isInteger(number)||number<1024||number>65535){document.getElementById("error").textContent="Ange ett heltal mellan 1024 och 65535.";return;}window.portDialog.submit(number)};document.getElementById("cancel").onclick=()=>window.portDialog.cancel();window.portDialog.onError(message=>document.getElementById("error").textContent=message);window.addEventListener("keydown",e=>{if(e.key==="Enter")document.getElementById("save").click();if(e.key==="Escape")window.portDialog.cancel()});</script></body></html>';
     dialogWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
   });
 }
@@ -524,7 +525,7 @@ function showServerPortDialog() {
 async function chooseServerPort() {
   const selected = await showServerPortDialog();
   if (selected === null) return;
-  await setServerPort(selected);
+  await setServerPort(selected === 0 ? null : selected);
 }
 
 async function setNetworkAccessEnabled(enabled) {
