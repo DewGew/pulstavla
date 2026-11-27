@@ -19,6 +19,7 @@ let serverOrigin;
 let serverPort;
 let mobileCertificatePath;
 let networkAccessEnabled = false;
+let configuredServerPort = null;
 
 const DATABASE_FILES = [
   "users.db",
@@ -90,6 +91,24 @@ function getLanAddresses() {
   ).map((item) => item.address))];
 }
 
+function loadServerPortSetting() {
+  const settingPath = path.join(app.getPath("userData"), "server-port.json");
+  try {
+    const parsed = JSON.parse(fs.readFileSync(settingPath, "utf8"));
+    const port = Number(parsed.port);
+    configuredServerPort = Number.isInteger(port) && port >= 1024 && port <= 65535 ? port : null;
+  } catch (error) {
+    if (error.code !== "ENOENT") console.error("Kunde inte läsa portinställningen:", error);
+    configuredServerPort = null;
+  }
+}
+
+function saveServerPortSetting(port) {
+  const settingPath = path.join(app.getPath("userData"), "server-port.json");
+  fs.writeFileSync(settingPath, JSON.stringify({ port }), { mode: 0o600 });
+  configuredServerPort = port;
+}
+
 function loadNetworkAccessSetting() {
   const settingPath = path.join(app.getPath("userData"), "network-access.json");
   try {
@@ -125,11 +144,11 @@ function ensureTlsCertificates(addresses) {
   return { pfxPath, passphrase };
 }
 
-function reserveLocalPort() {
+function reserveLocalPort(preferredPort = null) {
   return new Promise((resolve, reject) => {
     const probe = net.createServer();
     probe.once("error", reject);
-    probe.listen(0, "127.0.0.1", () => {
+    probe.listen(preferredPort || 0, networkAccessEnabled ? "0.0.0.0" : "127.0.0.1", () => {
       const { port } = probe.address();
       probe.close((error) => (error ? reject(error) : resolve(port)));
     });
@@ -173,7 +192,7 @@ async function startLocalServer() {
   const firstRun = !hasExistingUsers(path.join(dbPath, "users.db"));
   const jwtSecret = loadOrCreateSecret(dataPath);
   const initialPassword = firstRun ? createInitialPassword() : null;
-  const port = await reserveLocalPort();
+  const port = await reserveLocalPort(configuredServerPort);
   const lanAddresses = networkAccessEnabled ? getLanAddresses() : [];
   const certificates = ensureTlsCertificates(lanAddresses);
   const origin = `https://127.0.0.1:${port}`;
@@ -446,6 +465,68 @@ async function importDatabaseBackup() {
   }
 }
 
+async function setServerPort(port) {
+  const previous = configuredServerPort;
+  try {
+    saveServerPortSetting(port);
+    await stopLocalServer();
+    const result = await startLocalServer();
+    if (mainWindow && !mainWindow.isDestroyed()) await mainWindow.loadURL(result.origin);
+    const addresses = networkAccessEnabled ? getLanAddresses() : [];
+    const detail = addresses.length ? ('Port ' + serverPort + ' används nu.\n\nAdress för andra enheter:\n' + addresses.map((address) => 'https://' + address + ':' + serverPort).join('\n')) : ('Pulstavlan använder nu port ' + serverPort + '.');
+    await dialog.showMessageBox(mainWindow, { type: 'info', title: 'Serverport ändrad', message: 'Pulstavlan använder port ' + serverPort + '.', detail, buttons: ['OK'], noLink: true });
+  } catch (error) {
+    try {
+      await stopLocalServer();
+      saveServerPortSetting(previous);
+      const restored = await startLocalServer();
+      if (mainWindow && !mainWindow.isDestroyed()) await mainWindow.loadURL(restored.origin);
+    } catch (restoreError) {
+      dialog.showErrorBox('Kunde inte återställa Pulstavlan', restoreError.message);
+      app.quit();
+      return;
+    }
+    const message = error.code === 'EADDRINUSE' ? ('Port ' + port + ' används redan av ett annat program. Välj en annan port.') : error.message;
+    dialog.showErrorBox('Kunde inte ändra serverport', message);
+  }
+}
+
+function showServerPortDialog() {
+  return new Promise((resolve) => {
+    const dialogWindow = new BrowserWindow({
+      parent: mainWindow, modal: true, width: 430, height: 270, resizable: false,
+      minimizable: false, maximizable: false, autoHideMenuBar: true, title: 'Välj serverport',
+      webPreferences: {
+        preload: path.join(app.getAppPath(), 'electron', 'port-dialog-preload.cjs'),
+        contextIsolation: true, nodeIntegration: false, sandbox: true,
+      },
+    });
+    let settled = false;
+    const finish = (value) => { if (settled) return; settled = true; resolve(value); if (!dialogWindow.isDestroyed()) dialogWindow.close(); };
+    const submit = (event, value) => {
+      if (event.sender !== dialogWindow.webContents) return;
+      if (value === null) { finish(null); return; }
+      const port = Number(value);
+      if (!Number.isInteger(port) || port < 1024 || port > 65535) { dialogWindow.webContents.send('pulstavla-port-dialog-error', 'Ange ett heltal mellan 1024 och 65535.'); return; }
+      finish(port);
+    };
+    const cancel = (event) => { if (event.sender === dialogWindow.webContents) finish(null); };
+    const { ipcMain } = require('electron');
+    ipcMain.on('pulstavla-port-dialog-submit', submit);
+    ipcMain.on('pulstavla-port-dialog-cancel', cancel);
+    dialogWindow.on('closed', () => { ipcMain.removeListener('pulstavla-port-dialog-submit', submit); ipcMain.removeListener('pulstavla-port-dialog-cancel', cancel); finish(null); });
+    const current = configuredServerPort || 'Automatiskt (ledig port)';
+    const html = '<!doctype html><html lang="sv"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Välj serverport</title><style>body{font:14px Segoe UI,Arial,sans-serif;padding:22px;color:#222}label{display:block;font-weight:600;margin:12px 0 6px}input{box-sizing:border-box;width:100%;padding:10px;font-size:16px}p{color:#555;line-height:1.4}.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:22px}button{padding:9px 16px;cursor:pointer}#error{color:#b42318;min-height:18px}</style></head><body><h2>Serverport</h2><p>Nuvarande inställning: ' + current + '. Ange ett portnummer mellan 1024 och 65535. Lämna fältet tomt för automatisk port.</p><label for="port">Portnummer</label><input id="port" type="number" min="1024" max="65535" placeholder="Automatiskt" value="' + (configuredServerPort || '') + '"><div id="error" role="alert"></div><div class="actions"><button id="cancel" type="button">Avbryt</button><button id="save" type="button">Spara</button></div><script>const port=document.getElementById("port");document.getElementById("save").onclick=()=>{const value=port.value.trim();if(!value){window.portDialog.submit(null);return;}const number=Number(value);if(!Number.isInteger(number)||number<1024||number>65535){document.getElementById("error").textContent="Ange ett heltal mellan 1024 och 65535.";return;}window.portDialog.submit(number)};document.getElementById("cancel").onclick=()=>window.portDialog.cancel();window.addEventListener("keydown",e=>{if(e.key==="Enter")document.getElementById("save").click();if(e.key==="Escape")window.portDialog.cancel()});</script></body></html>';
+    dialogWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
+  });
+}
+
+async function chooseServerPort() {
+  const selected = await showServerPortDialog();
+  if (selected === null) return;
+  await setServerPort(selected);
+}
+
 async function setNetworkAccessEnabled(enabled) {
   const previous = networkAccessEnabled;
   try {
@@ -507,6 +588,11 @@ function installApplicationMenu() {
     {
       label: "Inställningar",
       submenu: [
+        {
+          label: "Välj serverport…",
+          click: () => chooseServerPort().catch((error) => dialog.showErrorBox("Kunde inte välja serverport", error.message)),
+        },
+        { type: "separator" },
         {
           label: "Tillåt åtkomst från lokalt nätverk",
           type: "checkbox",
@@ -601,6 +687,7 @@ app.on("certificate-error", (event, webContents, url, error, certificate, callba
 
 app.whenReady().then(async () => {
   loadNetworkAccessSetting();
+  loadServerPortSetting();
   installApplicationMenu();
   try {
     const { origin, firstRun, initialPassword } = await startLocalServer();
