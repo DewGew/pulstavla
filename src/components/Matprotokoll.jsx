@@ -196,8 +196,8 @@ const T = {
 };
 
 const emptyForm = (currentUser) => ({
-  dokumentnr: "MAL-012",
-  revision: "00",
+  dokumentnr: "Mätprotokoll",
+  revision: "5",
   artikelnummer: "",
   ritningsnummer: "",
   benamning: "",
@@ -589,10 +589,16 @@ export default function Matprotokoll() {
 
     const pageWidth = doc.internal.pageSize.getWidth();
 
+    /* ---------------- HEADER ---------------- */
+    addPDFHeader(doc, "Mätprotokoll", settings);
+
+    doc.setFontSize(8);
+    doc.text(`Dokument: Mätprotokoll`, pageWidth - 15, 22, { align: "right" });
+    doc.text(`Rev: ${form.revision || "5"}`, pageWidth - 15, 27, { align: "right" });
+
     /* ---------------- INFORMATION ---------------- */
     autoTable(doc, {
       startY: 32,
-      margin: { top: 32, bottom: 22, left: 15, right: 15 },
       theme: "grid",
       styles: { fontSize: 8, cellPadding: 2, valign: "middle" },
       columnStyles: {
@@ -617,11 +623,6 @@ export default function Matprotokoll() {
           "Ritningsnummer", form.ritningsnummer || "-",
           "", "",
           "Operation", form.operation || "-",
-        ],
-        [
-          "Mall", form.dokumentnr || "MAL-012",
-          "Mallrevision", form.revision || "00",
-          "", "",
         ],
       ],
     });
@@ -648,7 +649,6 @@ export default function Matprotokoll() {
 
     autoTable(doc, {
       startY,
-      margin: { top: 32, bottom: 22, left: 15, right: 15 },
       theme: "grid",
       head: [[
         "Mätpunkt", "Nominellt mått", "Tolerans",
@@ -669,6 +669,9 @@ export default function Matprotokoll() {
         6: { cellWidth: 18 }, 7: { cellWidth: 18 }, 8: { cellWidth: 28 },
         9: { cellWidth: 32 }, 10: { cellWidth: "auto", minCellWidth: 35 },
       },
+      didDrawPage: () => {
+        addPDFFooter(doc, settings);
+      },
     });
 
     /* ---------------- SIGNATUR ---------------- */
@@ -677,6 +680,7 @@ export default function Matprotokoll() {
 
     if (sigY > pageHeight - 25) {
       doc.addPage();
+      addPDFFooter(doc, settings);
       sigY = 25;
     }
 
@@ -687,15 +691,6 @@ export default function Matprotokoll() {
     doc.text("Datum: ________________________", pageWidth - 15, sigY, {
       align: "right",
     });
-
-    // Lägg samma gemensamma sidhuvud och sidfot på samtliga sidor.
-    // Detta görs sist så att tabellernas sidbrytningar redan är fastställda.
-    const pageCount = doc.internal.getNumberOfPages();
-    for (let page = 1; page <= pageCount; page += 1) {
-      doc.setPage(page);
-      addPDFHeader(doc, "Mätprotokoll", settings);
-      addPDFFooter(doc, settings);
-    }
 
     /* ---------------- SAVE ---------------- */
     const fileName =
