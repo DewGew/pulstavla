@@ -253,3 +253,18 @@
   border-top: 1px solid var(--panel-border);
   border-radius: 0;
 }
+
+.document-control-group-row th {
+  padding: 12px 10px;
+  text-align: left;
+  color: var(--header-text);
+  background: var(--panel);
+  border-top: 2px solid var(--panel-border);
+  font-size: 0.98rem;
+}
+
+.document-control-group-row th span {
+  margin-left: 6px;
+  color: var(--muted);
+  font-weight: 500;
+}
