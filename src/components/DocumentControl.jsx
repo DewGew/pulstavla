@@ -2,7 +2,18 @@ import { Fragment, useCallback, useEffect, useState } from "react";
 import { apiFetch } from "../api";
 import "./DocumentControl.css";
 
-const CATEGORIES = ["Kvalitetshandbok", "Policy", "Rutin", "Allmän instruktion", "Arbetsinstruktion", "Blankett", "Mall", "Övrigt"];
+const CATEGORIES = [
+  { code: "POL", label: "Policy och mål" },
+  { code: "KM", label: "Kvalitetsmanual" },
+  { code: "PRO", label: "Processbeskrivningar" },
+  { code: "RUT", label: "Rutiner" },
+  { code: "INS", label: "Instruktioner" },
+  { code: "SPE", label: "Specifikationer" },
+  { code: "PLA", label: "Planer" },
+  { code: "MAL", label: "Mallar och formulär" },
+  { code: "ORG", label: "Organisation och roller" },
+  { code: "EXT", label: "Externa dokument" },
+];
 
 export default function DocumentControl() {
   const [documents, setDocuments] = useState([]);
@@ -26,7 +37,7 @@ export default function DocumentControl() {
   const [form, setForm] = useState({
     documentNumber: "",
     title: "",
-    category: "Arbetsinstruktion",
+    category: "INS",
     owner: "",
     description: "",
     fileName: "",
@@ -344,7 +355,7 @@ export default function DocumentControl() {
             <label>
               Dokumentkategori *
               <select name="category" value={form.category} onChange={updateField} required>
-                {CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}
+                {CATEGORIES.map(({ code, label }) => <option key={code} value={code}>{code} – {label}</option>)}
               </select>
             </label>
             <label>
