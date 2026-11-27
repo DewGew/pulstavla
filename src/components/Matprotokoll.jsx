@@ -70,7 +70,7 @@ const T = {
     tableHeaders: [
       "Mätpunkt", "Nominellt mått", "Tolerans",
       "Detalj 1", "Detalj 2", "Detalj 3", "Detalj 4", "Detalj 5",
-      "Bedömning", "Mätinstrument", "Kommentar", "",
+      "Bedömning", "Mätinstrument", "Upplösning / mätosäkerhet", "Kommentar", "",
     ],
     ph: {
       mätpunkt: "t.ex. A1 el. #1",
@@ -144,7 +144,7 @@ const T = {
     tableHeaders: [
       "Point", "Nominal size", "Tolerance",
       "Piece 1", "Piece 2", "Piece 3", "Piece 4", "Piece 5",
-      "Assessment", "Instrument", "Comment", "",
+      "Assessment", "Instrument", "Resolution / uncertainty", "Comment", "",
     ],
     ph: {
       mätpunkt: "e.g. A1 or #1",
@@ -340,6 +340,7 @@ const emptyMeasurement = (nr = 1) => ({
   resultat_4: "",
   resultat_5: "",
   matinstrument: "",
+  matinstrumentUpplosning: "",
   kommentar: "",
   matinstrumentId: "",
   matinstrumentSnapshot: null,
@@ -633,17 +634,25 @@ export default function Matprotokoll() {
       const key = String(id);
       if (seenEquipment.has(key)) return;
       seenEquipment.add(key);
+      const nextControl = snapshot.lastControlDate && snapshot.controlInterval
+        ? (() => {
+            const date = new Date(`${snapshot.lastControlDate}T12:00:00`);
+            if (Number.isNaN(date.getTime())) return "";
+            date.setDate(date.getDate() + Number(snapshot.controlInterval));
+            return date.toISOString().slice(0, 10);
+          })()
+        : "";
       equipment.push([
         name || snapshot.type || "-",
         snapshot.toolNumber || row.matinstrumentId || "-",
-        snapshot.lastControlDate || "-",
-        snapshot.controlBlocked ? "SPÄRRAT VID VAL" : "-",
+        [snapshot.lastControlDate, nextControl ? `Giltig till: ${nextControl}` : ""].filter(Boolean).join("\n") || "-",
+        row.matinstrumentUpplosning || "-",
       ]);
     });
     autoTable(doc, {
       ...tableOptions,
       startY: y,
-      head: [["MÄTUTRUSTNING", "", "", ""], ["Mätdon", "ID-nummer", "Senaste kontroll", "Status vid val"]],
+      head: [["MÄTUTRUSTNING", "", "", ""], ["Mätdon", "ID-nummer", "Kalibrerad senast / giltig till", "Upplösning / mätosäkerhet"]],
       body: equipment.length ? equipment : [["-", "-", "-", "Ej angiven"]],
     });
     y = (doc.lastAutoTable?.finalY || y) + 5;
@@ -690,7 +699,7 @@ export default function Matprotokoll() {
       body: [
         ["Slutresultat", form.sammanfattning || "Ej angivet"],
         ["Antal mätta / avvikande", form.antalMatt || "-"],
-        ["Kommentar", measurements.map((row) => row.kommentar).filter(Boolean).join("\\n") || "-"],
+        ["Kommentar", measurements.map((row) => row.kommentar).filter(Boolean).join("\n") || "-"],
       ],
       columnStyles: { 0: { fontStyle: "bold", cellWidth: 48 }, 1: { cellWidth: "auto" } },
     });
@@ -1226,6 +1235,7 @@ export default function Matprotokoll() {
                             type: selectedTool.type,
                             lastControlDate: selectedTool.lastControlDate || "",
                             controlBlocked: Boolean(selectedTool.controlBlocked),
+                            controlInterval: selectedTool.controlInterval || "",
                           },
                         } : item));
                       } else {
@@ -1252,6 +1262,16 @@ export default function Matprotokoll() {
                     ))}
                     </optgroup>
                   </select>
+                </td>
+
+                <td style={{ padding: "4px", minWidth: "150px" }}>
+                  <input
+                    type="text"
+                    value={row.matinstrumentUpplosning || ""}
+                    placeholder={lang === "sv" ? "Upplösning / mätosäkerhet" : "Resolution / uncertainty"}
+                    onChange={(e) => updateMeasurement(index, "matinstrumentUpplosning", e.target.value)}
+                    style={{ width: "100%", boxSizing: "border-box" }}
+                  />
                 </td>
 
                 <td style={{ padding: "4px", minWidth: "220px" }}>
