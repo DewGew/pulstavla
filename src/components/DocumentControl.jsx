@@ -15,6 +15,14 @@ const CATEGORIES = [
   { code: "EXT", label: "Externa dokument" },
 ];
 
+const formatCategory = (category) => {
+  if (category && typeof category === "object") {
+    return [category.code, category.label].filter(Boolean).join(" – ") || "—";
+  }
+  const match = CATEGORIES.find((item) => item.code === category);
+  return match ? `${match.code} – ${match.label}` : String(category || "—");
+};
+
 export default function DocumentControl() {
   const [documents, setDocuments] = useState([]);
   const [availableFiles, setAvailableFiles] = useState([]);
@@ -182,7 +190,7 @@ export default function DocumentControl() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Kunde inte ladda upp dokumentet.");
       setMessage(data.documentNumber + " har laddats upp till Dokumentstyrning och är ännu inte granskat eller godkänt.");
-      setForm({ documentNumber: "", title: "", category: "Arbetsinstruktion", owner: "", description: "", fileName: "" });
+      setForm({ documentNumber: "", title: "", category: "INS", owner: "", description: "", fileName: "" });
       setNewDocumentFile(null);
       formElement.reset();
       await loadRegister();
@@ -213,7 +221,7 @@ export default function DocumentControl() {
       setForm({
         documentNumber: "",
         title: "",
-        category: "Arbetsinstruktion",
+        category: "INS",
         owner: "",
         description: "",
         fileName: "",
@@ -315,7 +323,7 @@ export default function DocumentControl() {
   };
 
   const visibleDocuments = documents.filter((doc) =>
-    [doc.documentNumber, doc.title, doc.category, doc.fileName, doc.owner]
+    [doc.documentNumber, doc.title, formatCategory(doc.category), doc.fileName, doc.owner]
       .some((value) => String(value || "").toLowerCase().includes(filter.toLowerCase()))
   );
 
@@ -409,7 +417,7 @@ export default function DocumentControl() {
             <label>
               Dokumentkategori *
               <select name="category" value={form.category} onChange={updateField} required>
-                {CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}
+                {CATEGORIES.map(({ code, label }) => <option key={code} value={code}>{code} – {label}</option>)}
               </select>
             </label>
             <label>
@@ -462,7 +470,7 @@ export default function DocumentControl() {
                 <tr>
                   <td>{doc.documentNumber || "—"}</td>
                   <td>{doc.title}</td>
-                  <td>{doc.category}</td>
+                  <td>{formatCategory(doc.category)}</td>
                   <td>{doc.owner || "—"}</td>
                   <td>{doc.fileName}</td>
                   <td>
