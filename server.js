@@ -2427,7 +2427,7 @@ app.post("/document-control/documents/upload", requireAuth, requireAdmin, (req, 
       const requestedNumber = String(req.body?.documentNumber || "").trim();
       const owner = String(req.body?.owner || "").trim();
       const description = String(req.body?.description || "").trim();
-      if (!title || !category || title.length > 200 || category.length > 80 || requestedNumber.length > 80 || owner.length > 120 || description.length > 1000) {
+      if (!title || !Object.hasOwn(DOCUMENT_NUMBER_PREFIXES, category) || title.length > 200 || requestedNumber.length > 80 || owner.length > 120 || description.length > 1000) {
         fs.unlink(req.file.path, () => {});
         return res.status(400).json({ error: "Ange dokumentnamn och kategori. Kontrollera även maxlängderna för övriga fält." });
       }
@@ -2513,14 +2513,16 @@ app.get("/document-control/files/:fileName", requireAuth, (req, res) => {
 
 // Register metadata for an existing file. This does not move, copy, or modify the file.
 const DOCUMENT_NUMBER_PREFIXES = {
-  "Rutin": "RUT",
-  "Kvalitetshandbok": "KHB",
-  "Policy": "POL",
-  "Allmän instruktion": "AIN",
-  "Arbetsinstruktion": "AI",
-  "Blankett": "BL",
-  "Mall": "MALL",
-  "Övrigt": "OVR",
+  POL: "POL", // Policy och mål
+  KM: "KM",   // Kvalitetsmanual
+  PRO: "PRO", // Processbeskrivningar
+  RUT: "RUT", // Rutiner
+  INS: "INS", // Instruktioner
+  SPE: "SPE", // Specifikationer
+  PLA: "PLA", // Planer
+  MAL: "MAL", // Mallar och formulär
+  ORG: "ORG", // Organisation och roller
+  EXT: "EXT", // Externa dokument
 };
 
 function nextDocumentNumber(category, callback) {
@@ -2547,7 +2549,7 @@ app.post("/document-control/documents", requireAuth, requireAdmin, (req, res) =>
   const owner = String(req.body?.owner || "").trim();
   const description = String(req.body?.description || "").trim();
 
-  if (!title || !category || !fileName) {
+  if (!title || !Object.hasOwn(DOCUMENT_NUMBER_PREFIXES, category) || !fileName) {
     return res.status(400).json({ error: "Titel, kategori och befintlig fil måste anges." });
   }
   if (fileName !== path.basename(fileName) || fileName.includes("\\") || fileName.includes("/")) {
