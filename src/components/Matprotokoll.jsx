@@ -198,6 +198,8 @@ const T = {
 const emptyForm = (currentUser) => ({
   dokumentnr: "MAL-012",
   revision: "00",
+  dokumentagare: "Ej angiven",
+  giltigFran: "",
   protokollnummer: "",
   mätobjekt: "",
   artikelnummer: "",
@@ -611,7 +613,8 @@ export default function Matprotokoll() {
       startY: y,
       head: [["MÄTPROTOKOLL – DOKUMENTUPPGIFTER", "", "", "", "", ""]],
       body: [
-        ["Dokumentnummer", form.dokumentnr || "MAL-012", "Revision", form.revision || "00", "Status", "Styrs via Pulstavlan"],
+        ["Dokumentnummer", form.dokumentnr || "MAL-012", "Revision", form.revision || "00", "Dokumentnamn", "Mätprotokoll"],
+        ["Dokumentägare", form.dokumentagare || "Ej angiven", "Giltig från", form.giltigFran || "-", "Status", "Styrs via Pulstavlan"],
         ["Protokollnummer", form.protokollnummer || "-", "Datum", form.datum || "-", "Upprättat av", form.upprattadAv || "-"],
         ["Mätobjekt", form.mätobjekt || form.benamning || "-", "Artikelnummer", form.artikelnummer || "-", "Order / projekt", form.ordernr || "-"],
         ["Specifikation / ritning", [form.ritningsnummer, form.specifikationRevision].filter(Boolean).join(" rev. ") || "-", "Mätmetod / instruktion", form.mätmetod || "-", "Kund", form.kund || "-"],
@@ -1053,6 +1056,20 @@ export default function Matprotokoll() {
 
         <div className="mätprotokoll-field">
           <label>
+            {lang === "sv" ? "Dokumentägare" : "Document owner"}
+            <input type="text" value={form.dokumentagare || ""} onChange={(e) => updateForm("dokumentagare", e.target.value)} />
+          </label>
+        </div>
+
+        <div className="mätprotokoll-field">
+          <label>
+            {lang === "sv" ? "Giltig från" : "Valid from"}
+            <input type="date" value={form.giltigFran || ""} onChange={(e) => updateForm("giltigFran", e.target.value)} />
+          </label>
+        </div>
+
+        <div className="mätprotokoll-field">
+          <label>
             {lang === "sv" ? "Protokollnummer" : "Report number"}
             <input type="text" value={form.protokollnummer || ""} placeholder="T.ex. MP-2026-001" onChange={(e) => updateForm("protokollnummer", e.target.value)} />
           </label>
@@ -1115,14 +1132,14 @@ export default function Matprotokoll() {
         <div className="mätprotokoll-field">
           <label>
             {lang === "sv" ? "Mätning utförd av" : "Measurement performed by"}
-            <input type="text" value={form.mattAv || ""} onChange={(e) => updateForm("mattAv", e.target.value)} />
+            <input type="text" value={form.mattAv || ""} placeholder={lang === "sv" ? "Namn, datum och signatur" : "Name, date and signature"} onChange={(e) => updateForm("mattAv", e.target.value)} />
           </label>
         </div>
 
         <div className="mätprotokoll-field">
           <label>
             {lang === "sv" ? "Granskad och godkänd av" : "Reviewed and approved by"}
-            <input type="text" value={form.granskadAv || ""} onChange={(e) => updateForm("granskadAv", e.target.value)} />
+            <input type="text" value={form.granskadAv || ""} placeholder={lang === "sv" ? "Namn, datum och signatur" : "Name, date and signature"} onChange={(e) => updateForm("granskadAv", e.target.value)} />
           </label>
         </div>
       </div>
