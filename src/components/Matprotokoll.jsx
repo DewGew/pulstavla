@@ -198,8 +198,18 @@ const T = {
 const emptyForm = (currentUser) => ({
   dokumentnr: "MAL-012",
   revision: "00",
+  protokollnummer: "",
+  mätobjekt: "",
   artikelnummer: "",
   ritningsnummer: "",
+  specifikationRevision: "",
+  mätmetod: "",
+  mätforhallanden: "",
+  sammanfattning: "",
+  antalMatt: "",
+  avvikelseAtgarder: "",
+  mattAv: currentUser?.name || "",
+  granskadAv: "",
   benamning: "",
   kund: "",
   ordernr: "",
@@ -531,7 +541,7 @@ export default function Matprotokoll() {
       if (!res.ok) throw new Error();
       const doc = await res.json();
 
-      setForm(doc.form);
+      setForm({ ...emptyForm(currentUser), ...(doc.form || {}) });
       setMeasurements(doc.measurements?.length ? doc.measurements : [emptyMeasurement()]);
       setActiveRecordId(doc.matprotokollId);
       setShowOpenPanel(false);
@@ -587,109 +597,124 @@ export default function Matprotokoll() {
       format: "A4",
     });
 
-    const pageWidth = doc.internal.pageSize.getWidth();
-
-    /* ---------------- INFORMATION ---------------- */
-    autoTable(doc, {
-      startY: 32,
-      margin: { top: 32, bottom: 22, left: 15, right: 15 },
+    const tableOptions = {
       theme: "grid",
+      margin: { top: 32, bottom: 22, left: 15, right: 15 },
       styles: { fontSize: 8, cellPadding: 2, valign: "middle" },
-      columnStyles: {
-        0: { fontStyle: "bold", cellWidth: 32 },
-        1: { cellWidth: 50 },
-        2: { fontStyle: "bold", cellWidth: 32 },
-        3: { cellWidth: 50 },
-        4: { fontStyle: "bold", cellWidth: 32 },
-      },
+      headStyles: { fontStyle: "bold", fillColor: [158, 6, 6], textColor: 255 },
+    };
+    let y = 32;
+
+    autoTable(doc, {
+      ...tableOptions,
+      startY: y,
+      head: [["MÄTPROTOKOLL – DOKUMENTUPPGIFTER", "", "", "", "", ""]],
       body: [
-        [
-          "Ordernummer", form.ordernr || "-",
-          "Kund", form.kund || "-",
-          "Datum", form.datum || "-",
-        ],
-        [
-          "Artikelnummer", form.artikelnummer || "-",
-          "Benämning", form.benamning || "-",
-          "Upprättad av", form.upprattadAv || "-",
-        ],
-        [
-          "Ritningsnummer", form.ritningsnummer || "-",
-          "", "",
-          "Operation", form.operation || "-",
-        ],
-        [
-          "Mall", form.dokumentnr || "MAL-012",
-          "Mallrevision", form.revision || "00",
-          "", "",
-        ],
+        ["Dokumentnummer", form.dokumentnr || "MAL-012", "Revision", form.revision || "00", "Status", "Styrs via Pulstavlan"],
+        ["Protokollnummer", form.protokollnummer || "-", "Datum", form.datum || "-", "Upprättat av", form.upprattadAv || "-"],
+        ["Mätobjekt", form.mätobjekt || form.benamning || "-", "Artikelnummer", form.artikelnummer || "-", "Order / projekt", form.ordernr || "-"],
+        ["Specifikation / ritning", [form.ritningsnummer, form.specifikationRevision].filter(Boolean).join(" rev. ") || "-", "Mätmetod / instruktion", form.mätmetod || "-", "Kund", form.kund || "-"],
       ],
+      columnStyles: {
+        0: { fontStyle: "bold", cellWidth: 29 }, 1: { cellWidth: 48 },
+        2: { fontStyle: "bold", cellWidth: 22 }, 3: { cellWidth: 38 },
+        4: { fontStyle: "bold", cellWidth: 27 }, 5: { cellWidth: "auto" },
+      },
     });
+    y = (doc.lastAutoTable?.finalY || y) + 5;
 
-    /* ---------------- MEASUREMENTS ---------------- */
-    const startY = (doc.lastAutoTable?.finalY || 50) + 8;
-
-    const rows = measurements.map((row) => [
-      row.mätpunkt || "",
-      row.dimensionskrav || "",
-      [row.plustolerans, formatToleranceLimits(row)].filter(Boolean).join("\n"),
-      row.resultat_1 || "",
-      row.resultat_2 || "",
-      row.resultat_3 || "",
-      row.resultat_4 || "",
-      row.resultat_5 || "",
-      ["resultat_1", "resultat_2", "resultat_3", "resultat_4", "resultat_5"]
-        .map((field, i) => row[field] ? `D${i + 1}: ${getMeasurementStatus(row, field) || "Ej bedömd"}` : "")
-        .filter(Boolean).join("\n") || "Ej bedömd",
-      [row.matinstrument, row.matinstrumentSnapshot?.lastControlDate ? `Senast kontroll: ${row.matinstrumentSnapshot.lastControlDate}` : "", row.matinstrumentSnapshot?.controlBlocked ? "SPÄRRAT VID VAL" : ""]
-        .filter(Boolean).join("\n"),
-      row.kommentar || "",
-    ]);
+    const equipment = [];
+    const seenEquipment = new Set();
+    measurements.forEach((row) => {
+      const snapshot = row.matinstrumentSnapshot || {};
+      const name = row.matinstrument || "";
+      const id = row.matinstrumentId || snapshot.toolNumber || name;
+      if (!name && !id) return;
+      const key = String(id);
+      if (seenEquipment.has(key)) return;
+      seenEquipment.add(key);
+      equipment.push([
+        name || snapshot.type || "-",
+        snapshot.toolNumber || row.matinstrumentId || "-",
+        snapshot.lastControlDate || "-",
+        snapshot.controlBlocked ? "SPÄRRAT VID VAL" : "-",
+      ]);
+    });
+    autoTable(doc, {
+      ...tableOptions,
+      startY: y,
+      head: [["MÄTUTRUSTNING", "", "", ""], ["Mätdon", "ID-nummer", "Senaste kontroll", "Status vid val"]],
+      body: equipment.length ? equipment : [["-", "-", "-", "Ej angiven"]],
+    });
+    y = (doc.lastAutoTable?.finalY || y) + 5;
 
     autoTable(doc, {
-      startY,
-      margin: { top: 32, bottom: 22, left: 15, right: 15 },
-      theme: "grid",
-      head: [[
-        "Mätpunkt", "Nominellt mått", "Tolerans",
-        "Detalj 1", "Detalj 2", "Detalj 3", "Detalj 4", "Detalj 5",
-        "Bedömning", "Mätinstrument", "Kommentar",
-      ]],
-      body: rows,
-      styles: { fontSize: 8, cellPadding: 2, valign: "middle" },
-      headStyles: {
-        fontStyle: "bold",
-        halign: "center",
-        fillColor: [158, 6, 6],
-        textColor: 255,
-      },
-      columnStyles: {
-        0: { cellWidth: 20 }, 1: { cellWidth: 20 }, 2: { cellWidth: 20 },
-        3: { cellWidth: 20 }, 4: { cellWidth: 20 }, 5: { cellWidth: 20 },
-        6: { cellWidth: 18 }, 7: { cellWidth: 18 }, 8: { cellWidth: 28 },
-        9: { cellWidth: 32 }, 10: { cellWidth: "auto", minCellWidth: 35 },
-      },
+      ...tableOptions,
+      startY: y,
+      head: [["MÄTFÖRHÅLLANDEN"]],
+      body: [[form.mätforhallanden || "Ej angivet"]],
+    });
+    y = (doc.lastAutoTable?.finalY || y) + 5;
+
+    const resultRows = [];
+    measurements.forEach((row, index) => {
+      const fields = ["resultat_1", "resultat_2", "resultat_3", "resultat_4", "resultat_5"];
+      const entered = fields.filter((field) => String(row[field] || "").trim());
+      if (!entered.length) {
+        resultRows.push([row.mätpunkt || String(index + 1), [row.dimensionskrav, row.plustolerans].filter(Boolean).join(" "), "-", "Ej bedömd"]);
+        return;
+      }
+      entered.forEach((field) => {
+        const status = getMeasurementStatus(row, field);
+        resultRows.push([
+          row.mätpunkt || String(index + 1),
+          [row.dimensionskrav, row.plustolerans].filter(Boolean).join(" "),
+          row[field],
+          status === "Godkänd" ? "G" : status === "Underkänd" ? "EG" : "Ej bedömd",
+        ]);
+      });
+    });
+    autoTable(doc, {
+      ...tableOptions,
+      startY: y,
+      head: [["MÄTRESULTAT", "", "", ""], ["Nr / mätpunkt", "Krav (börvärde ± tolerans)", "Uppmätt värde", "Resultat (G / EG)"]],
+      body: resultRows,
+      columnStyles: { 0: { cellWidth: 35 }, 1: { cellWidth: 75 }, 2: { cellWidth: 65 }, 3: { cellWidth: "auto" } },
+    });
+    y = (doc.lastAutoTable?.finalY || y) + 5;
+
+    autoTable(doc, {
+      ...tableOptions,
+      startY: y,
+      head: [["SAMMANFATTANDE BEDÖMNING"]],
+      body: [
+        ["Slutresultat", form.sammanfattning || "Ej angivet"],
+        ["Antal mätta / avvikande", form.antalMatt || "-"],
+        ["Kommentar", measurements.map((row) => row.kommentar).filter(Boolean).join("\\n") || "-"],
+      ],
+      columnStyles: { 0: { fontStyle: "bold", cellWidth: 48 }, 1: { cellWidth: "auto" } },
+    });
+    y = (doc.lastAutoTable?.finalY || y) + 5;
+
+    autoTable(doc, {
+      ...tableOptions,
+      startY: y,
+      head: [["AVVIKELSER OCH ÅTGÄRDER"]],
+      body: [[form.avvikelseAtgarder || "Inga avvikelser angivna. Vid underkänt resultat: spärra berörd produkt/process och hänvisa till avvikelserapport MAL-011."]],
+    });
+    y = (doc.lastAutoTable?.finalY || y) + 5;
+
+    autoTable(doc, {
+      ...tableOptions,
+      startY: y,
+      head: [["SIGNERING", ""], ["Roll", "Namn, datum och signatur"]],
+      body: [
+        ["Mätning utförd av", form.mattAv || form.upprattadAv || "-"],
+        ["Granskad och godkänd av", form.granskadAv || "-"],
+      ],
+      columnStyles: { 0: { fontStyle: "bold", cellWidth: 55 }, 1: { cellWidth: "auto" } },
     });
 
-    /* ---------------- SIGNATUR ---------------- */
-    const pageHeight = doc.internal.pageSize.getHeight();
-    let sigY = (doc.lastAutoTable?.finalY || startY) + 15;
-
-    if (sigY > pageHeight - 25) {
-      doc.addPage();
-      sigY = 25;
-    }
-
-    doc.setFontSize(9);
-    doc.setTextColor(0, 0, 0);
-
-    doc.text("Sign: _________________________", 15, sigY);
-    doc.text("Datum: ________________________", pageWidth - 15, sigY, {
-      align: "right",
-    });
-
-    // Lägg samma gemensamma sidhuvud och sidfot på samtliga sidor.
-    // Detta görs sist så att tabellernas sidbrytningar redan är fastställda.
     const pageCount = doc.internal.getNumberOfPages();
     for (let page = 1; page <= pageCount; page += 1) {
       doc.setPage(page);
@@ -1019,12 +1044,76 @@ export default function Matprotokoll() {
 
         <div className="mätprotokoll-field">
           <label>
-            {t.datum}
-            <input
-              type="date"
-              value={form.datum}
-              onChange={(e) => updateForm("datum", e.target.value)}
-            />
+            {lang === "sv" ? "Protokollnummer" : "Report number"}
+            <input type="text" value={form.protokollnummer || ""} placeholder="T.ex. MP-2026-001" onChange={(e) => updateForm("protokollnummer", e.target.value)} />
+          </label>
+        </div>
+
+        <div className="mätprotokoll-field">
+          <label>
+            {lang === "sv" ? "Mätobjekt" : "Measured object"}
+            <input type="text" value={form.mätobjekt || ""} placeholder={lang === "sv" ? "Benämning, artikel-, serie- eller batchnummer" : "Description, article, serial or batch number"} onChange={(e) => updateForm("mätobjekt", e.target.value)} />
+          </label>
+        </div>
+
+        <div className="mätprotokoll-field">
+          <label>
+            {lang === "sv" ? "Specifikation / ritningsrevision" : "Specification / drawing revision"}
+            <input type="text" value={form.specifikationRevision || ""} placeholder={lang === "sv" ? "Ritningens revision eller SPE-nummer" : "Drawing revision or SPE number"} onChange={(e) => updateForm("specifikationRevision", e.target.value)} />
+          </label>
+        </div>
+
+        <div className="mätprotokoll-field">
+          <label>
+            {lang === "sv" ? "Mätmetod / instruktion" : "Measurement method / instruction"}
+            <input type="text" value={form.mätmetod || ""} placeholder="T.ex. INS-001" onChange={(e) => updateForm("mätmetod", e.target.value)} />
+          </label>
+        </div>
+
+        <div className="mätprotokoll-field" style={{ gridColumn: "1 / -1" }}>
+          <label>
+            {lang === "sv" ? "Mätförhållanden" : "Measurement conditions"}
+            <textarea rows={3} value={form.mätforhallanden || ""} placeholder={lang === "sv" ? "Temperatur, luftfuktighet, förbehandling, mätplats och andra relevanta förhållanden." : "Temperature, humidity, preparation, location and other relevant conditions."} onChange={(e) => updateForm("mätforhallanden", e.target.value)} style={{ width: "100%", boxSizing: "border-box", resize: "vertical" }} />
+          </label>
+        </div>
+
+        <div className="mätprotokoll-field">
+          <label>
+            {lang === "sv" ? "Slutresultat" : "Final result"}
+            <select value={form.sammanfattning || ""} onChange={(e) => updateForm("sammanfattning", e.target.value)}>
+              <option value="">{lang === "sv" ? "Välj bedömning…" : "Select assessment…"}</option>
+              <option value="Godkänd">{lang === "sv" ? "Godkänd" : "Approved"}</option>
+              <option value="Godkänd med anmärkning">{lang === "sv" ? "Godkänd med anmärkning" : "Approved with remarks"}</option>
+              <option value="Underkänd">{lang === "sv" ? "Underkänd" : "Rejected"}</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="mätprotokoll-field">
+          <label>
+            {lang === "sv" ? "Antal mätta / avvikande" : "Quantity measured / nonconforming"}
+            <input type="text" value={form.antalMatt || ""} placeholder={lang === "sv" ? "T.ex. 10 / 2" : "E.g. 10 / 2"} onChange={(e) => updateForm("antalMatt", e.target.value)} />
+          </label>
+        </div>
+
+        <div className="mätprotokoll-field" style={{ gridColumn: "1 / -1" }}>
+          <label>
+            {lang === "sv" ? "Avvikelser och åtgärder" : "Nonconformities and actions"}
+            <textarea rows={3} value={form.avvikelseAtgarder || ""} placeholder={lang === "sv" ? "Beskriv avvikelsen, spärrning, avvikelsenummer och beslutad åtgärd. Hänvisa till avvikelserapport MAL-011." : "Describe the nonconformity, containment, report number and action. Refer to nonconformity report MAL-011."} onChange={(e) => updateForm("avvikelseAtgarder", e.target.value)} style={{ width: "100%", boxSizing: "border-box", resize: "vertical" }} />
+          </label>
+        </div>
+
+        <div className="mätprotokoll-field">
+          <label>
+            {lang === "sv" ? "Mätning utförd av" : "Measurement performed by"}
+            <input type="text" value={form.mattAv || ""} onChange={(e) => updateForm("mattAv", e.target.value)} />
+          </label>
+        </div>
+
+        <div className="mätprotokoll-field">
+          <label>
+            {lang === "sv" ? "Granskad och godkänd av" : "Reviewed and approved by"}
+            <input type="text" value={form.granskadAv || ""} onChange={(e) => updateForm("granskadAv", e.target.value)} />
           </label>
         </div>
       </div>
